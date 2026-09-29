@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "TwoLink",
+    "slug": "twolink",
+    "scheme": "twolink",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/icon.png",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.twolink.chat",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "CADisableMinimumFrameDurationOnPhone": true
+      }
+    },
+    "android": {
+      "package": "com.twolink.chat",
+      "adaptiveIcon": {
+        "backgroundColor": "#171819"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-image",
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F2F2F2",
+          "dark": {
+            "backgroundColor": "#171819"
+          }
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "26.0"
+          }
+        }
+      ],
+      "expo-font"
+    ],
+    "platforms": ["android", "ios"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
