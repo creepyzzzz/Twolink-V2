@@ -44,9 +44,18 @@
       ],
       "expo-font"
     ],
-    "platforms": ["android", "ios"],
+    "platforms": [
+      "android",
+      "ios"
+    ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6e8e7b0a-88dd-4055-b7f7-16f37a2aaa83"
+      }
     }
   }
 }
