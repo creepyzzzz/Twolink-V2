@@ -54,7 +54,7 @@ export function usePortraitNavigation(person: Person, location = "header") {
   const open = () => {
     if (useFlight.getState().active) return;
     const navigate = () => {
-      router.push({ pathname: "/astra/chat/[id]", params: { id: person.id } });
+      router.push({ pathname: "/chat/[id]", params: { id: person.id } });
     };
     if (reduced || !ref.current) return navigate();
     ref.current.measureInWindow((x, y, width) => {

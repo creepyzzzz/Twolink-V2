@@ -45,6 +45,8 @@ export default function RootLayout() {
         <KeyboardProvider>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="chat" />
             <Stack.Screen name="fable" />
             <Stack.Screen name="astra" />
           </Stack>

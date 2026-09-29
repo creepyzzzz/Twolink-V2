@@ -6,9 +6,11 @@ import {
   isLiquidGlassAvailable,
   type GlassColorScheme,
 } from "expo-glass-effect";
+import { AndroidGlassView } from "expo-android-glass-view";
 import { LinearGradient } from "expo-linear-gradient";
 import type { ReactNode } from "react";
 import {
+  Platform,
   StyleSheet,
   View,
   type StyleProp,
@@ -19,18 +21,18 @@ import {
 /**
  * TwoLink glass abstraction.
  *
- * On iOS 26+ with the liquid-glass APIs available, this renders Apple's native
- * material through expo-glass-effect (pixel-faithful with the upstream
- * liquid-glass-chat-ui cookbooks).
+ * - iOS 26+ with the liquid-glass APIs available: Apple's native material
+ *   through expo-glass-effect (pixel-faithful with the upstream
+ *   liquid-glass-chat-ui cookbooks).
+ * - Android: real-time native refraction through expo-android-glass-view
+ *   (Jetpack Compose + AGSL on API 33+; the library's own graceful fallbacks
+ *   below that). This is the big v2 upgrade — every surface routed through
+ *   here now genuinely refracts on Tariq's phone instead of faking it
+ *   with blur.
+ * - Older iOS / web: composed fallback (expo-blur + tint wash + sheen +
+ *   hairline border).
  *
- * On Android (and older iOS), expo-glass-effect has no native material to wrap,
- * so we fall back to a composed fake: expo-blur for the frosted backdrop, a
- * translucent tint wash, a subtle top-edge sheen (LinearGradient), and a
- * hairline border. It reads as "glass" but it does NOT refract content the way
- * the native iOS 26 material does — refraction is iOS-only.
- *
- * Both cookbooks route their glass surfaces through here so the UI degrades
- * gracefully on Android while staying native on iOS.
+ * Both cookbooks route their glass surfaces through here.
  */
 export const isNativeGlassSupported =
   process.env.EXPO_OS === "ios" &&
@@ -48,6 +50,10 @@ type AdaptiveGlassViewProps = ViewProps & {
   colorScheme?: GlassColorScheme;
   /** Used only for the Android fallback when colorScheme is "auto"/undefined. */
   fallbackScheme?: "light" | "dark";
+  /** Android-only knobs for the native refraction (ignored on iOS). */
+  blurRadius?: number;
+  refractionHeight?: number;
+  refractionAmount?: number;
   children?: ReactNode;
 };
 
@@ -62,9 +68,30 @@ export function AdaptiveGlassView({
   isInteractive = false,
   colorScheme,
   fallbackScheme = "light",
+  blurRadius,
+  refractionHeight,
+  refractionAmount,
   children,
   ...rest
 }: AdaptiveGlassViewProps) {
+  // Android: real native refraction via expo-android-glass-view. The library
+  // reads cornerRadius from style.borderRadius itself and handles its own
+  // graceful fallbacks on older Android versions.
+  if (Platform.OS === "android") {
+    return (
+      <AndroidGlassView
+        tintColor={tintColor}
+        blurRadius={blurRadius}
+        refractionHeight={refractionHeight}
+        refractionAmount={refractionAmount}
+        style={style}
+        {...rest}
+      >
+        {children}
+      </AndroidGlassView>
+    );
+  }
+
   if (isNativeGlassSupported) {
     return (
       <NativeGlassView

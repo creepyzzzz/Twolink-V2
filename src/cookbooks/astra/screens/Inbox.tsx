@@ -487,7 +487,7 @@ function PreloadRoutes({ firstConversation }: { firstConversation?: string }) {
     // Re-prime it after returning, when the preceding transition has settled.
     const timer = setTimeout(() => {
       router.prefetch({
-        pathname: "/astra/chat/[id]",
+        pathname: "/chat/[id]",
         params: { id: firstConversation },
       });
       router.prefetch("/astra/compose");
