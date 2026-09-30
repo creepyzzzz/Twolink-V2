@@ -1,3 +1,4 @@
+import { BlurView } from "expo-blur";
 import { memo } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { ZoomIn } from "react-native-reanimated";
@@ -54,11 +55,10 @@ export const ReactionOverlay = memo(function ReactionOverlay({
         accessibilityRole="button"
         accessibilityLabel="Dismiss reactions"
         onPress={onClose}
-        style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: "rgba(10,10,12,0.22)" },
-        ]}
-      />
+        style={StyleSheet.absoluteFill}
+      >
+        <BlurView intensity={48} tint="light" style={StyleSheet.absoluteFill} />
+      </Pressable>
       <Animated.View
         entering={ZoomIn.duration(160)}
         style={[styles.position, { top, left, boxShadow: theme.lift }]}
