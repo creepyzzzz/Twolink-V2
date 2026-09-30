@@ -25,8 +25,10 @@ export default function TabsLayout() {
             screenOptions={{
               headerShown: false,
               // Scenes are transparent — the shared ScreenBackground sits behind.
-              // Keep content clear of the floating buttons.
-              sceneStyle: { backgroundColor: "transparent", paddingBottom: 100 },
+              // No bottom clearance: the lists scroll UNDER the floating glass
+              // buttons (iOS-style), so content visibly blurs through them.
+              // Each screen keeps its own safe-area inset padding.
+              sceneStyle: { backgroundColor: "transparent" },
             }}
           >
             <Tabs.Screen name="chats" />
