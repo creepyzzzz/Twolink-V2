@@ -264,7 +264,7 @@ function Orb({
         >
           <Text
             numberOfLines={1}
-            style={{ fontSize: 12, fontWeight: "500", color: t.text }}
+            style={{ fontSize: 12, fontFamily: "SFProText-Medium", color: t.text }}
           >
             {person.short}
           </Text>

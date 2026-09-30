@@ -1,4 +1,5 @@
 import { Asset } from "expo-asset";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
@@ -18,6 +19,14 @@ export const unstable_settings = { initialRouteName: "index" };
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
+  // SF Pro (testing only — not licensed for distribution). Each weight is
+  // its own family; text styles reference the weight directly via fontFamily.
+  const [fontsLoaded] = useFonts({
+    "SFProText-Regular": require("../../assets/fonts/SF-Pro-Text-Regular.otf"),
+    "SFProText-Medium": require("../../assets/fonts/SF-Pro-Text-Medium.otf"),
+    "SFProText-Semibold": require("../../assets/fonts/SF-Pro-Text-Semibold.otf"),
+    "SFProText-Bold": require("../../assets/fonts/SF-Pro-Text-Bold.otf"),
+  });
   useEffect(() => {
     let mounted = true;
     const people = [ME, FABLE_TEAM, ...PEOPLE];
@@ -36,9 +45,9 @@ export default function RootLayout() {
     };
   }, []);
   useEffect(() => {
-    if (ready) void SplashScreen.hideAsync();
-  }, [ready]);
-  if (!ready) return null;
+    if (ready && fontsLoaded) void SplashScreen.hideAsync();
+  }, [ready, fontsLoaded]);
+  if (!ready || !fontsLoaded) return null;
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>

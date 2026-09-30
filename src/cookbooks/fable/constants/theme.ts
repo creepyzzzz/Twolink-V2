@@ -71,21 +71,21 @@ export const Space = {
 
 /** Type ramp — iOS system font, one display size per screen. */
 export const Type = {
-  navTitle: { fontSize: 17, fontWeight: "600" as const, letterSpacing: -0.2 },
-  name: { fontSize: 17, fontWeight: "600" as const, letterSpacing: -0.3 },
+  navTitle: { fontSize: 17, fontFamily: "SFProText-Semibold" as const, letterSpacing: -0.2 },
+  name: { fontSize: 17, fontFamily: "SFProText-Semibold" as const, letterSpacing: -0.3 },
   body: {
     fontSize: 17,
-    fontWeight: "400" as const,
+    fontFamily: "SFProText-Regular" as const,
     letterSpacing: -0.2,
     lineHeight: 23,
   },
   preview: {
     fontSize: 15,
-    fontWeight: "400" as const,
+    fontFamily: "SFProText-Regular" as const,
     letterSpacing: -0.1,
     lineHeight: 20,
   },
-  meta: { fontSize: 13, fontWeight: "400" as const, letterSpacing: -0.1 },
-  caption: { fontSize: 11.5, fontWeight: "500" as const, letterSpacing: -0.1 },
-  badge: { fontSize: 12, fontWeight: "600" as const },
+  meta: { fontSize: 13, fontFamily: "SFProText-Regular" as const, letterSpacing: -0.1 },
+  caption: { fontSize: 11.5, fontFamily: "SFProText-Medium" as const, letterSpacing: -0.1 },
+  badge: { fontSize: 12, fontFamily: "SFProText-Semibold" as const },
 } as const;

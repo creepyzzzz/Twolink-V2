@@ -56,3 +56,7 @@ UI cookbooks, motion specs, artwork, and docs are adapted from [Appllama/liquid-
 ### SF Symbols licensing
 
 Icons in `src/ui/sf-icons.ts` are Apple SF Symbols artwork (extracted via `@bradleyhodges/sfsymbols`). Apple's license restricts SF Symbols to Apple platforms — shipping them in this Android app is a known, accepted trade-off by the project owner. Revisit before any Play Store release.
+
+### SF Pro font licensing
+
+`assets/fonts/SF-Pro-Text-*.otf` are Apple's San Francisco Pro fonts, bundled for on-device testing only at the project owner's request. Apple's license restricts SF Pro to Apple platforms — these files must be removed (or replaced with a licensed alternative such as Inter) before any public distribution, including a Play Store release.

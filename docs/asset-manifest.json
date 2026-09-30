@@ -188,5 +188,25 @@
     "path": "assets/images/icon.png",
     "bytes": 88042,
     "sha256": "bc5c19ee61eb13932ac13eb820bc4685793910135e51810bf8da07972264631c"
+  },
+  {
+    "path": "assets/fonts/SF-Pro-Text-Regular.otf",
+    "bytes": 2230172,
+    "sha256": "3afd2ac95c5bff8f3ba32f0d6586400947674739d857e73f4d7b6394b0ae8b77"
+  },
+  {
+    "path": "assets/fonts/SF-Pro-Text-Medium.otf",
+    "bytes": 2300344,
+    "sha256": "90b3647c8d2dfc8cbb62233a02982d663b74c6dc6e450cd1be7fb714b5333b54"
+  },
+  {
+    "path": "assets/fonts/SF-Pro-Text-Semibold.otf",
+    "bytes": 2300840,
+    "sha256": "14097343b49548e81026b328e8b9b5d504c02976b8a4c53be10b5b4505d6b7ac"
+  },
+  {
+    "path": "assets/fonts/SF-Pro-Text-Bold.otf",
+    "bytes": 2275752,
+    "sha256": "fef7eb65390a41bdd247b012a0e018750afd52143c29892b821a6a5796516aca"
   }
 ]

@@ -24,7 +24,7 @@ export default function Compose() {
           style={{
             flex: 1,
             fontSize: 26,
-            fontWeight: "600",
+            fontFamily: "SFProText-Semibold",
             color: theme.label,
           }}
         >

@@ -23,7 +23,7 @@ export default function Settings() {
           style={{
             flex: 1,
             fontSize: 26,
-            fontWeight: "600",
+            fontFamily: "SFProText-Semibold",
             color: theme.label,
           }}
         >
@@ -39,7 +39,7 @@ export default function Settings() {
         style={{
           marginTop: 28,
           fontSize: 17,
-          fontWeight: "600",
+          fontFamily: "SFProText-Semibold",
           color: theme.label,
         }}
       >
@@ -86,7 +86,7 @@ export default function Settings() {
         onPress={() => router.dismissTo("/")}
         style={{ paddingVertical: 16 }}
       >
-        <Text style={{ fontSize: 17, fontWeight: "600", color: theme.label }}>
+        <Text style={{ fontSize: 17, fontFamily: "SFProText-Semibold", color: theme.label }}>
           All cookbooks
         </Text>
       </Pressable>

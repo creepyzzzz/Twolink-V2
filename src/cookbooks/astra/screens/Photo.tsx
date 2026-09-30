@@ -53,7 +53,7 @@ export default function Photo() {
           zIndex: 10,
         }}
       >
-        <Text style={{ fontSize: 16, fontWeight: "600", color: t.text }}>
+        <Text style={{ fontSize: 16, fontFamily: "SFProText-Semibold", color: t.text }}>
           A little escape
         </Text>
         <GlassButton
@@ -86,7 +86,7 @@ export default function Photo() {
         <Text
           style={{
             fontSize: 24,
-            fontWeight: "600",
+            fontFamily: "SFProText-Semibold",
             letterSpacing: -0.6,
             color: t.text,
           }}

@@ -199,7 +199,7 @@ function Conversation({ id }: { id: string }) {
               numberOfLines={1}
               style={{
                 fontSize: 16,
-                fontWeight: "600",
+                fontFamily: "SFProText-Semibold",
                 letterSpacing: -0.4,
                 color: t.text,
               }}
@@ -248,7 +248,7 @@ function Conversation({ id }: { id: string }) {
                 <Text
                   style={{
                     fontSize: 11,
-                    fontWeight: "500",
+                    fontFamily: "SFProText-Medium",
                     letterSpacing: 0.5,
                     color: t.muted,
                   }}
@@ -306,7 +306,7 @@ function Conversation({ id }: { id: string }) {
                 borderRadius: 24,
               }}
             >
-              <Text style={{ color: t.text, fontSize: 13, fontWeight: "500" }}>
+              <Text style={{ color: t.text, fontSize: 13, fontFamily: "SFProText-Medium" }}>
                 {toast}
               </Text>
             </Glass>
@@ -396,7 +396,7 @@ function Conversation({ id }: { id: string }) {
               </Pressable>
               <View style={{ flex: 1, gap: 5 }}>
                 <Text
-                  style={{ fontSize: 16, fontWeight: "600", color: t.text }}
+                  style={{ fontSize: 16, fontFamily: "SFProText-Semibold", color: t.text }}
                 >
                   A little escape
                 </Text>
@@ -658,7 +658,7 @@ function Bubble({
                       <Text
                         style={{
                           fontSize: 11,
-                          fontWeight: "600",
+                          fontFamily: "SFProText-Semibold",
                           color: "#FFF",
                         }}
                       >

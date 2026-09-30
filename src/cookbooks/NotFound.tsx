@@ -17,7 +17,7 @@ export function NotFound({ home = "/" }: { home?: "/" | "/fable" | "/astra" }) {
       <Text
         style={{
           fontSize: 24,
-          fontWeight: "600",
+          fontFamily: "SFProText-Semibold",
           color: dark ? "#F5F5F7" : "#17191B",
         }}
       >

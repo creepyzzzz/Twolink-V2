@@ -473,7 +473,7 @@ export default function ConversationScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  notFound: { color: "#17191B", fontSize: 17, fontWeight: "600" },
+  notFound: { color: "#17191B", fontSize: 17, fontFamily: "SFProText-Semibold" },
   backBtn: {
     marginTop: 16,
     paddingHorizontal: 20,
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: "rgba(61,146,233,0.9)",
   },
-  backBtnText: { color: "#fff", fontWeight: "600" },
+  backBtnText: { color: "#fff", fontFamily: "SFProText-Semibold" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -491,11 +491,11 @@ const styles = StyleSheet.create({
   headerBack: { padding: 6 },
   headerAvatar: { width: 40, height: 40, borderRadius: 20, marginLeft: 4 },
   headerText: { marginLeft: 10, flex: 1 },
-  headerName: { color: "#17191B", fontSize: 17, fontWeight: "700" },
+  headerName: { color: "#17191B", fontSize: 17, fontFamily: "SFProText-Bold" },
   headerStatus: {
     color: ACCENT,
     fontSize: 12.5,
-    fontWeight: "600",
+    fontFamily: "SFProText-Semibold",
     marginTop: 1,
   },
   chatWrap: { flex: 1 },

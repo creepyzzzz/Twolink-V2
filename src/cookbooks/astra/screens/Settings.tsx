@@ -25,7 +25,7 @@ export default function Settings() {
           style={{
             flex: 1,
             fontSize: 26,
-            fontWeight: "600",
+            fontFamily: "SFProText-Semibold",
             letterSpacing: -0.8,
             color: t.text,
           }}
@@ -40,7 +40,7 @@ export default function Settings() {
         />
       </View>
       <View style={{ gap: 12, paddingTop: 28 }}>
-        <Text style={{ fontSize: 18, fontWeight: "600", color: t.text }}>
+        <Text style={{ fontSize: 18, fontFamily: "SFProText-Semibold", color: t.text }}>
           Good company. Less noise.
         </Text>
         <Text style={{ fontSize: 14, lineHeight: 21, color: t.muted }}>
@@ -86,7 +86,7 @@ export default function Settings() {
         onPress={() => router.dismissTo("/")}
         style={{ paddingVertical: 16 }}
       >
-        <Text style={{ color: t.text, fontSize: 17, fontWeight: "600" }}>
+        <Text style={{ color: t.text, fontSize: 17, fontFamily: "SFProText-Semibold" }}>
           All cookbooks
         </Text>
       </Pressable>

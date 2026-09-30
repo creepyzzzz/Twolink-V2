@@ -23,7 +23,7 @@ export default function Compose() {
         <Text
           style={{
             fontSize: 26,
-            fontWeight: "600",
+            fontFamily: "SFProText-Semibold",
             letterSpacing: -0.8,
             color: t.text,
           }}
@@ -84,7 +84,7 @@ export default function Compose() {
           >
             <Avatar index={item.avatar} size={52} />
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ fontSize: 17, fontWeight: "500", color: t.text }}>
+              <Text style={{ fontSize: 17, fontFamily: "SFProText-Medium", color: t.text }}>
                 {item.name}
               </Text>
               <Text style={{ fontSize: 12, color: t.muted }}>

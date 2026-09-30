@@ -145,10 +145,9 @@ export default function Inbox() {
             adjustsFontSizeToFit
             style={{
               fontSize: 27,
-              fontWeight: "700",
+              fontFamily: "SFProText-Bold",
               letterSpacing: -1.0,
               color: t.text,
-              fontFamily: "System",
             }}
           >
             Messages
@@ -184,7 +183,7 @@ export default function Inbox() {
             >
               <Text
                 numberOfLines={1}
-                style={{ fontSize: 11, fontWeight: "500", color: t.muted }}
+                style={{ fontSize: 11, fontFamily: "SFProText-Medium", color: t.muted }}
               >
                 Your circle
               </Text>
@@ -290,7 +289,8 @@ export default function Inbox() {
                   <Text
                     style={{
                       fontSize: 12,
-                      fontWeight: tab === filter ? "600" : "500",
+                      fontFamily:
+                        tab === filter ? "SFProText-Semibold" : "SFProText-Medium",
                       color: tab === filter ? t.text : t.muted,
                     }}
                   >
@@ -340,7 +340,7 @@ export default function Inbox() {
                     color={t.muted}
                   />
                   <Text
-                    style={{ fontSize: 19, fontWeight: "600", color: t.text }}
+                    style={{ fontSize: 19, fontFamily: "SFProText-Semibold", color: t.text }}
                   >
                     {query
                       ? "No conversations found"
@@ -434,7 +434,7 @@ function ChatRow({
             style={{
               flex: 1,
               fontSize: 16,
-              fontWeight: unread ? "600" : "500",
+              fontFamily: unread ? "SFProText-Semibold" : "SFProText-Medium",
               letterSpacing: -0.25,
               color: t.text,
             }}
