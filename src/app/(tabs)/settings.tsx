@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   AndroidGlassSlider,
@@ -10,6 +10,7 @@ import {
 import { SFIcon } from "../../ui/SFIcon";
 import { AdaptiveGlassView } from "../../ui/GlassView";
 import { ScreenBackground } from "../../ui/ScreenBackground";
+import { useFable } from "../../cookbooks/fable/data/store";
 
 const ACCENT = "#3D92E9";
 const INK = "#17191B";
@@ -61,10 +62,12 @@ function ToggleRow({
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const [readReceipts, setReadReceipts] = useState(true);
-  const [typingIndicators, setTypingIndicators] = useState(true);
-  const [notifications, setNotifications] = useState(true);
-  const [glassIntensity, setGlassIntensity] = useState(0.55);
+  const router = useRouter();
+  const settings = useFable((s) => s.settings);
+  const setSettings = useFable((s) => s.setSettings);
+  const { readReceipts, typingIndicators, notifications, glassIntensity } =
+    settings;
+  const profileName = useFable((s) => s.profile.name);
   // Shrinks the tab bar to its compact pill while the settings scroll.
   const minimizeOnScroll = useMinimizeOnScrollHandler();
 
@@ -84,33 +87,42 @@ export default function SettingsScreen() {
         <Text style={styles.title}>Settings</Text>
 
         {/* Profile */}
-        <AdaptiveGlassView
-          style={styles.profile}
-          tintColor="rgba(255,255,255,0.55)"
-          blurRadius={18}
+        {/* Profile — opens My Profile. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open my profile"
+          onPress={() => router.push("/me")}
         >
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>T</Text>
-          </View>
-          <View style={styles.profileText}>
-            <Text style={styles.profileName}>Tariq</Text>
-            <Text style={styles.profileSub}>TwoLink private build</Text>
-          </View>
-          <SFIcon name="chevron.right" size={20} color={INK_FAINT} />
-        </AdaptiveGlassView>
+          <AdaptiveGlassView
+            style={styles.profile}
+            tintColor="rgba(255,255,255,0.55)"
+            blurRadius={18}
+          >
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {profileName.trim().charAt(0).toUpperCase() || "T"}
+              </Text>
+            </View>
+            <View style={styles.profileText}>
+              <Text style={styles.profileName}>{profileName}</Text>
+              <Text style={styles.profileSub}>TwoLink private build</Text>
+            </View>
+            <SFIcon name="chevron.right" size={20} color={INK_FAINT} />
+          </AdaptiveGlassView>
+        </Pressable>
 
         <Section title="Privacy">
           <ToggleRow
             label="Read receipts"
             hint="Let others see when you've read their messages"
             value={readReceipts}
-            onChange={setReadReceipts}
+            onChange={(v) => setSettings({ readReceipts: v })}
           />
           <ToggleRow
             label="Typing indicators"
             hint="Show when you're typing a reply"
             value={typingIndicators}
-            onChange={setTypingIndicators}
+            onChange={(v) => setSettings({ typingIndicators: v })}
             last
           />
         </Section>
@@ -119,7 +131,7 @@ export default function SettingsScreen() {
           <ToggleRow
             label="Message notifications"
             value={notifications}
-            onChange={setNotifications}
+            onChange={(v) => setSettings({ notifications: v })}
             last
           />
         </Section>
@@ -136,7 +148,7 @@ export default function SettingsScreen() {
               value={glassIntensity}
               minimumValue={0}
               maximumValue={1}
-              onValueChange={setGlassIntensity}
+              onValueChange={(v) => setSettings({ glassIntensity: v })}
               accentColor={ACCENT}
               style={styles.slider}
             />
@@ -159,7 +171,12 @@ export default function SettingsScreen() {
             <Text style={styles.rowLabel}>Version</Text>
             <Text style={styles.rowValue}>2.0.0 (liquid glass)</Text>
           </View>
-          <Pressable style={styles.row} accessibilityRole="button">
+          <Pressable
+            style={styles.row}
+            accessibilityRole="button"
+            accessibilityLabel="Open-source licenses"
+            onPress={() => router.push("/licenses")}
+          >
             <Text style={styles.rowLabel}>Open-source licenses</Text>
             <SFIcon name="chevron.right" size={20} color={INK_FAINT} />
           </Pressable>

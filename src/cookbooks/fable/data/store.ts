@@ -11,6 +11,12 @@ export type Profile = {
   about: string;
   face: AvatarFace;
 };
+export type AppSettings = {
+  readReceipts: boolean;
+  typingIndicators: boolean;
+  notifications: boolean;
+  glassIntensity: number;
+};
 type State = {
   threads: Record<string, Message[]>;
   read: string[];
@@ -20,6 +26,8 @@ type State = {
   theme: "system" | "light" | "dark";
   profile: Profile;
   setProfile: (patch: Partial<Profile>) => void;
+  settings: AppSettings;
+  setSettings: (patch: Partial<AppSettings>) => void;
   append: (
     id: string,
     text: string,
@@ -50,6 +58,14 @@ export const useFable = create<State>()(
       },
       setProfile: (patch) =>
         set((state) => ({ profile: { ...state.profile, ...patch } })),
+      settings: {
+        readReceipts: true,
+        typingIndicators: true,
+        notifications: true,
+        glassIntensity: 0.55,
+      },
+      setSettings: (patch) =>
+        set((state) => ({ settings: { ...state.settings, ...patch } })),
       append: (id, text, from = "me", photo = false, opts) => {
         const person = PEOPLE_BY_ID[id];
         if (!person || (!photo && !text.trim())) return;
