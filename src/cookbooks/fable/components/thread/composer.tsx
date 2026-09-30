@@ -5,12 +5,14 @@ import {
   Keyboard,
   Pressable,
   StyleSheet,
+  Text,
   TextInput,
   View,
   type LayoutChangeEvent,
 } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import Animated, {
+  FadeInDown,
   LinearTransition,
   useAnimatedStyle,
   useSharedValue,
@@ -24,11 +26,20 @@ import { useTheme } from "../../hooks/use-theme";
 
 const BTN = 44;
 
+export type ReplyPreview = {
+  name: string;
+  text: string;
+  photo: boolean;
+};
+
 type Props = {
   insetBottom: number;
   onSend: (text: string) => void;
   onAttach: () => void;
   onLayoutHeight: (h: number) => void; // full height incl. safe-area padding
+  /** When set, a slim iMessage-style "replying to" strip sits above the input. */
+  replyPreview?: ReplyPreview | null;
+  onCancelReply?: () => void;
 };
 
 /**
@@ -42,6 +53,8 @@ export function Composer({
   onSend,
   onAttach,
   onLayoutHeight,
+  replyPreview,
+  onCancelReply,
 }: Props) {
   const theme = useTheme();
   const inputRef = useRef<TextInput>(null);
@@ -92,6 +105,39 @@ export function Composer({
           style={[styles.lift, { boxShadow: theme.lift }]}
         >
           <Glass style={styles.card}>
+            {replyPreview && (
+              <Animated.View
+                entering={FadeInDown.duration(220).easing(EASE_OUT.factory())}
+                style={styles.replyRow}
+              >
+                <View
+                  style={[styles.replyBar, { backgroundColor: Accent }]}
+                />
+                <View style={styles.replyTextWrap}>
+                  <Text
+                    numberOfLines={1}
+                    style={[Type.caption, { color: Accent }]}
+                  >
+                    {replyPreview.name}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={[Type.preview, { color: theme.secondary }]}
+                  >
+                    {replyPreview.photo ? "Photo" : replyPreview.text}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel reply"
+                  onPress={onCancelReply}
+                  hitSlop={8}
+                  style={styles.replyClose}
+                >
+                  <SFIcon name="xmark" size={12} color={theme.tertiary} />
+                </Pressable>
+              </Animated.View>
+            )}
             <TextInput
               ref={inputRef}
               accessibilityLabel="Message"
@@ -192,6 +238,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: Space[3],
     paddingTop: 2,
     paddingBottom: Space[3],
+  },
+  replyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: Space[2],
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  replyBar: {
+    width: 3,
+    alignSelf: "stretch",
+    borderRadius: 1.5,
+  },
+  replyTextWrap: {
+    flex: 1,
+    gap: 1,
+  },
+  replyClose: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   input: {
     maxHeight: 138,

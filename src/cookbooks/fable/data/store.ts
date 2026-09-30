@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createMMKV } from "react-native-mmkv";
-import { messagesFor, type Message } from "./messages";
+import { messagesFor, type Message, type ReplyQuote } from "./messages";
 import { PEOPLE_BY_ID } from "./people";
 
 const storage = createMMKV({ id: "fable-local-v1" });
@@ -15,6 +15,7 @@ type State = {
     text: string,
     from?: Message["from"],
     photo?: boolean,
+    opts?: { photoUri?: string; replyTo?: ReplyQuote },
   ) => void;
   markRead: (id: string) => void;
   setTheme: (theme: State["theme"]) => void;
@@ -27,7 +28,7 @@ export const useFable = create<State>()(
       threads: {},
       read: [],
       theme: "system",
-      append: (id, text, from = "me", photo = false) => {
+      append: (id, text, from = "me", photo = false, opts) => {
         const person = PEOPLE_BY_ID[id];
         if (!person || (!photo && !text.trim())) return;
         set((state) => ({
@@ -41,6 +42,8 @@ export const useFable = create<State>()(
                 text: text.trim(),
                 at: "now",
                 photo,
+                ...(opts?.photoUri ? { photoUri: opts.photoUri } : {}),
+                ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
               },
             ],
           },

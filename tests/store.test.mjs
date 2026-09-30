@@ -150,3 +150,29 @@ test("Cookbook persistence uses separate namespaces and survives store hydration
   assert.equal(astra.getState().threads.mira.at(-1).text, "Astra only");
   assert.equal(fable.getState().threads.mara.at(-1).text, "Fable only");
 });
+test("Fable: appending a photo with a URI and a reply quote persists both", () => {
+  fable.getState().reset();
+  const target = fable.getState().threads.mara ?? null;
+  fable
+    .getState()
+    .append("mara", "Look at this", "me", false, {
+      replyTo: { id: "m1", from: "them", text: "Are you still up?", photo: false },
+    });
+  const withQuote = fable.getState().threads.mara.at(-1);
+  assert.equal(withQuote.text, "Look at this");
+  assert.deepEqual(withQuote.replyTo, {
+    id: "m1",
+    from: "them",
+    text: "Are you still up?",
+    photo: false,
+  });
+  assert.equal(withQuote.photoUri, undefined);
+  fable
+    .getState()
+    .append("mara", "", "me", true, { photoUri: "file:///tmp/picked.jpg" });
+  const photo = fable.getState().threads.mara.at(-1);
+  assert.equal(photo.photo, true);
+  assert.equal(photo.photoUri, "file:///tmp/picked.jpg");
+  assert.equal(photo.replyTo, undefined);
+  assert.equal(target, null);
+});

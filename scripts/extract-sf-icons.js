@@ -29,6 +29,7 @@ const NAMES = [
   "mic.fill",
   "paperplane",
   "circle",
+  "arrowshape.turn.up.left",
 ];
 
 const bySource = {};

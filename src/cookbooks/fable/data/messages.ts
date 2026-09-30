@@ -1,9 +1,21 @@
+/** A frozen snapshot of the message being replied to. */
+export type ReplyQuote = {
+  id: string;
+  from: "me" | "them";
+  text: string;
+  photo?: boolean;
+};
+
 export type Message = {
   id: string;
   from: "me" | "them";
   text: string;
   at: string;
   photo?: boolean;
+  /** Local URI of a device photo (falls back to the person's story art). */
+  photoUri?: string;
+  /** The message this one replies to, if any. */
+  replyTo?: ReplyQuote;
   /** Emoji tapbacks on this message (long-press to add/remove). */
   reactions?: string[];
 };

@@ -1,3 +1,4 @@
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import {
@@ -8,13 +9,14 @@ import {
   useState,
   type Ref,
 } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { KeyboardChatScrollView } from "react-native-keyboard-controller";
 import Animated, { useAnimatedRef } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bubble } from "../components/thread/bubble";
-import { Composer } from "../components/thread/composer";
+import { Composer, type ReplyPreview } from "../components/thread/composer";
+import { PhotoViewer } from "../components/thread/photo-viewer";
 import {
   ReactionOverlay,
   type ReactionTarget,
@@ -59,6 +61,12 @@ function ThreadScreen({ id }: { id: string }) {
     message: Message;
     target: ReactionTarget;
   } | null>(null);
+  // Swipe-to-reply target: arms the composer's reply strip.
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  // Fullscreen photo viewer source.
+  const [viewerSource, setViewerSource] = useState<
+    { uri: string } | number | null
+  >(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const positioned = useRef(false);
   const initialFrame = useRef<number | null>(null);
@@ -111,8 +119,17 @@ function ThreadScreen({ id }: { id: string }) {
   );
 
   const onSend = useCallback(
-    (text: string, photo = false) => {
-      useFable.getState().append(id, text, "me", photo);
+    (text: string) => {
+      const quote = replyTo
+        ? {
+            id: replyTo.id,
+            from: replyTo.from,
+            text: replyTo.text,
+            photo: replyTo.photo,
+          }
+        : undefined;
+      useFable.getState().append(id, text, "me", false, { replyTo: quote });
+      setReplyTo(null);
       scrollToEnd();
       const t1 = setTimeout(() => {
         setTyping(true);
@@ -129,8 +146,56 @@ function ThreadScreen({ id }: { id: string }) {
       }, 1800);
       timers.current.push(t1, t2);
     },
-    [scrollToEnd, id],
+    [scrollToEnd, id, replyTo],
   );
+
+  const onAttach = useCallback(async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Photos",
+        "Allow photo access to share pictures from your gallery.",
+      );
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.85,
+    });
+    if (res.canceled || res.assets.length === 0) return;
+    const quote = replyTo
+      ? {
+          id: replyTo.id,
+          from: replyTo.from,
+          text: replyTo.text,
+          photo: replyTo.photo,
+        }
+      : undefined;
+    useFable
+      .getState()
+      .append(id, "", "me", true, {
+        photoUri: res.assets[0].uri,
+        replyTo: quote,
+      });
+    setReplyTo(null);
+    scrollToEnd();
+  }, [id, replyTo, scrollToEnd]);
+
+  const onOpenPhoto = useCallback(
+    (message: Message) =>
+      setViewerSource(
+        message.photoUri ? { uri: message.photoUri } : person.story,
+      ),
+    [person.story],
+  );
+
+  const replyPreview: ReplyPreview | null = replyTo
+    ? {
+        name: replyTo.from === "me" ? "You" : person.first,
+        text: replyTo.text,
+        photo: !!replyTo.photo,
+      }
+    : null;
 
   const rows = useMemo(
     () =>
@@ -202,6 +267,8 @@ function ThreadScreen({ id }: { id: string }) {
                 animate={animate}
                 onReact={onReact}
                 reacting={reaction?.message.id === msg.id}
+                onReply={setReplyTo}
+                onOpenPhoto={onOpenPhoto}
               />
             </View>
           ))}
@@ -212,8 +279,10 @@ function ThreadScreen({ id }: { id: string }) {
       <Composer
         insetBottom={insets.bottom}
         onSend={onSend}
-        onAttach={() => onSend("A moment worth sharing.", true)}
+        onAttach={onAttach}
         onLayoutHeight={setComposerHeight}
+        replyPreview={replyPreview}
+        onCancelReply={() => setReplyTo(null)}
       />
 
       {reaction && (
@@ -222,6 +291,13 @@ function ThreadScreen({ id }: { id: string }) {
           selected={reaction.message.reactions ?? []}
           onPick={onPickReaction}
           onClose={() => setReaction(null)}
+        />
+      )}
+
+      {viewerSource && (
+        <PhotoViewer
+          source={viewerSource}
+          onClose={() => setViewerSource(null)}
         />
       )}
     </View>

@@ -45,7 +45,13 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow TwoLink to access your photos so you can share them in chats."
+        }
+      ]
     ],
     "platforms": [
       "android",
