@@ -241,8 +241,10 @@ export default function ChatsScreen() {
       >
         <View style={{ height: STORIES_H }} />
         {/* Search sits at the top of the list flow, just under the title at
-            rest — the iOS pattern. It scrolls with the list. */}
-        <View style={{ paddingHorizontal: 20 }}>
+            rest — the iOS pattern. It scrolls with the list. The 28pt top
+            margin clears the header's 28pt fade tail, so the pill's top edge
+            is never washed out by it. */}
+        <View style={{ paddingHorizontal: 20, marginTop: 28 }}>
           <Glass
             style={{
               height: 44,
