@@ -3,6 +3,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -39,6 +40,13 @@ const ScrollYContext = createContext<SharedValue<number> | null>(null);
  * races, no cancelled pans snapping the sheet out from under the finger.
  */
 const ScrollEnabledContext = createContext<boolean>(true);
+/**
+ * The native gesture backing the sheet's scroll view. The sheet's pan runs
+ * simultaneous with it (see below) so the two can arbitrate each drag
+ * instead of the pan cancelling the scroll view's touch stream.
+ */
+const NativeGestureContext =
+  createContext<ReturnType<typeof Gesture.Native> | null>(null);
 
 /**
  * A ScrollView that cooperates with the Sheet, iOS-style:
@@ -51,6 +59,7 @@ export function SheetScrollView({
 }: ScrollViewProps & { children: ReactNode }) {
   const scrollY = useContext(ScrollYContext);
   const scrollEnabled = useContext(ScrollEnabledContext);
+  const nativeGesture = useContext(NativeGestureContext);
   const trackScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       // Shared values are designed to be written from worklets; the
@@ -59,7 +68,7 @@ export function SheetScrollView({
       if (scrollY) scrollY.value = e.contentOffset.y;
     },
   });
-  return (
+  const view = (
     <Animated.ScrollView
       onScroll={trackScroll}
       scrollEventThrottle={16}
@@ -69,6 +78,15 @@ export function SheetScrollView({
     >
       {children}
     </Animated.ScrollView>
+  );
+  // The Native gesture lets the sheet's pan (simultaneous with it) share
+  // the touch stream instead of stealing it: the pan moves the sheet only
+  // when its grab logic says so, the scroll view scrolls otherwise — even
+  // mid-gesture, so an upward drag expands the sheet and then scrolls.
+  return nativeGesture ? (
+    <GestureDetector gesture={nativeGesture}>{view}</GestureDetector>
+  ) : (
+    view
   );
 }
 
@@ -108,6 +126,12 @@ export function Sheet({ children, detent = 0.85 }: Props) {
   const scrollY = useSharedValue(0);
   const [isFull, setIsFull] = useState(false);
 
+  // The native gesture backing the scroll view. The pan runs simultaneous
+  // with it so an upward drag can expand the sheet and then scroll the
+  // content in one motion — and so the pan never cancels a scroll outright
+  // (the stuck-scroll bug).
+  const nativeGesture = useMemo(() => Gesture.Native(), []);
+
   // The scroll view wakes up exactly when the sheet reaches full height.
   useAnimatedReaction(
     () => ty.value <= 2,
@@ -140,6 +164,10 @@ export function Sheet({ children, detent = 0.85 }: Props) {
 
   const pan = Gesture.Pan()
     .activeOffsetY([-8, 8])
+    // Share the touch stream with the scroll view's native gesture: both
+    // stay active, the pan moves the sheet only when its grab logic below
+    // says so, and the scroll view scrolls otherwise.
+    .simultaneousWithExternalGesture(nativeGesture)
     .onStart((e) => {
       // Anchor deltas to activation so the sheet never jumps on grab.
       lastDy.value = e.translationY;
@@ -236,7 +264,9 @@ export function Sheet({ children, detent = 0.85 }: Props) {
                   style={[styles.grabber, { backgroundColor: theme.grabber }]}
                 />
               </View>
-              {children}
+              <NativeGestureContext.Provider value={nativeGesture}>
+                {children}
+              </NativeGestureContext.Provider>
             </Animated.View>
           </GestureDetector>
         </ScrollEnabledContext.Provider>
