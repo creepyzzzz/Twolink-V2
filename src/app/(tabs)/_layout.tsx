@@ -4,29 +4,21 @@ import {
   MinimizeOnScrollProvider,
 } from "expo-android-glass-view";
 import { ScreenBackground } from "../../ui/ScreenBackground";
-import { GlassTabBar } from "../../ui/GlassTabBar";
-
-/** Structural subset of the tab-bar props — avoids the vendored types. */
-type TabBarProps = {
-  state: { index: number; routes: { key: string; name: string }[] };
-  navigation: { navigate: (name: string) => void };
-};
 
 export default function TabsLayout() {
   return (
     <AndroidGlassMenuProvider>
-      {/* Shares one minimize state between the tab bar and the tab screens:
-          scrolling down tucks the pill, scrolling up or reaching the top
-          expands it again. */}
+      {/* Minimize state kept mounted (harmless with no bar) so the tab
+          screens' scroll hooks keep working while we debug the bar. */}
       <MinimizeOnScrollProvider>
         <ScreenBackground>
           <Tabs
-            tabBar={(props: TabBarProps) => <GlassTabBar {...props} />}
+            // Bottom tab bar removed completely (debugging step).
+            tabBar={() => null}
             screenOptions={{
               headerShown: false,
               // Scenes are transparent — the shared ScreenBackground sits behind.
-              // Keep content clear of the floating pill.
-              sceneStyle: { backgroundColor: "transparent", paddingBottom: 100 },
+              sceneStyle: { backgroundColor: "transparent" },
             }}
           >
             <Tabs.Screen name="chats" />
