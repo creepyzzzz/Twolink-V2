@@ -3,7 +3,6 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  AndroidGlassSlider,
   AndroidGlassToggle,
   useMinimizeOnScrollHandler,
 } from "expo-android-glass-view";
@@ -66,8 +65,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const settings = useFable((s) => s.settings);
   const setSettings = useFable((s) => s.setSettings);
-  const { readReceipts, typingIndicators, notifications, glassIntensity } =
-    settings;
+  const { readReceipts, typingIndicators, notifications } = settings;
   const profileName = useFable((s) => s.profile.name);
   const appPin = useFable((s) => s.appPin);
   // Shrinks the tab bar to its compact pill while the settings scroll.
@@ -151,36 +149,6 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        <Section title="Appearance">
-          <View style={styles.sliderBlock}>
-            <View style={styles.sliderHeader}>
-              <Text style={styles.rowLabel}>Glass intensity</Text>
-              <Text style={styles.sliderValue}>
-                {Math.round(glassIntensity * 100)}%
-              </Text>
-            </View>
-            <AndroidGlassSlider
-              value={glassIntensity}
-              minimumValue={0}
-              maximumValue={1}
-              onValueChange={(v) => setSettings({ glassIntensity: v })}
-              accentColor={ACCENT}
-              style={styles.slider}
-            />
-            {/* Live preview: the same native glass, driven by the slider. */}
-            <AdaptiveGlassView
-              style={styles.preview}
-              tintColor="rgba(61,146,233,0.12)"
-              blurRadius={4 + glassIntensity * 26}
-              refractionAmount={6 + glassIntensity * 22}
-            >
-              <Text style={styles.previewText}>
-                Drag the slider — this card re-renders live.
-              </Text>
-            </AdaptiveGlassView>
-          </View>
-        </Section>
-
         <Section title="About">
           <View style={[styles.row, styles.rowDivider]}>
             <Text style={styles.rowLabel}>Version</Text>
@@ -260,25 +228,4 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   rowValue: { fontSize: 14, color: INK_SOFT },
-  sliderBlock: { paddingVertical: 8 },
-  sliderHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  sliderValue: { fontSize: 14, fontFamily: "SFProText-Bold", color: ACCENT },
-  slider: { marginVertical: 4 },
-  preview: {
-    borderRadius: 18,
-    padding: 18,
-    marginTop: 10,
-    alignItems: "center",
-  },
-  previewText: {
-    fontSize: 14,
-    color: "rgba(23,25,27,0.75)",
-    textAlign: "center",
-    lineHeight: 20,
-  },
 });

@@ -20,7 +20,6 @@ export type AppSettings = {
   readReceipts: boolean;
   typingIndicators: boolean;
   notifications: boolean;
-  glassIntensity: number;
 };
 export type MyStory = { uri: string; at: number };
 export type Group = {
@@ -292,7 +291,6 @@ export const useFable = create<State>()(
         readReceipts: true,
         typingIndicators: true,
         notifications: true,
-        glassIntensity: 0.55,
       },
       setSettings: (patch) =>
         set((state) => ({ settings: { ...state.settings, ...patch } })),
