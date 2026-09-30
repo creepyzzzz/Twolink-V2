@@ -20,6 +20,7 @@ import type { Person } from "../../data/people";
 import { useScheme, useTheme } from "../../hooks/use-theme";
 import type { ReactionTarget } from "./reaction-picker";
 import { MessageText } from "./highlight-text";
+import { LinkPreview, extractUrls } from "./link-preview";
 
 /**
  * Fable conversation bubble.
@@ -86,6 +87,10 @@ export const Bubble = memo(function Bubble({
   const theme = useTheme();
   const scheme = useScheme();
   const mine = message.from === "me";
+  const firstUrl = useMemo(
+    () => (message.photo ? undefined : extractUrls(message.text)[0]),
+    [message.photo, message.text],
+  );
   const bubbleRef = useRef<View>(null);
   const onReactRef = useRef(onReact);
   onReactRef.current = onReact;
@@ -279,6 +284,7 @@ export const Bubble = memo(function Bubble({
                 mine
                 color={theme.outgoingText}
               />
+              {firstUrl ? <LinkPreview key={firstUrl} url={firstUrl} mine /> : null}
               {badge}
             </AnimatedPressable>
           ) : (
@@ -315,6 +321,9 @@ export const Bubble = memo(function Bubble({
                 mine={false}
                 color={theme.incomingText}
               />
+              {firstUrl ? (
+                <LinkPreview key={firstUrl} url={firstUrl} mine={false} />
+              ) : null}
               {badge}
             </AnimatedPressable>
           )}

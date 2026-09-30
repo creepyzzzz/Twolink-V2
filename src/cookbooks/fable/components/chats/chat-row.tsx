@@ -1,5 +1,6 @@
+import { AndroidGlassMenu } from "expo-android-glass-view";
 import { router } from "expo-router";
-import { memo } from "react";
+import { memo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { SFIcon } from "../../../../ui/SFIcon";
@@ -12,14 +13,19 @@ import { useTheme } from "../../hooks/use-theme";
 
 export const ROW_AVATAR = 60;
 
-/** Avatar, name, preview, and an unread indicator. */
+/** Avatar, name, preview, and an unread indicator. Long-press pins the chat. */
 export const ChatRow = memo(function ChatRow({ chat }: { chat: Chat }) {
   const theme = useTheme();
   const person = PEOPLE_BY_ID[chat.personId];
   const read = useFable((state) => state.read.includes(chat.id));
   const last = useFable((state) => state.threads[chat.id]?.at(-1));
   const muted = useFable((state) => !!state.muted[chat.id]);
+  const pinned = useFable((state) => state.pinned.includes(chat.id));
+  const togglePin = useFable((state) => state.togglePin);
+  const anchorRef = useRef<View>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const unread = chat.unread > 0 && !read;
+  const draftText = (useFable((state) => state.drafts[chat.id]) ?? "").trim();
   const preview = last
     ? last.photo
       ? "Shared a photo"
@@ -28,45 +34,87 @@ export const ChatRow = memo(function ChatRow({ chat }: { chat: Chat }) {
   const fromMe = last ? last.from === "me" : chat.fromMe;
 
   return (
-    <Pressable
-      testID={`fable-chat-${chat.id}`}
-      accessibilityRole="button"
-      accessibilityLabel={`${person.name}${unread ? ", unread" : ""}${muted ? ", muted" : ""}. ${preview}`}
-      onPress={() =>
-        router.push({ pathname: "/fable/chat/[id]", params: { id: chat.id } })
-      }
-      unstable_pressDelay={90}
-      style={({ pressed }) => [
-        styles.row,
-        { backgroundColor: pressed ? theme.rowPressed : "transparent" },
-      ]}
-    >
-      <Avatar source={person.avatar} size={ROW_AVATAR} />
-      <View style={styles.body}>
-        <Text numberOfLines={1} style={[Type.name, { color: theme.label }]}>
-          {person.name}
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={[
-            Type.preview,
-            { color: unread ? theme.label : theme.secondary },
+    <>
+      <View ref={anchorRef} collapsable={false}>
+        <Pressable
+          testID={`fable-chat-${chat.id}`}
+          accessibilityRole="button"
+          accessibilityLabel={`${person.name}${unread ? ", unread" : ""}${muted ? ", muted" : ""}${pinned ? ", pinned" : ""}. ${preview}`}
+          onPress={() =>
+            router.push({
+              pathname: "/fable/chat/[id]",
+              params: { id: chat.id },
+            })
+          }
+          onLongPress={() => setMenuOpen(true)}
+          unstable_pressDelay={90}
+          style={({ pressed }) => [
+            styles.row,
+            { backgroundColor: pressed ? theme.rowPressed : "transparent" },
           ]}
         >
-          {fromMe ? "You: " : ""}
-          {preview}
-        </Text>
+          <Avatar source={person.avatar} size={ROW_AVATAR} />
+          <View style={styles.body}>
+            <Text numberOfLines={1} style={[Type.name, { color: theme.label }]}>
+              {person.name}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[
+                Type.preview,
+                { color: unread ? theme.label : theme.secondary },
+              ]}
+            >
+              {draftText ? (
+                <>
+                  <Text style={{ color: Accent }}>Draft: </Text>
+                  <Text style={{ color: theme.secondary }}>{draftText}</Text>
+                </>
+              ) : (
+                <>
+                  {fromMe ? "You: " : ""}
+                  {preview}
+                </>
+              )}
+            </Text>
+          </View>
+          <View style={styles.meta}>
+            {pinned && (
+              <SFIcon name="pin.fill" size={13} color={theme.tertiary} />
+            )}
+            {unread && <View style={styles.dot} accessibilityLabel="Unread" />}
+            {muted && (
+              <SFIcon name="bell.slash.fill" size={13} color={theme.tertiary} />
+            )}
+            <Text style={[Type.meta, styles.time, { color: theme.secondary }]}>
+              {last ? "now" : chat.time}
+            </Text>
+          </View>
+        </Pressable>
       </View>
-      <View style={styles.meta}>
-        {unread && <View style={styles.dot} accessibilityLabel="Unread" />}
-        {muted && (
-          <SFIcon name="bell.slash.fill" size={13} color={theme.tertiary} />
-        )}
-        <Text style={[Type.meta, styles.time, { color: theme.secondary }]}>
-          {last ? "now" : chat.time}
-        </Text>
-      </View>
-    </Pressable>
+      <AndroidGlassMenu
+        visible={menuOpen}
+        anchorRef={anchorRef}
+        placement="below"
+        items={[
+          {
+            id: "pin",
+            title: pinned ? "Unpin chat" : "Pin chat",
+            icon: (
+              <SFIcon
+                name={pinned ? "pin.slash" : "pin"}
+                size={19}
+                color={theme.label}
+              />
+            ),
+          },
+        ]}
+        onSelect={(id) => {
+          if (id === "pin") togglePin(chat.id);
+        }}
+        onDismiss={() => setMenuOpen(false)}
+      />
+    </>
   );
 });
 

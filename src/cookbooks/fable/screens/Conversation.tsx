@@ -548,6 +548,7 @@ function ThreadScreen({ id }: { id: string }) {
       </View>
 
       <Composer
+        threadId={id}
         insetBottom={insets.bottom}
         onSend={onSend}
         onAttach={onAttach}

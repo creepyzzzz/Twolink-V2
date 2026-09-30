@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { Text } from "react-native";
+import { Linking, Text } from "react-native";
 
-import { Type } from "../../constants/theme";
+import { Accent, Type } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
+import { splitUrlSegments } from "./link-preview";
 
 type TextPart = { text: string; match: boolean };
 
@@ -28,9 +29,10 @@ function splitParts(text: string, query: string): TextPart[] {
 }
 
 /**
- * Bubble text with search matches highlighted, highlighter-style.
- * On outgoing blue the match inverts to blue-on-white so it stays legible;
- * on incoming frosted white it takes the familiar yellow marker.
+ * Bubble text with search matches highlighted, highlighter-style, and URLs
+ * linkified (tappable, underlined). On outgoing blue the match inverts to
+ * blue-on-white so it stays legible; on incoming frosted white it takes the
+ * familiar yellow marker.
  */
 export function MessageText({
   text,
@@ -46,36 +48,53 @@ export function MessageText({
   color: string;
 }) {
   const theme = useTheme();
-  const parts = useMemo(() => splitParts(text, query ?? ""), [text, query]);
+  const segments = useMemo(() => splitUrlSegments(text), [text]);
+  const q = query ?? "";
   const base = [Type.body, { color }];
-  if (!parts.some((p) => p.match)) return <Text style={base}>{text}</Text>;
+  const linkStyle = mine
+    ? { textDecorationLine: "underline" as const }
+    : { color: Accent, textDecorationLine: "underline" as const };
+  const matchStyle = mine
+    ? {
+        backgroundColor: active ? "#FFFFFF" : "rgba(255, 255, 255, 0.45)",
+        color: theme.outgoing,
+      }
+    : {
+        backgroundColor: active
+          ? "rgba(255, 190, 0, 0.95)"
+          : "rgba(255, 204, 0, 0.5)",
+      };
   return (
     <Text style={base}>
-      {parts.map((p, i) =>
-        p.match ? (
+      {segments.map((seg, si) => {
+        const parts = splitParts(seg.text, q);
+        const open = seg.url
+          ? () => void Linking.openURL(seg.text)
+          : undefined;
+        return (
           <Text
-            key={i}
-            style={
-              mine
-                ? {
-                    backgroundColor: active
-                      ? "#FFFFFF"
-                      : "rgba(255, 255, 255, 0.45)",
-                    color: theme.outgoing,
-                  }
-                : {
-                    backgroundColor: active
-                      ? "rgba(255, 190, 0, 0.95)"
-                      : "rgba(255, 204, 0, 0.5)",
-                  }
-            }
+            key={si}
+            style={seg.url ? linkStyle : undefined}
+            {...(open
+              ? {
+                  onPress: open,
+                  accessibilityRole: "link" as const,
+                  accessibilityLabel: `Open link: ${seg.text}`,
+                }
+              : {})}
           >
-            {p.text}
+            {parts.map((p, i) =>
+              p.match ? (
+                <Text key={i} style={matchStyle}>
+                  {p.text}
+                </Text>
+              ) : (
+                <Text key={i}>{p.text}</Text>
+              ),
+            )}
           </Text>
-        ) : (
-          <Text key={i}>{p.text}</Text>
-        ),
-      )}
+        );
+      })}
     </Text>
   );
 }

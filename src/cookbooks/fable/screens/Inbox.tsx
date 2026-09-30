@@ -197,26 +197,39 @@ export default function ChatsScreen() {
       Object.values(groupsRecord).sort((a, b) => b.createdAt - a.createdAt),
     [groupsRecord],
   );
+  const pinned = useFable((state) => state.pinned);
+  /** Pinned threads float to the top in pin order; everything else keeps its place. */
+  const pinSort = useMemo(() => {
+    const order = new Map(pinned.map((id, i) => [id, i]));
+    return <T extends { id: string }>(list: T[]) =>
+      [...list].sort((a, b) => {
+        const pa = order.has(a.id) ? order.get(a.id)! : Infinity;
+        const pb = order.has(b.id) ? order.get(b.id)! : Infinity;
+        return pa - pb;
+      });
+  }, [pinned]);
   const filteredGroups = useMemo(() => {
     if (filter !== "Groups") return [];
     const q = query.trim().toLowerCase();
-    return groups.filter(
-      (group) => !q || group.name.toLowerCase().includes(q),
+    return pinSort(
+      groups.filter((group) => !q || group.name.toLowerCase().includes(q)),
     );
-  }, [groups, query, filter]);
+  }, [groups, query, filter, pinSort]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return CHATS.filter((chat) => {
-      if (filter === "Groups") return false;
-      if (filter === "Unread" && !(chat.unread > 0 && !read.includes(chat.id)))
-        return false;
-      const person = PEOPLE_BY_ID[chat.personId];
-      const name = person ? person.name.toLowerCase() : "";
-      return (
-        name.includes(q) || chat.preview.toLowerCase().includes(q)
-      );
-    });
-  }, [query, filter, read]);
+    return pinSort(
+      CHATS.filter((chat) => {
+        if (filter === "Groups") return false;
+        if (filter === "Unread" && !(chat.unread > 0 && !read.includes(chat.id)))
+          return false;
+        const person = PEOPLE_BY_ID[chat.personId];
+        const name = person ? person.name.toLowerCase() : "";
+        return (
+          name.includes(q) || chat.preview.toLowerCase().includes(q)
+        );
+      }),
+    );
+  }, [query, filter, read, pinSort]);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>

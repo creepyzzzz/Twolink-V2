@@ -75,6 +75,10 @@ type State = {
   threads: Record<string, Message[]>;
   read: string[];
   muted: Record<string, boolean>;
+  /** Thread ids pinned to the top of the inbox, most-recent pin first. */
+  pinned: string[];
+  /** Unsent composer text per thread — the inbox shows these as drafts. */
+  drafts: Record<string, string>;
   /** Your posted stories, newest first (persisted photo-library URIs). */
   myStories: MyStory[];
   /** Group chats you created, keyed by id. */
@@ -126,6 +130,8 @@ type State = {
   setTheme: (theme: State["theme"]) => void;
   toggleReaction: (id: string, messageId: string, emoji: string) => void;
   toggleMute: (id: string) => void;
+  togglePin: (id: string) => void;
+  setDraft: (id: string, text: string) => void;
   reset: () => void;
 };
 export const useFable = create<State>()(
@@ -134,6 +140,8 @@ export const useFable = create<State>()(
       threads: {},
       read: [],
       muted: {},
+      pinned: [],
+      drafts: {},
       myStories: [],
       groups: {},
       postStory: (uri) =>
@@ -253,6 +261,20 @@ export const useFable = create<State>()(
         set((state) => ({
           muted: { ...state.muted, [id]: !state.muted[id] },
         })),
+      togglePin: (id) =>
+        set((state) => ({
+          pinned: state.pinned.includes(id)
+            ? state.pinned.filter((p) => p !== id)
+            : [id, ...state.pinned],
+        })),
+      setDraft: (id, text) =>
+        set((state) => {
+          if ((state.drafts[id] ?? "") === text) return state;
+          const drafts = { ...state.drafts };
+          if (text.trim()) drafts[id] = text;
+          else delete drafts[id];
+          return { drafts };
+        }),
       clearThread: (id) =>
         set((state) => ({
           threads: { ...state.threads, [id]: [] },

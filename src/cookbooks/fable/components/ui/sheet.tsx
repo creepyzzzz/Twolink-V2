@@ -1,10 +1,9 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
   createContext,
   useContext,
   useEffect,
-  useMemo,
+  useState,
   type ReactNode,
 } from "react";
 import {
@@ -15,15 +14,10 @@ import {
   useWindowDimensions,
   type ScrollViewProps,
 } from "react-native";
-import {
-  Gesture,
-  GestureDetector,
-  type GestureType,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  interpolate,
   runOnJS,
-  useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
@@ -37,24 +31,26 @@ import { EASE_OUT, SNAP } from "../../constants/motion";
 import { Radius } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
 
-const NativeGestureContext = createContext<GestureType | null>(null);
 const ScrollYContext = createContext<SharedValue<number> | null>(null);
-const ScrollLockContext = createContext<SharedValue<boolean> | null>(null);
+/**
+ * The sheet's scroll view is only interactive when the sheet is fully open.
+ * This makes the sheet-vs-content arbitration deterministic: while the sheet
+ * is moving, the pan owns the gesture alone — no mid-gesture enable/disable
+ * races, no cancelled pans snapping the sheet out from under the finger.
+ */
+const ScrollEnabledContext = createContext<boolean>(true);
 
 /**
  * A ScrollView that cooperates with the Sheet, iOS-style:
- * - downward drags scroll it back to its top, then hand the gesture to
- *   the sheet;
- * - upward drags scroll it, unless the sheet isn't fully open yet — then
- *   the sheet expands and the content is locked in place.
+ * it only scrolls once the sheet is fully open; otherwise the sheet takes
+ * the drag. A downward drag at the content's top always takes the sheet.
  */
 export function SheetScrollView({
   children,
   ...rest
 }: ScrollViewProps & { children: ReactNode }) {
-  const native = useContext(NativeGestureContext);
   const scrollY = useContext(ScrollYContext);
-  const scrollLock = useContext(ScrollLockContext);
+  const scrollEnabled = useContext(ScrollEnabledContext);
   const trackScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       // Shared values are designed to be written from worklets; the
@@ -63,26 +59,16 @@ export function SheetScrollView({
       if (scrollY) scrollY.value = e.contentOffset.y;
     },
   });
-  // Driven on the UI thread so the content freezes the instant the sheet
-  // takes an upward drag — no JS round-trip, no double motion.
-  const lockProps = useAnimatedProps(() => ({
-    scrollEnabled: scrollLock ? !scrollLock.value : true,
-  }));
-  const body = (
+  return (
     <Animated.ScrollView
       onScroll={trackScroll}
       scrollEventThrottle={16}
       overScrollMode="never"
-      animatedProps={lockProps}
+      scrollEnabled={scrollEnabled}
       {...rest}
     >
       {children}
     </Animated.ScrollView>
-  );
-  return native ? (
-    <GestureDetector gesture={native}>{body}</GestureDetector>
-  ) : (
-    body
   );
 }
 
@@ -94,17 +80,19 @@ type Props = {
 
 /**
  * A bottom sheet drawn by us instead of the system formSheet: rounded top
- * corners, and a live native-glass backdrop that crossfades 0 → full with
- * the sheet's opening progress (same engine as the reaction modal).
+ * corners and a liquid-glass card, so the chat stays visible through it
+ * instead of hiding behind a solid container.
  *
  * Gesture rules (iOS):
- * - grab anywhere: up expands to full, down settles to the detent,
- *   fling or far-drag dismisses;
- * - the inner scroll view keeps working — a downward drag only takes the
- *   sheet once the content rests at its top; an upward drag takes the
- *   sheet until it is fully open, then the content scrolls;
- * - reversing direction mid-drag re-grabs without a jump; a cancelled
- *   gesture always settles to the nearest detent, never mid-air.
+ * - grab anywhere: the sheet follows the finger 1:1 and stays where it is
+ *   while held; on release it settles to the nearest detent, a fling or a
+ *   far drag dismisses;
+ * - upward drags expand the sheet (content locked until fully open), then
+ *   the content scrolls;
+ * - downward drags at the content's top move the sheet; otherwise the
+ *   content scrolls;
+ * - direction reversals mid-drag never jump — the sheet is driven by
+ *   incremental deltas, not an absolute grab point.
  */
 export function Sheet({ children, detent = 0.85 }: Props) {
   const router = useRouter();
@@ -113,15 +101,20 @@ export function Sheet({ children, detent = 0.85 }: Props) {
 
   const restTy = H * (1 - detent);
   const ty = useSharedValue(H);
-  const grabTy = useSharedValue(H);
-  const grabY = useSharedValue(0);
-  const grabActive = useSharedValue(false);
+  const lastDy = useSharedValue(0);
   const movedByGesture = useSharedValue(false);
   const kb = useSharedValue(0);
   const dismissed = useSharedValue(false);
   const scrollY = useSharedValue(0);
-  const scrollLock = useSharedValue(false);
-  const native = useMemo(() => Gesture.Native(), []);
+  const [isFull, setIsFull] = useState(false);
+
+  // The scroll view wakes up exactly when the sheet reaches full height.
+  useAnimatedReaction(
+    () => ty.value <= 2,
+    (full, prev) => {
+      if (prev !== null && full !== prev) runOnJS(setIsFull)(full);
+    },
+  );
 
   const goBack = () => {
     router.back();
@@ -146,35 +139,29 @@ export function Sheet({ children, detent = 0.85 }: Props) {
   };
 
   const pan = Gesture.Pan()
-    .activeOffsetY([-12, 12])
-    .simultaneousWithExternalGesture(native)
+    .activeOffsetY([-8, 8])
+    .onStart((e) => {
+      // Anchor deltas to activation so the sheet never jumps on grab.
+      lastDy.value = e.translationY;
+    })
     .onUpdate((e) => {
       if (dismissed.value) return;
       const dy = e.translationY;
+      const delta = dy - lastDy.value;
+      lastDy.value = dy;
+      if (delta === 0) return;
       const atTop = scrollY.value <= 1;
       const full = ty.value <= 1;
-      const grab = (dy > 0 && atTop) || (dy < 0 && !full);
+      // Own the drag only when the sheet should move; otherwise the scroll
+      // view (enabled exactly when full) handles it. Incremental deltas
+      // keep reversals mid-drag jump-free.
+      const grab = (delta > 0 && atTop) || (delta < 0 && !full);
       if (grab) {
-        if (!grabActive.value) {
-          // (Re-)grab here so reversing direction mid-drag never jumps.
-          grabActive.value = true;
-          grabTy.value = ty.value;
-          grabY.value = dy;
-          if (dy < 0) scrollLock.value = true;
-        }
-        ty.value = Math.min(
-          H,
-          Math.max(0, grabTy.value + (dy - grabY.value)),
-        );
+        ty.value = Math.min(H, Math.max(0, ty.value + delta));
         movedByGesture.value = true;
-      } else {
-        grabActive.value = false;
-        scrollLock.value = false;
       }
     })
     .onEnd((e) => {
-      grabActive.value = false;
-      scrollLock.value = false;
       if (dismissed.value || !movedByGesture.value) return;
       movedByGesture.value = false;
       const y = ty.value;
@@ -189,8 +176,6 @@ export function Sheet({ children, detent = 0.85 }: Props) {
       }
     })
     .onFinalize(() => {
-      grabActive.value = false;
-      scrollLock.value = false;
       if (dismissed.value || !movedByGesture.value) return;
       movedByGesture.value = false;
       ty.value = withSpring(ty.value < restTy / 2 ? 0 : restTy, SNAP);
@@ -231,54 +216,31 @@ export function Sheet({ children, detent = 0.85 }: Props) {
     transform: [{ translateY: ty.value - kb.value }],
   }));
 
-  // The native glass can't animate its own blur radius per-frame, so the
-  // 0→full blur follows the sheet as a crossfade — exactly like the
-  // reaction modal's backdrop. Opacity lives on the wrapper: the glass
-  // view itself never sees opacity 0 (that silently disables it).
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(ty.value, [H, 0], [0, 1], "clamp"),
-  }));
-
   return (
     <View style={styles.root}>
-      <Animated.View
-        style={[StyleSheet.absoluteFill, backdropStyle]}
-        pointerEvents="none"
-      >
-        <AdaptiveGlassView
-          blurRadius={22}
-          tintColor="rgba(255, 255, 255, 0.10)"
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
-      <NativeGestureContext.Provider value={native}>
-        <ScrollYContext.Provider value={scrollY}>
-          <ScrollLockContext.Provider value={scrollLock}>
-            <GestureDetector gesture={pan}>
-              <Animated.View
-                style={[
-                  styles.panel,
-                  { backgroundColor: theme.surface },
-                  panelStyle,
-                ]}
-              >
-                <LinearGradient
-                  pointerEvents="none"
-                  colors={[theme.surface, theme.panelEnd]}
-                  locations={[0, 1]}
-                  style={StyleSheet.absoluteFill}
+      <ScrollYContext.Provider value={scrollY}>
+        <ScrollEnabledContext.Provider value={isFull}>
+          <GestureDetector gesture={pan}>
+            <Animated.View style={[styles.panel, panelStyle]}>
+              {/* The card is glass, not a solid container: the chat stays
+                  visible through it, blurred — the iOS 26 material. The
+                  panel's rounded top clips the glass; its bottom edge is
+                  always off-screen. */}
+              <AdaptiveGlassView
+                blurRadius={40}
+                tintColor="rgba(255, 255, 255, 0.6)"
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.grabberZone}>
+                <View
+                  style={[styles.grabber, { backgroundColor: theme.grabber }]}
                 />
-                <View style={styles.grabberZone}>
-                  <View
-                    style={[styles.grabber, { backgroundColor: theme.grabber }]}
-                  />
-                </View>
-                {children}
-              </Animated.View>
-            </GestureDetector>
-          </ScrollLockContext.Provider>
-        </ScrollYContext.Provider>
-      </NativeGestureContext.Provider>
+              </View>
+              {children}
+            </Animated.View>
+          </GestureDetector>
+        </ScrollEnabledContext.Provider>
+      </ScrollYContext.Provider>
     </View>
   );
 }

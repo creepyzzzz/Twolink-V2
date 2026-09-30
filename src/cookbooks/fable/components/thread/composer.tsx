@@ -1,5 +1,6 @@
 import { SFIcon } from "../../../../ui/SFIcon";
 import { useRef, useState } from "react";
+import { useFable } from "../../data/store";
 import {
   Pressable,
   StyleSheet,
@@ -30,6 +31,7 @@ export type ReplyPreview = {
 };
 
 type Props = {
+  threadId: string;
   insetBottom: number;
   onSend: (text: string) => void;
   onAttach: () => void;
@@ -45,6 +47,7 @@ type Props = {
  * interactive drag-to-dismiss. Emoji come from the device keyboard.
  */
 export function Composer({
+  threadId,
   insetBottom,
   onSend,
   onAttach,
@@ -54,11 +57,15 @@ export function Composer({
 }: Props) {
   const theme = useTheme();
   const inputRef = useRef<TextInput>(null);
-  const draft = useRef("");
+  const setDraft = useFable((state) => state.setDraft);
+  // Restored once on mount — the input is uncontrolled after that.
+  const initialDraft = useFable.getState().drafts[threadId] ?? "";
+  const draft = useRef(initialDraft);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const onChangeText = (t: string) => {
     draft.current = t;
+    setDraft(threadId, t);
   };
 
   const submit = () => {
@@ -66,6 +73,7 @@ export function Composer({
     if (!text) return;
     inputRef.current?.clear();
     draft.current = "";
+    setDraft(threadId, "");
     onSend(text);
   };
 
@@ -139,6 +147,7 @@ export function Composer({
               accessibilityLabel="Message"
               testID="fable-message-input"
               multiline
+              defaultValue={initialDraft}
               placeholder="Message"
               placeholderTextColor={theme.placeholder}
               onChangeText={onChangeText}

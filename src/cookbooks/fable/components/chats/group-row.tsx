@@ -1,5 +1,6 @@
+import { AndroidGlassMenu } from "expo-android-glass-view";
 import { router } from "expo-router";
-import { memo } from "react";
+import { memo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { SFIcon } from "../../../../ui/SFIcon";
@@ -61,7 +62,12 @@ export const GroupRow = memo(function GroupRow({ group }: { group: Group }) {
   const read = useFable((state) => state.read.includes(group.id));
   const last = useFable((state) => state.threads[group.id]?.at(-1));
   const muted = useFable((state) => !!state.muted[group.id]);
+  const pinned = useFable((state) => state.pinned.includes(group.id));
+  const togglePin = useFable((state) => state.togglePin);
+  const anchorRef = useRef<View>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const unread = !!last && last.from !== "me" && !read;
+  const draftText = (useFable((state) => state.drafts[group.id]) ?? "").trim();
   const senderName =
     last && last.from !== "me" && last.senderId
       ? (PEOPLE_BY_ID[last.senderId]?.first ?? "")
@@ -73,44 +79,84 @@ export const GroupRow = memo(function GroupRow({ group }: { group: Group }) {
     : `${group.memberIds.length} members`;
 
   return (
-    <Pressable
-      testID={`fable-group-${group.id}`}
-      accessibilityRole="button"
-      accessibilityLabel={`${group.name}${unread ? ", unread" : ""}${muted ? ", muted" : ""}. ${preview}`}
-      onPress={() =>
-        router.push({ pathname: "/fable/chat/[id]", params: { id: group.id } })
-      }
-      unstable_pressDelay={90}
-      style={({ pressed }) => [
-        styles.row,
-        { backgroundColor: pressed ? theme.rowPressed : "transparent" },
-      ]}
-    >
-      <GroupAvatar memberIds={group.memberIds} size={ROW_AVATAR} />
-      <View style={styles.body}>
-        <Text numberOfLines={1} style={[Type.name, { color: theme.label }]}>
-          {group.name}
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={[
-            Type.preview,
-            { color: unread ? theme.label : theme.secondary },
+    <>
+      <View ref={anchorRef} collapsable={false}>
+        <Pressable
+          testID={`fable-group-${group.id}`}
+          accessibilityRole="button"
+          accessibilityLabel={`${group.name}${unread ? ", unread" : ""}${muted ? ", muted" : ""}${pinned ? ", pinned" : ""}. ${preview}`}
+          onPress={() =>
+            router.push({
+              pathname: "/fable/chat/[id]",
+              params: { id: group.id },
+            })
+          }
+          onLongPress={() => setMenuOpen(true)}
+          unstable_pressDelay={90}
+          style={({ pressed }) => [
+            styles.row,
+            { backgroundColor: pressed ? theme.rowPressed : "transparent" },
           ]}
         >
-          {preview}
-        </Text>
+          <GroupAvatar memberIds={group.memberIds} size={ROW_AVATAR} />
+          <View style={styles.body}>
+            <Text numberOfLines={1} style={[Type.name, { color: theme.label }]}>
+              {group.name}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[
+                Type.preview,
+                { color: unread ? theme.label : theme.secondary },
+              ]}
+            >
+              {draftText ? (
+                <>
+                  <Text style={{ color: Accent }}>Draft: </Text>
+                  <Text style={{ color: theme.secondary }}>{draftText}</Text>
+                </>
+              ) : (
+                preview
+              )}
+            </Text>
+          </View>
+          <View style={styles.meta}>
+            {pinned && (
+              <SFIcon name="pin.fill" size={13} color={theme.tertiary} />
+            )}
+            {unread && <View style={styles.dot} accessibilityLabel="Unread" />}
+            {muted && (
+              <SFIcon name="bell.slash.fill" size={13} color={theme.tertiary} />
+            )}
+            <Text style={[Type.meta, styles.time, { color: theme.secondary }]}>
+              {last ? "now" : ""}
+            </Text>
+          </View>
+        </Pressable>
       </View>
-      <View style={styles.meta}>
-        {unread && <View style={styles.dot} accessibilityLabel="Unread" />}
-        {muted && (
-          <SFIcon name="bell.slash.fill" size={13} color={theme.tertiary} />
-        )}
-        <Text style={[Type.meta, styles.time, { color: theme.secondary }]}>
-          {last ? "now" : ""}
-        </Text>
-      </View>
-    </Pressable>
+      <AndroidGlassMenu
+        visible={menuOpen}
+        anchorRef={anchorRef}
+        placement="below"
+        items={[
+          {
+            id: "pin",
+            title: pinned ? "Unpin chat" : "Pin chat",
+            icon: (
+              <SFIcon
+                name={pinned ? "pin.slash" : "pin"}
+                size={19}
+                color={theme.label}
+              />
+            ),
+          },
+        ]}
+        onSelect={(id) => {
+          if (id === "pin") togglePin(group.id);
+        }}
+        onDismiss={() => setMenuOpen(false)}
+      />
+    </>
   );
 });
 
