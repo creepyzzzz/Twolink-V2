@@ -535,6 +535,7 @@ const styles = StyleSheet.create({
     paddingTop: 11,
     paddingBottom: 10,
     lineHeight: 23,
+    textAlignVertical: "center",
   },
   /** The send circle sits just outside the pill, with a clear gap. */
   send: {

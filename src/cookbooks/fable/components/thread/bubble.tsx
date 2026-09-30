@@ -222,6 +222,124 @@ export const Bubble = memo(function Bubble({
   // "Delete for everyone" leaves a centered italic tombstone — no bubble,
   // no gestures, no actions. Rendered at the call site so Bubble keeps its
   // single plain return (the v6 hooks linter is strict about this file).
+  const bubbleBody = message.document ? (
+  <AnimatedPressable
+    ref={bubbleRef}
+    onPress={openDocument}
+    onLongPress={handleLongPress}
+    delayLongPress={350}
+    style={[
+      styles.bubble,
+      mine ? styles.mine : styles.theirs,
+      {
+        backgroundColor: mine ? theme.outgoing : theme.surface,
+        ...(mine
+          ? null
+          : {
+              boxShadow:
+                scheme === "dark"
+                  ? undefined
+                  : "0 4px 18px rgba(16, 16, 18, 0.05)",
+            }),
+      },
+      depressStyle,
+    ]}
+  >
+    {quote}
+    <DocumentContent message={message} mine={mine} />
+    {badge}
+  </AnimatedPressable>
+) : message.photo ? (
+  <Animated.View
+    ref={bubbleRef}
+    style={[styles.photoWrap, depressStyle]}
+  >
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Open shared photo"
+      onPress={() => onOpenPhotoRef.current(message)}
+      onLongPress={handleLongPress}
+      delayLongPress={350}
+      style={styles.photo}
+    >
+      <Image
+        source={photoSource}
+        style={{ flex: 1 }}
+        contentFit="cover"
+      />
+    </Pressable>
+    {message.replyTo && (
+      <View pointerEvents="none" style={styles.photoQuoteWrap}>
+        <Glass style={styles.photoQuote}>
+          <Text
+            numberOfLines={1}
+            style={[Type.caption, { color: "#FFFFFF" }]}
+          >
+            {quoteText}
+          </Text>
+        </Glass>
+      </View>
+    )}
+    {badge}
+  </Animated.View>
+) : mine ? (
+  <AnimatedPressable
+    ref={bubbleRef}
+    onLongPress={handleLongPress}
+    delayLongPress={350}
+    style={[
+      styles.bubble,
+      styles.mine,
+      { backgroundColor: theme.outgoing },
+      depressStyle,
+    ]}
+  >
+    {quote}
+    <MessageText
+      text={message.text}
+      query={highlight}
+      active={highlightActive}
+      mine
+      color={theme.outgoingText}
+      mentions={mentions}
+    />
+    {firstUrl ? <LinkPreview key={firstUrl} url={firstUrl} mine /> : null}
+    {badge}
+  </AnimatedPressable>
+) : (
+  <AnimatedPressable
+    ref={bubbleRef}
+    onLongPress={handleLongPress}
+    delayLongPress={350}
+    style={[
+      styles.bubble,
+      styles.theirs,
+      {
+        backgroundColor: theme.surface,
+        boxShadow:
+          scheme === "dark"
+            ? undefined
+            : "0 4px 18px rgba(16, 16, 18, 0.05)",
+      },
+      depressStyle,
+    ]}
+  >
+    {quote}
+    <MessageText
+      text={message.text}
+      query={highlight}
+      active={highlightActive}
+      mine={false}
+      color={theme.incomingText}
+      mentions={mentions}
+    />
+    {firstUrl ? (
+      <LinkPreview key={firstUrl} url={firstUrl} mine={false} />
+    ) : null}
+    {badge}
+  </AnimatedPressable>
+);
+
   return (
     <Animated.View
       entering={
@@ -265,129 +383,13 @@ export const Bubble = memo(function Bubble({
               <View style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }} />
             )
           )}
-          {message.document ? (
-            <AnimatedPressable
-              ref={bubbleRef}
-              onPress={openDocument}
-              onLongPress={handleLongPress}
-              delayLongPress={350}
-              style={[
-                styles.bubble,
-                mine ? styles.mine : styles.theirs,
-                {
-                  backgroundColor: mine ? theme.outgoing : theme.surface,
-                  ...(mine
-                    ? null
-                    : {
-                        boxShadow:
-                          scheme === "dark"
-                            ? undefined
-                            : "0 4px 18px rgba(16, 16, 18, 0.05)",
-                      }),
-                },
-                depressStyle,
-              ]}
-            >
-              {quote}
-              <DocumentContent message={message} mine={mine} />
-              {badge}
-              {mine && <DeliveryTicks message={message} />}
-            </AnimatedPressable>
-          ) : message.photo ? (
-            <Animated.View
-              ref={bubbleRef}
-              style={[styles.photoWrap, depressStyle]}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open shared photo"
-                onPress={() => onOpenPhotoRef.current(message)}
-                onLongPress={handleLongPress}
-                delayLongPress={350}
-                style={styles.photo}
-              >
-                <Image
-                  source={photoSource}
-                  style={{ flex: 1 }}
-                  contentFit="cover"
-                />
-              </Pressable>
-              {mine && (
-                <View pointerEvents="none" style={styles.photoTicks}>
-                  <DeliveryTicks message={message} />
-                </View>
-              )}
-              {message.replyTo && (
-                <View pointerEvents="none" style={styles.photoQuoteWrap}>
-                  <Glass style={styles.photoQuote}>
-                    <Text
-                      numberOfLines={1}
-                      style={[Type.caption, { color: "#FFFFFF" }]}
-                    >
-                      {quoteText}
-                    </Text>
-                  </Glass>
-                </View>
-              )}
-              {badge}
-            </Animated.View>
-          ) : mine ? (
-            <AnimatedPressable
-              ref={bubbleRef}
-              onLongPress={handleLongPress}
-              delayLongPress={350}
-              style={[
-                styles.bubble,
-                styles.mine,
-                { backgroundColor: theme.outgoing },
-                depressStyle,
-              ]}
-            >
-              {quote}
-              <MessageText
-                text={message.text}
-                query={highlight}
-                active={highlightActive}
-                mine
-                color={theme.outgoingText}
-                mentions={mentions}
-              />
-              {firstUrl ? <LinkPreview key={firstUrl} url={firstUrl} mine /> : null}
-              {badge}
+          {mine ? (
+            <View style={styles.mineColumn}>
+              {bubbleBody}
               <DeliveryTicks message={message} />
-            </AnimatedPressable>
+            </View>
           ) : (
-            <AnimatedPressable
-              ref={bubbleRef}
-              onLongPress={handleLongPress}
-              delayLongPress={350}
-              style={[
-                styles.bubble,
-                styles.theirs,
-                {
-                  backgroundColor: theme.surface,
-                  boxShadow:
-                    scheme === "dark"
-                      ? undefined
-                      : "0 4px 18px rgba(16, 16, 18, 0.05)",
-                },
-                depressStyle,
-              ]}
-            >
-              {quote}
-              <MessageText
-                text={message.text}
-                query={highlight}
-                active={highlightActive}
-                mine={false}
-                color={theme.incomingText}
-                mentions={mentions}
-              />
-              {firstUrl ? (
-                <LinkPreview key={firstUrl} url={firstUrl} mine={false} />
-              ) : null}
-              {badge}
-            </AnimatedPressable>
+            bubbleBody
           )}
         </Animated.View>
       </GestureDetector>
@@ -400,6 +402,10 @@ export { Ink };
 const styles = StyleSheet.create({
   row: {
     paddingHorizontal: Space[4],
+  },
+  /** Outgoing stack: the bubble with its ticks tucked underneath. */
+  mineColumn: {
+    alignItems: "flex-end",
   },
   dragRow: {
     flex: 1,
@@ -449,12 +455,6 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     paddingHorizontal: 12,
     paddingVertical: 6,
-  },
-  /** Delivery ticks overlaying the bottom-right of an outgoing photo. */
-  photoTicks: {
-    position: "absolute",
-    bottom: 8,
-    right: 12,
   },
   quote: {
     flexDirection: "row",

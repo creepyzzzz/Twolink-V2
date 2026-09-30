@@ -859,7 +859,7 @@ function ThreadScreen({ id }: { id: string }) {
                       style={styles.actionRow}
                     >
                       <SFIcon
-                        name="doc.on.doc"
+                        name="list.clipboard"
                         size={18}
                         color={theme.label}
                       />
