@@ -20,14 +20,32 @@ export type AppSettings = {
   glassIntensity: number;
 };
 export type MyStory = { uri: string; at: number };
+export type Group = {
+  id: string;
+  name: string;
+  memberIds: string[];
+  createdAt: number;
+};
+/** Prototype-safe group lookup (ids like "constructor" must not match). */
+export function getGroup(
+  groups: Record<string, Group>,
+  id: string,
+): Group | undefined {
+  return Object.prototype.hasOwnProperty.call(groups, id)
+    ? groups[id]
+    : undefined;
+}
 type State = {
   threads: Record<string, Message[]>;
   read: string[];
   muted: Record<string, boolean>;
   /** Your posted stories, newest first (persisted photo-library URIs). */
   myStories: MyStory[];
+  /** Group chats you created, keyed by id. */
+  groups: Record<string, Group>;
   postStory: (uri: string) => void;
   removeStory: (uri: string) => void;
+  createGroup: (name: string, memberIds: string[]) => string;
   /** How many older-history pages have been prepended per thread. */
   historyPage: Record<string, number>;
   theme: "system" | "light" | "dark";
@@ -40,7 +58,12 @@ type State = {
     text: string,
     from?: Message["from"],
     photo?: boolean,
-    opts?: { photoUri?: string; replyTo?: ReplyQuote },
+    opts?: {
+      photoUri?: string;
+      replyTo?: ReplyQuote;
+      /** Group threads: which member sent this. */
+      senderId?: string;
+    },
   ) => void;
   /** Prepends the next page of older history; no-op when exhausted. */
   loadEarlier: (id: string) => void;
@@ -59,6 +82,7 @@ export const useFable = create<State>()(
       read: [],
       muted: {},
       myStories: [],
+      groups: {},
       postStory: (uri) =>
         set((state) => ({
           myStories: [{ uri, at: Date.now() }, ...state.myStories],
@@ -67,6 +91,16 @@ export const useFable = create<State>()(
         set((state) => ({
           myStories: state.myStories.filter((s) => s.uri !== uri),
         })),
+      createGroup: (name, memberIds) => {
+        const id = `group-${Date.now()}`;
+        set((state) => ({
+          groups: {
+            ...state.groups,
+            [id]: { id, name, memberIds, createdAt: Date.now() },
+          },
+        }));
+        return id;
+      },
       historyPage: {},
       theme: "system",
       profile: {
@@ -86,12 +120,14 @@ export const useFable = create<State>()(
         set((state) => ({ settings: { ...state.settings, ...patch } })),
       append: (id, text, from = "me", photo = false, opts) => {
         const person = PEOPLE_BY_ID[id];
-        if (!person || (!photo && !text.trim())) return;
+        const group = getGroup(get().groups, id);
+        if ((!person && !group) || (!photo && !text.trim())) return;
         set((state) => ({
           threads: {
             ...state.threads,
             [id]: [
-              ...(state.threads[id] ?? messagesFor(id, person.first)),
+              ...(state.threads[id] ??
+                (person ? messagesFor(id, person.first) : [])),
               {
                 id: `local-${Date.now()}-${++sequence}`,
                 from,
@@ -100,6 +136,7 @@ export const useFable = create<State>()(
                 photo,
                 ...(opts?.photoUri ? { photoUri: opts.photoUri } : {}),
                 ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
+                ...(opts?.senderId ? { senderId: opts.senderId } : {}),
               },
             ],
           },

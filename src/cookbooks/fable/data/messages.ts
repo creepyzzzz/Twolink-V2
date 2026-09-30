@@ -11,6 +11,8 @@ export type Message = {
   from: "me" | "them";
   text: string;
   at: string;
+  /** Group threads: which member sent this (a Person id). */
+  senderId?: string;
   photo?: boolean;
   /** Local URI of a device photo (falls back to the person's story art). */
   photoUri?: string;

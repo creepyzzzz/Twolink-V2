@@ -23,6 +23,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChatRow } from "../components/chats/chat-row";
+import { GroupRow } from "../components/chats/group-row";
 import {
   NAV_H,
   STORIES_H,
@@ -187,6 +188,12 @@ export default function ChatsScreen() {
   );
 
   const [query, setQuery] = useState("");
+  const groupsRecord = useFable((state) => state.groups);
+  const groups = useMemo(
+    () =>
+      Object.values(groupsRecord).sort((a, b) => b.createdAt - a.createdAt),
+    [groupsRecord],
+  );
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return CHATS;
@@ -198,6 +205,13 @@ export default function ChatsScreen() {
       );
     });
   }, [query]);
+  const filteredGroups = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return groups;
+    return groups.filter((group) =>
+      group.name.toLowerCase().includes(q),
+    );
+  }, [groups, query]);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
@@ -254,17 +268,27 @@ export default function ChatsScreen() {
             ) : null}
           </View>
         </View>
+        {filteredGroups.map((group, i) => (
+          <Animated.View
+            key={group.id}
+            entering={FadeInDown.delay(Math.min(i, 8) * 34)
+              .duration(300)
+              .easing(EASE_OUT.factory())}
+          >
+            <GroupRow group={group} />
+          </Animated.View>
+        ))}
         {filtered.map((chat, i) => (
           <Animated.View
             key={chat.id}
-            entering={FadeInDown.delay(Math.min(i, 8) * 34)
+            entering={FadeInDown.delay(Math.min(i + filteredGroups.length, 8) * 34)
               .duration(300)
               .easing(EASE_OUT.factory())}
           >
             <ChatRow chat={chat} />
           </Animated.View>
         ))}
-        {filtered.length === 0 ? (
+        {filtered.length + filteredGroups.length === 0 ? (
           <Text style={[styles.empty, { color: theme.secondary }]}>
             No chats match “{query.trim()}”.
           </Text>

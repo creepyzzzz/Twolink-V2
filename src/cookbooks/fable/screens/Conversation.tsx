@@ -32,6 +32,7 @@ import {
 } from "../components/thread/reaction-picker";
 import { SearchBar } from "../components/thread/search-bar";
 import { THREAD_NAV_H, ThreadHeader } from "../components/thread/thread-header";
+import { GroupHeader } from "../components/thread/group-header";
 import { TypingBubble } from "../components/thread/typing";
 import { Glass } from "../components/ui/glass";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
@@ -39,15 +40,16 @@ import { Avatar } from "../components/ui/avatar";
 import { SFIcon } from "../../../ui/SFIcon";
 import { Radius, Space, Type } from "../constants/theme";
 import { REPLIES, messagesFor, olderMessagesFor, type Message } from "../data/messages";
-import { PEOPLE, PEOPLE_BY_ID } from "../data/people";
+import { PEOPLE, PEOPLE_BY_ID, type Person } from "../data/people";
 import { useTheme } from "../hooks/use-theme";
 
-import { useFable } from "../data/store";
+import { useFable, getGroup } from "../data/store";
 import { NotFound } from "../../NotFound";
 
 export default function ConversationRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  return PEOPLE_BY_ID[id] ? (
+  const groups = useFable((state) => state.groups);
+  return PEOPLE_BY_ID[id] || getGroup(groups, id) ? (
     <ThreadScreen key={id} id={id} />
   ) : (
     <NotFound home="/fable" />
@@ -56,19 +58,23 @@ export default function ConversationRoute() {
 
 function ThreadScreen({ id }: { id: string }) {
   const person = PEOPLE_BY_ID[id];
+  const groups = useFable((state) => state.groups);
+  const group = getGroup(groups, id);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
   const stored = useFable((state) => state.threads[id]);
   const initial = useMemo(
-    () => messagesFor(person.id, person.first),
-    [person.id, person.first],
+    () => (person ? messagesFor(person.id, person.first) : []),
+    [person],
   );
   const messages = stored ?? initial;
   useEffect(() => {
     useFable.getState().markRead(id);
   }, [id]);
   const [typing, setTyping] = useState(false);
+  /** Group threads: which member is "typing" / replying. */
+  const [typingPerson, setTypingPerson] = useState<Person | null>(null);
   const [mountedCount] = useState(messages.length);
   // Long-press reaction target: { message, bubble window rect }.
   const [reaction, setReaction] = useState<{
@@ -96,7 +102,10 @@ function ThreadScreen({ id }: { id: string }) {
   const rowTops = useRef(new Map<string, number>());
   // Scroll-up pagination: how many older-history pages are already in.
   const historyPage = useFable((state) => state.historyPage[id] ?? 0);
-  const hasEarlier = olderMessagesFor(id, person.first, historyPage).length > 0;
+  // Groups have no paginated mock history — the thread starts at creation.
+  const hasEarlier = person
+    ? olderMessagesFor(id, person.first, historyPage).length > 0
+    : false;
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   // Geometry bookkeeping so prepending history doesn't move the viewport.
   const contentHeight = useRef(0);
@@ -244,22 +253,38 @@ function ThreadScreen({ id }: { id: string }) {
       useFable.getState().append(id, text, "me", false, { replyTo: quote });
       setReplyTo(null);
       scrollToEnd();
+      // Group threads: a rotating member "replies", so their name and face
+      // show on the typing bubble and the reply.
+      const members = getGroup(useFable.getState().groups, id)?.memberIds;
+      const replier = members?.length
+        ? members[
+            (useFable.getState().threads[id]?.length ?? 0) % members.length
+          ]
+        : undefined;
       const t1 = setTimeout(() => {
         setTyping(true);
+        setTypingPerson(replier ? (PEOPLE_BY_ID[replier] ?? null) : person);
         scrollToEnd();
       }, 600);
       const t2 = setTimeout(() => {
         setTyping(false);
+        setTypingPerson(null);
         const reply =
           REPLIES[
             (useFable.getState().threads[id]?.length ?? 0) % REPLIES.length
           ];
-        useFable.getState().append(id, reply, "them");
+        useFable.getState().append(
+          id,
+          reply,
+          "them",
+          false,
+          replier ? { senderId: replier } : undefined,
+        );
         scrollToEnd();
       }, 1800);
       timers.current.push(t1, t2);
     },
-    [scrollToEnd, id, replyTo],
+    [scrollToEnd, id, replyTo, person],
   );
 
   const onAttach = useCallback(async () => {
@@ -295,16 +320,30 @@ function ThreadScreen({ id }: { id: string }) {
   }, [id, replyTo, scrollToEnd]);
 
   const onOpenPhoto = useCallback(
-    (message: Message) =>
-      setViewerSource(
-        message.photoUri ? { uri: message.photoUri } : person.story,
-      ),
-    [person.story],
+    (message: Message) => {
+      const src = message.photoUri
+        ? { uri: message.photoUri }
+        : person?.story;
+      if (src) setViewerSource(src);
+    },
+    [person],
+  );
+
+  /** Display name for an incoming message — the sender in groups. */
+  const senderName = useCallback(
+    (m: Message) =>
+      group && m.senderId ? (PEOPLE_BY_ID[m.senderId]?.first ?? "") : "",
+    [group],
   );
 
   const replyPreview: ReplyPreview | null = replyTo
     ? {
-        name: replyTo.from === "me" ? "You" : person.first,
+        name:
+          replyTo.from === "me"
+            ? "You"
+            : group
+              ? senderName(replyTo)
+              : (person?.first ?? ""),
         text: replyTo.text,
         photo: !!replyTo.photo,
       }
@@ -389,11 +428,19 @@ function ThreadScreen({ id }: { id: string }) {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
-      <ThreadHeader
-        person={person}
-        insetTop={insets.top}
-        onSearch={() => setSearchOpen(true)}
-      />
+      {group ? (
+        <GroupHeader
+          group={group}
+          insetTop={insets.top}
+          onSearch={() => setSearchOpen(true)}
+        />
+      ) : person ? (
+        <ThreadHeader
+          person={person}
+          insetTop={insets.top}
+          onSearch={() => setSearchOpen(true)}
+        />
+      ) : null}
 
       {/* The panel: one big rounded card the conversation lives in. */}
       <View
@@ -453,10 +500,15 @@ function ThreadScreen({ id }: { id: string }) {
                 onOpenPhoto={onOpenPhoto}
                 highlight={q || undefined}
                 highlightActive={msg.id === activeMatchId}
+                senderName={
+                  msg.from !== "me" ? senderName(msg) || undefined : undefined
+                }
               />
             </View>
           ))}
-          {typing && <TypingBubble person={person} />}
+          {typing && (group ? typingPerson : person) && (
+            <TypingBubble person={(group ? typingPerson : person) as Person} />
+          )}
         </KeyboardChatScrollView>
         {loadingEarlier && (
           <View pointerEvents="none" style={styles.olderLoading}>

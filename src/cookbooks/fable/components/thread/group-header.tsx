@@ -1,0 +1,102 @@
+import { router } from "expo-router";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+
+import { GroupAvatar } from "../chats/group-row";
+import { GlassButton } from "../ui/glass-button";
+import { Space, Type } from "../../constants/theme";
+import type { Group } from "../../data/store";
+import { useTheme } from "../../hooks/use-theme";
+
+export const THREAD_NAV_H = 64;
+
+/**
+ * Group twin of ThreadHeader: back, a tappable identity (opens the group
+ * card), search and video. The panel begins right beneath.
+ */
+export function GroupHeader({
+  group,
+  insetTop,
+  onSearch,
+}: {
+  group: Group;
+  insetTop: number;
+  onSearch: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      pointerEvents="box-none"
+      style={[styles.bar, { top: insetTop, height: THREAD_NAV_H }]}
+    >
+      <GlassButton
+        symbol="chevron.left"
+        iconSize={17}
+        accessibilityLabel="Back"
+        onPress={() => router.back()}
+      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${group.name} — group info`}
+        onPress={() =>
+          router.push({
+            pathname: "/fable/group/[id]",
+            params: { id: group.id },
+          })
+        }
+        style={styles.center}
+      >
+        <GroupAvatar memberIds={group.memberIds} size={44} />
+        <Text
+          numberOfLines={1}
+          style={[Type.caption, { color: theme.secondary, marginTop: 4 }]}
+        >
+          {group.name} · {group.memberIds.length}
+        </Text>
+      </Pressable>
+      <View style={styles.right}>
+        <GlassButton
+          symbol="magnifyingglass"
+          iconSize={17}
+          accessibilityLabel="Search in conversation"
+          onPress={onSearch}
+        />
+        <GlassButton
+          symbol="video"
+          iconSize={18}
+          accessibilityLabel="Video call"
+          onPress={() =>
+            Alert.alert(
+              "Video calls",
+              "Calls are not available in this preview.",
+            )
+          }
+        />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  bar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Space[4],
+  },
+  center: {
+    position: "absolute",
+    left: 60,
+    right: 60,
+    top: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  right: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+});

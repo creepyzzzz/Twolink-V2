@@ -46,7 +46,8 @@ const enterOutgoing = () => {
 
 type Props = {
   message: Message;
-  person: Person;
+  /** The chat partner — absent in group threads (their photos always carry a URI). */
+  person?: Person;
   first: boolean; // first bubble of a run gets the wider gap
   animate: boolean; // only messages that arrive after mount animate in
   onReact: (message: Message, target: ReactionTarget) => void;
@@ -60,6 +61,8 @@ type Props = {
   highlight?: string;
   /** This message holds the currently selected search match. */
   highlightActive?: boolean;
+  /** Group threads: the sender's name, shown above incoming bubbles. */
+  senderName?: string;
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -78,6 +81,7 @@ export const Bubble = memo(function Bubble({
   onOpenPhoto,
   highlight,
   highlightActive,
+  senderName,
 }: Props) {
   const theme = useTheme();
   const scheme = useScheme();
@@ -187,7 +191,7 @@ export const Bubble = memo(function Bubble({
   // (the seed content for the mock thread).
   const photoSource = message.photoUri
     ? { uri: message.photoUri }
-    : person.story;
+    : person?.story;
 
   return (
     <Animated.View
@@ -296,6 +300,14 @@ export const Bubble = memo(function Bubble({
               ]}
             >
               {quote}
+              {!!senderName && (
+                <Text
+                  numberOfLines={1}
+                  style={[styles.sender, { color: Accent }]}
+                >
+                  {senderName}
+                </Text>
+              )}
               <MessageText
                 text={message.text}
                 query={highlight}
@@ -394,6 +406,11 @@ const styles = StyleSheet.create({
   theirs: {
     paddingHorizontal: 18,
     paddingVertical: 15,
+  },
+  sender: {
+    fontSize: 13,
+    fontFamily: "SFProText-Semibold",
+    marginBottom: 4,
   },
   badge: {
     position: "absolute",

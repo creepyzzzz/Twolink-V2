@@ -31,6 +31,14 @@ export default function FableLayout() {
           }}
         />
         <Stack.Screen
+          name="group/[id]"
+          options={{
+            presentation: "transparentModal",
+            animation: "none",
+            contentStyle: { backgroundColor: "transparent" },
+          }}
+        />
+        <Stack.Screen
           name="compose"
           options={{
             presentation: "formSheet",

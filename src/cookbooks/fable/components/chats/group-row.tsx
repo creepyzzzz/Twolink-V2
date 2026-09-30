@@ -1,0 +1,145 @@
+import { router } from "expo-router";
+import { memo } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+
+import { SFIcon } from "../../../../ui/SFIcon";
+import { Avatar } from "../ui/avatar";
+import { Accent, Space, Type } from "../../constants/theme";
+import { PEOPLE_BY_ID } from "../../data/people";
+import { useFable, type Group } from "../../data/store";
+import { useTheme } from "../../hooks/use-theme";
+
+export const ROW_AVATAR = 60;
+
+/** Two overlapping member orbs, iMessage-style. */
+export function GroupAvatar({
+  memberIds,
+  size,
+}: {
+  memberIds: string[];
+  size: number;
+}) {
+  const theme = useTheme();
+  const shown = memberIds.slice(0, 2);
+  const orb = size * 0.66;
+  if (shown.length === 0)
+    return (
+      <View
+        style={[
+          styles.fallback,
+          { width: size, height: size, borderRadius: size / 2 },
+        ]}
+      >
+        <SFIcon name="person.2" size={size * 0.44} color={theme.secondary} />
+      </View>
+    );
+  return (
+    <View style={{ width: size, height: size }}>
+      {shown.map((id, index) => {
+        const person = PEOPLE_BY_ID[id];
+        if (!person) return null;
+        return (
+          <View
+            key={id}
+            style={{
+              position: "absolute",
+              left: index === 0 ? 0 : size - orb,
+              top: index === 0 ? 0 : size - orb,
+            }}
+          >
+            <Avatar source={person.avatar} size={orb} />
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Avatar cluster, name, preview, and an unread indicator — mirrors ChatRow. */
+export const GroupRow = memo(function GroupRow({ group }: { group: Group }) {
+  const theme = useTheme();
+  const read = useFable((state) => state.read.includes(group.id));
+  const last = useFable((state) => state.threads[group.id]?.at(-1));
+  const muted = useFable((state) => !!state.muted[group.id]);
+  const unread = !!last && last.from !== "me" && !read;
+  const senderName =
+    last && last.from !== "me" && last.senderId
+      ? (PEOPLE_BY_ID[last.senderId]?.first ?? "")
+      : "";
+  const preview = last
+    ? `${senderName ? `${senderName}: ` : ""}${
+        last.photo ? "Shared a photo" : last.text
+      }`
+    : `${group.memberIds.length} members`;
+
+  return (
+    <Pressable
+      testID={`fable-group-${group.id}`}
+      accessibilityRole="button"
+      accessibilityLabel={`${group.name}${unread ? ", unread" : ""}${muted ? ", muted" : ""}. ${preview}`}
+      onPress={() =>
+        router.push({ pathname: "/fable/chat/[id]", params: { id: group.id } })
+      }
+      unstable_pressDelay={90}
+      style={({ pressed }) => [
+        styles.row,
+        { backgroundColor: pressed ? theme.rowPressed : "transparent" },
+      ]}
+    >
+      <GroupAvatar memberIds={group.memberIds} size={ROW_AVATAR} />
+      <View style={styles.body}>
+        <Text numberOfLines={1} style={[Type.name, { color: theme.label }]}>
+          {group.name}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={[
+            Type.preview,
+            { color: unread ? theme.label : theme.secondary },
+          ]}
+        >
+          {preview}
+        </Text>
+      </View>
+      <View style={styles.meta}>
+        {unread && <View style={styles.dot} accessibilityLabel="Unread" />}
+        {muted && (
+          <SFIcon name="bell.slash.fill" size={13} color={theme.tertiary} />
+        )}
+        <Text style={[Type.meta, styles.time, { color: theme.secondary }]}>
+          {last ? "now" : ""}
+        </Text>
+      </View>
+    </Pressable>
+  );
+});
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space[4],
+    paddingHorizontal: Space[5],
+    paddingVertical: Space[3],
+    borderRadius: 28,
+  },
+  body: { flex: 1, gap: 2 },
+  meta: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    gap: 6,
+    minWidth: 44,
+  },
+  time: { fontVariant: ["tabular-nums"] },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Accent,
+  },
+  fallback: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(120,120,128,0.16)",
+  },
+});
