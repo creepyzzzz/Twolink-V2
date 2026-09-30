@@ -6,118 +6,118 @@
   },
   {
     "path": "assets/cookbooks/astra/portraits/0.png",
-    "bytes": 255933,
-    "sha256": "d1fd8aee8d3d6959ade29ea82ce0c6317c13863f84fa160713aa31887b9e442b"
+    "bytes": 13153,
+    "sha256": "de70542b87b6115b2edc37a299fcaef6165c3f8f0428a3e0f4d62ea37ec66f32"
   },
   {
     "path": "assets/cookbooks/astra/portraits/1.png",
-    "bytes": 249110,
-    "sha256": "4f1c0930fb4978b29758eadf0f29d888b8f440ad39fbc8ef7eab1acacafd6354"
+    "bytes": 14805,
+    "sha256": "b43da1c1a11992945acea42b59340b97d2facfc61becef72b4c364eb27c964c4"
   },
   {
     "path": "assets/cookbooks/astra/portraits/2.png",
-    "bytes": 238262,
-    "sha256": "0f6dc20eb3923b708e93bfe63a1fd82194a06bace1cdaba113cafdbe4e8b2f0f"
+    "bytes": 16119,
+    "sha256": "f34fba9b2bda02b08610c62e1604c08ad830284932a5446a9c69adc6bdf8bed3"
   },
   {
     "path": "assets/cookbooks/astra/portraits/3.png",
-    "bytes": 266434,
-    "sha256": "154c24a853291dae9b217ea101999929d240ccb3c15ad4bccb14e02ae38b7832"
+    "bytes": 15564,
+    "sha256": "f5dd26a16edc5d823b365e8d9354be474d5f24a6ed1cb888f9639f9c8526f300"
   },
   {
     "path": "assets/cookbooks/astra/portraits/4.png",
-    "bytes": 281644,
-    "sha256": "1eff1039a6869e9fc5b17e321b255448c3584a5505b6a7de289dd430b061e265"
+    "bytes": 12591,
+    "sha256": "9cb8413c8afa0192c17da7e3246f967a649abc352a51945c77cc420822a7dd1b"
   },
   {
     "path": "assets/cookbooks/astra/portraits/5.png",
-    "bytes": 293295,
-    "sha256": "796adc83b2b640c247489f35c4767abe11e465c7ab1df10ef1c565eb5fcf2364"
+    "bytes": 11953,
+    "sha256": "1cf62f4466b2d138e15c3fe3ed6c9751fcd3fd18f315e383632ced52aa30cb50"
   },
   {
     "path": "assets/cookbooks/astra/portraits/6.png",
-    "bytes": 240524,
-    "sha256": "e1d0d4610b3667124230f128cfe29967d606fd8c4d8d3038cefe12f284b21346"
+    "bytes": 13443,
+    "sha256": "efd002aac287932772e54b07cc207742b6c00212b5a18ea6ccdc189715203774"
   },
   {
     "path": "assets/cookbooks/astra/portraits/7.png",
-    "bytes": 256282,
-    "sha256": "42070b2c6e981f3f5552172350646794604f5dee789d5810765ab0ed1317bcc6"
+    "bytes": 13240,
+    "sha256": "f4d8a1f642854ed51cd86652bba47c9c9c7406815d015c9cab6307d6eb3cbcc4"
   },
   {
     "path": "assets/cookbooks/astra/portraits/8.png",
-    "bytes": 255907,
-    "sha256": "4f6f924d0db68477b9658ffbc3a3db16aba7a88aeaaa70f15af53e0cc7c1c11c"
+    "bytes": 14425,
+    "sha256": "574d3e55a5a0a235a9f2c981a98e1a6c4763cdeddd24e2fc32ac4dd9859d658a"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/amara.jpg",
-    "bytes": 34383,
-    "sha256": "bc1fcb9fe58ecf744a3cbcfed00578af332fe329fbb16a91a57ccbd39dee97f7"
+    "path": "assets/cookbooks/fable/avatars/amara.png",
+    "bytes": 14269,
+    "sha256": "84f65251b18289658e258d7377468888aba1d7a2c786b037432a1f4c411ebcd4"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/elena.jpg",
-    "bytes": 42600,
-    "sha256": "f520a92d1abbdb8355da68716b250f73b8f2c1391c8dc3ce0bf2c6ea8c64b716"
+    "path": "assets/cookbooks/fable/avatars/elena.png",
+    "bytes": 11214,
+    "sha256": "1698e1cdafb0731130a1c44254ba899ee431074288bd6e816327ea9d251cb58d"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/elias.jpg",
-    "bytes": 40390,
-    "sha256": "d2131de13fadba73090fb2510948026fdef07ce198d555f1aa798157e058bfcf"
+    "path": "assets/cookbooks/fable/avatars/elias.png",
+    "bytes": 10816,
+    "sha256": "2d16601d9de994eb40215993815abd92daede1773af89162ae0e2ec82a384af8"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/fable.jpg",
-    "bytes": 29440,
-    "sha256": "9e0d1ae3394e59f4025fe524edee1ec014022ca7e03d7672dfdb7c50363ce859"
+    "path": "assets/cookbooks/fable/avatars/fable.png",
+    "bytes": 12867,
+    "sha256": "fc8de6105ad866e364b07cb14ff828c999fd189101bc0eb0e648a18432333b98"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/jonas.jpg",
-    "bytes": 43318,
-    "sha256": "93b37c9f2d566bdf11bfabd639d21e23797c8096326412ae0adfd016af451150"
+    "path": "assets/cookbooks/fable/avatars/jonas.png",
+    "bytes": 12800,
+    "sha256": "9c7c896ef35c951e9f958b56cdef23c27ad7e5b136ca413c3eb4585c076af71e"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/kenji.jpg",
-    "bytes": 35116,
-    "sha256": "2282767f3e5356bae9e31eb4f29a858dc9ce9f2692d4bca07f44d9dff98f4c91"
+    "path": "assets/cookbooks/fable/avatars/kenji.png",
+    "bytes": 11519,
+    "sha256": "228c163574be0557c5d550b28883135839af98978de8d9de66f6670ed425055a"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/lucas.jpg",
-    "bytes": 39479,
-    "sha256": "90429be98e5a2a559d83862b47a6b326e49a26bcc282e29c2a24c7f9dcaf0c30"
+    "path": "assets/cookbooks/fable/avatars/lucas.png",
+    "bytes": 17048,
+    "sha256": "9009418ea6fe13a597af94b7e6e06881fab90f1231e4c72909be6ced4d5c4351"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/mara.jpg",
-    "bytes": 41983,
-    "sha256": "cc04c89b23c2e605b7dfc17bb04625f773266df3a08339ed39e3af66d8d2156e"
+    "path": "assets/cookbooks/fable/avatars/mara.png",
+    "bytes": 13058,
+    "sha256": "7bbf0f63efcdff380ab37c691bef081b3b6a7ba0730c090fce2be79504fe7988"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/me.jpg",
-    "bytes": 40134,
-    "sha256": "6f333550826d837d0d7ba16951b33d7161b1a9a3b4e56a71eedc9bd2fdf9b30a"
+    "path": "assets/cookbooks/fable/avatars/me.png",
+    "bytes": 16235,
+    "sha256": "f62a40dd1f95e9d13a7c4ec3eb13465bc23bbcf40649ee8a664d2c084d58027d"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/nia.jpg",
-    "bytes": 37836,
-    "sha256": "01f4e1092bc0738b20976befc2c343392c57954b2a9286eb728ee2e8b7e3d923"
+    "path": "assets/cookbooks/fable/avatars/nia.png",
+    "bytes": 11373,
+    "sha256": "00e09d9d806995fad50f4af149c10c98a37fecb944ce65969d1f980151cfbb3d"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/rafael.jpg",
-    "bytes": 36736,
-    "sha256": "0927a7f33ce3f21493e38244195bd842d2da91c86afe036668753f7a56052fb7"
+    "path": "assets/cookbooks/fable/avatars/rafael.png",
+    "bytes": 13146,
+    "sha256": "452d794cbe8e2bb5249745b22475b74e8015a0f43218dccf71a5f50a46c443af"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/sofia.jpg",
-    "bytes": 44610,
-    "sha256": "dd01ee037adc97994c893ece11c2281448f97ca5eb61a280368d3c95b1859765"
+    "path": "assets/cookbooks/fable/avatars/sofia.png",
+    "bytes": 19092,
+    "sha256": "e7fee7bc48d54aee6ebb6ebc25cce31c20efb4acc51c3b688b136fb9f4138dc9"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/theo.jpg",
-    "bytes": 39811,
-    "sha256": "8c1329d5c8c28f68b4458ba8625f8641019853f9947377b5a74579323cf2a48e"
+    "path": "assets/cookbooks/fable/avatars/theo.png",
+    "bytes": 11564,
+    "sha256": "d5f7a3e293619288a189e3784688192f7142e3c37f10f58b8067590737048543"
   },
   {
-    "path": "assets/cookbooks/fable/avatars/zara.jpg",
-    "bytes": 37689,
-    "sha256": "e9fe753acf51dd0e57b7197152b9664fbbec29a09dd567c419d6116840c3708b"
+    "path": "assets/cookbooks/fable/avatars/zara.png",
+    "bytes": 14067,
+    "sha256": "6645415d00cfa57f7b9d530d4966efb49a380d953d6bc168934ab20f7e17b655"
   },
   {
     "path": "assets/cookbooks/fable/stories/amara.jpg",

@@ -11,7 +11,6 @@ import { ScreenBackground } from "../../ui/ScreenBackground";
 
 const TABS = [
   { name: "chats", label: "Chats", icon: "message" },
-  { name: "stories", label: "Stories", icon: "photo.stack" },
   { name: "settings", label: "Settings", icon: "gear" },
 ] as const;
 
