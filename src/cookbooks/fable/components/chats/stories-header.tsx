@@ -16,7 +16,8 @@ import { GlassButton } from "../ui/glass-button";
 import { Orb } from "../ui/orb";
 import { OrbButton } from "../ui/orb-button";
 import { Accent, Type } from "../../constants/theme";
-import { ME, type Person } from "../../data/people";
+import { AVATAR_FACES, type Person } from "../../data/people";
+import { useFable } from "../../data/store";
 import { useStorySeen } from "../../data/story-state";
 import { useTheme } from "../../hooks/use-theme";
 
@@ -63,6 +64,7 @@ export function StoriesHeader({
   onPressMe,
 }: Props) {
   const theme = useTheme();
+  const myFace = useFable((state) => state.profile.face);
   const [titleWidth, setTitleWidth] = useState(48);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const sx = useScrollOffset(scrollRef);
@@ -153,7 +155,7 @@ export function StoriesHeader({
         style={[styles.bar, { top: insetTop, height: NAV_H }]}
       >
         <OrbButton
-          source={ME.avatar}
+          source={AVATAR_FACES[myFace]}
           size={40}
           accessibilityLabel="Your profile"
           onPress={onPressMe}

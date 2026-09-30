@@ -20,6 +20,26 @@ export const ME: Person = {
   storyAgo: "",
 };
 
+/** Every bundled Tapback face, keyed so the user's pick can be persisted. */
+export const AVATAR_FACES = {
+  me: require("../../../../assets/cookbooks/fable/avatars/me.webp"),
+  amara: require("../../../../assets/cookbooks/fable/avatars/amara.webp"),
+  elena: require("../../../../assets/cookbooks/fable/avatars/elena.webp"),
+  elias: require("../../../../assets/cookbooks/fable/avatars/elias.webp"),
+  fable: require("../../../../assets/cookbooks/fable/avatars/fable.webp"),
+  jonas: require("../../../../assets/cookbooks/fable/avatars/jonas.webp"),
+  kenji: require("../../../../assets/cookbooks/fable/avatars/kenji.webp"),
+  lucas: require("../../../../assets/cookbooks/fable/avatars/lucas.webp"),
+  mara: require("../../../../assets/cookbooks/fable/avatars/mara.webp"),
+  nia: require("../../../../assets/cookbooks/fable/avatars/nia.webp"),
+  rafael: require("../../../../assets/cookbooks/fable/avatars/rafael.webp"),
+  sofia: require("../../../../assets/cookbooks/fable/avatars/sofia.webp"),
+  theo: require("../../../../assets/cookbooks/fable/avatars/theo.webp"),
+  zara: require("../../../../assets/cookbooks/fable/avatars/zara.webp"),
+} as const;
+export type AvatarFace = keyof typeof AVATAR_FACES;
+export const AVATAR_FACE_IDS = Object.keys(AVATAR_FACES) as AvatarFace[];
+
 export const PEOPLE: Person[] = [
   {
     id: "mara",

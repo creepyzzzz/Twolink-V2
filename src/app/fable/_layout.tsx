@@ -39,6 +39,14 @@ export default function FableLayout() {
           }}
         />
         <Stack.Screen
+          name="me"
+          options={{
+            presentation: "formSheet",
+            sheetAllowedDetents: [0.85, 1],
+            sheetGrabberVisible: true,
+          }}
+        />
+        <Stack.Screen
           name="settings"
           options={{
             presentation: "formSheet",

@@ -2,15 +2,22 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createMMKV } from "react-native-mmkv";
 import { messagesFor, type Message, type ReplyQuote } from "./messages";
-import { PEOPLE_BY_ID } from "./people";
+import { PEOPLE_BY_ID, type AvatarFace } from "./people";
 
 const storage = createMMKV({ id: "fable-local-v1" });
 let sequence = 0;
+export type Profile = {
+  name: string;
+  about: string;
+  face: AvatarFace;
+};
 type State = {
   threads: Record<string, Message[]>;
   read: string[];
   muted: Record<string, boolean>;
   theme: "system" | "light" | "dark";
+  profile: Profile;
+  setProfile: (patch: Partial<Profile>) => void;
   append: (
     id: string,
     text: string,
@@ -31,6 +38,13 @@ export const useFable = create<State>()(
       read: [],
       muted: {},
       theme: "system",
+      profile: {
+        name: "Tariq",
+        about: "Hey there! I'm using TwoLink.",
+        face: "me",
+      },
+      setProfile: (patch) =>
+        set((state) => ({ profile: { ...state.profile, ...patch } })),
       append: (id, text, from = "me", photo = false, opts) => {
         const person = PEOPLE_BY_ID[id];
         if (!person || (!photo && !text.trim())) return;
