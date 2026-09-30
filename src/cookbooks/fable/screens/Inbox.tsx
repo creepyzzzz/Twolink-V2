@@ -188,7 +188,7 @@ export default function ChatsScreen() {
         onPressCluster={openStories}
         onPressStory={onPressStory}
         onPressCompose={() => router.push("/fable/compose")}
-        onPressMe={() => router.push("/fable/me")}
+        onPressMe={() => router.push("/me")}
       />
     </View>
   );

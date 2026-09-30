@@ -59,6 +59,17 @@ export default function RootLayout() {
             <Stack.Screen name="chat" />
             <Stack.Screen name="fable" />
             <Stack.Screen name="astra" />
+            {/* My Profile: a transparent modal at root level so it presents
+                over any stack (chat list, conversation, …) with the chat
+                visible behind the blur. */}
+            <Stack.Screen
+              name="me"
+              options={{
+                presentation: "transparentModal",
+                animation: "none",
+                contentStyle: { backgroundColor: "transparent" },
+              }}
+            />
           </Stack>
           {/* Story viewer: mounted once, above the navigator, so it sits on
               top of every flow (tabs and fable stack alike). */}
