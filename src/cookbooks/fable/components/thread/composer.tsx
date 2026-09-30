@@ -308,7 +308,7 @@ export function Composer({
                   // the on-screen send button.
                   enablesReturnKeyAutomatically
                   selectionColor={Accent}
-                  style={[Type.body, styles.input, { color: theme.label }]}
+                  style={[styles.input, { color: theme.label }]}
                 />
               </View>
             </Glass>
@@ -532,14 +532,15 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     maxHeight: 138,
-    // Optical centering for SF Pro on Android: the font's metrics place the
-    // visible ink of "Message" 1.6pt below the line-box center (measured from
-    // the OTF: hhea 1950/-494, ink 1443/-380 at 17pt/23pt line via RN's CSS
-    // inline-layout span). Shifting the line box up 1.5pt centers the ink.
-    // Total stays 44 = minHeight (9 + 23 + 12).
-    paddingTop: 9,
-    paddingBottom: 12,
-    lineHeight: 23,
+    paddingVertical: 0,
+    fontSize: Type.body.fontSize,
+    fontFamily: Type.body.fontFamily,
+    letterSpacing: Type.body.letterSpacing,
+    // Same recipe as every other input in the app (inbox search, conversation
+    // search, group name, …): NO explicit lineHeight — the font's natural
+    // metrics center best on Android — and textAlignVertical centers the
+    // glyphs in the full input height. (Type.body's lineHeight is
+    // deliberately not spread here; it was the outlier breaking centering.)
     textAlignVertical: "center",
   },
   /** The send circle sits just outside the pill, with a clear gap. */
