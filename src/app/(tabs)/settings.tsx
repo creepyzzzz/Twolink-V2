@@ -6,7 +6,7 @@ import {
   AndroidGlassSlider,
   AndroidGlassToggle,
 } from "expo-android-glass-view";
-import { ChevronRight } from "lucide-react-native";
+import { SFIcon } from "../../ui/SFIcon";
 import { AdaptiveGlassView } from "../../ui/GlassView";
 import { ScreenBackground } from "../../ui/ScreenBackground";
 
@@ -92,7 +92,7 @@ export default function SettingsScreen() {
             <Text style={styles.profileName}>Tariq</Text>
             <Text style={styles.profileSub}>TwoLink private build</Text>
           </View>
-          <ChevronRight size={20} color={INK_FAINT} />
+          <SFIcon name="chevron.right" size={20} color={INK_FAINT} />
         </AdaptiveGlassView>
 
         <Section title="Privacy">
@@ -163,7 +163,7 @@ export default function SettingsScreen() {
           </View>
           <Pressable style={styles.row} accessibilityRole="button">
             <Text style={styles.rowLabel}>Open-source licenses</Text>
-            <ChevronRight size={20} color={INK_FAINT} />
+            <SFIcon name="chevron.right" size={20} color={INK_FAINT} />
           </Pressable>
         </Section>
       </ScrollView>

@@ -9,7 +9,7 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronLeft, Plus, SendHorizontal } from "lucide-react-native";
+import { SFIcon } from "../../ui/SFIcon";
 import * as ImagePicker from "expo-image-picker";
 import {
   AndroidGlassButton,
@@ -101,7 +101,7 @@ function AttachButton({ onPickImage }: { onPickImage: () => void }) {
           accessibilityRole="button"
           accessibilityLabel="Attach"
         >
-          <Plus size={22} color="rgba(23,25,27,0.85)" />
+          <SFIcon name="plus" size={22} color="rgba(23,25,27,0.85)" />
         </Pressable>
       </View>
       <AndroidGlassMenu
@@ -329,7 +329,8 @@ function ConversationBody({ person }: { person: Person }) {
           accessibilityRole="button"
           accessibilityLabel="Send"
         >
-          <SendHorizontal
+          <SFIcon
+            name="paperplane"
             size={17}
             color={canSend ? "#fff" : "rgba(23,25,27,0.35)"}
           />
@@ -392,7 +393,7 @@ function ConversationBody({ person }: { person: Person }) {
           accessibilityRole="button"
           accessibilityLabel="Back"
         >
-          <ChevronLeft size={26} color="#17191B" />
+          <SFIcon name="chevron.left" size={26} color="#17191B" />
         </Pressable>
         <View
           ref={headerRef}

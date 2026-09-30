@@ -8,20 +8,7 @@ import {
   type ViewStyle,
   type StyleProp,
 } from "react-native";
-import {
-  Search,
-  Heart,
-  CircleX,
-  X,
-  ChevronRight,
-  ChevronDown,
-  BellOff,
-  RotateCcw,
-  Plus,
-  MessagesSquare,
-  Circle as CircleIcon,
-  type LucideIcon,
-} from "lucide-react-native";
+import { SFIcon } from "../../ui/SFIcon";
 import { AdaptiveGlassView } from "../../ui/GlassView";
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import { LinearGradient } from "expo-linear-gradient";
@@ -59,18 +46,11 @@ export function Icon({
   const t = useTheme();
   const resolved = color ?? t.text;
   if (Platform.OS === "android") {
-    // SF Symbols (expo-symbols) are iOS-only and render nothing on Android.
-    // Map every SF name used in the app to its lucide equivalent.
+    // SF Symbols (expo-symbols) are iOS-only and render nothing on Android,
+    // so we render Apple's own extracted vector artwork instead (SFIcon).
     const sfName: string =
       typeof name === "string" ? name : (name.ios ?? "");
-    const Cmp: LucideIcon = ANDROID_ICONS[sfName] ?? CircleIcon;
-    return (
-      <Cmp
-        size={size}
-        color={resolved}
-        fill={FILLED_ICONS.has(sfName) ? resolved : "none"}
-      />
-    );
+    return <SFIcon name={sfName} size={size} color={resolved} />;
   }
   return (
     <SymbolView
@@ -83,25 +63,6 @@ export function Icon({
   );
 }
 
-const ANDROID_ICONS: Record<string, LucideIcon> = {
-  magnifyingglass: Search,
-  "heart.fill": Heart,
-  "xmark.circle.fill": CircleX,
-  xmark: X,
-  "chevron.right": ChevronRight,
-  "chevron.down": ChevronDown,
-  "bell.slash.fill": BellOff,
-  "arrow.counterclockwise": RotateCcw,
-  plus: Plus,
-  "bubble.left.and.bubble.right": MessagesSquare,
-};
-
-/** SF ".fill" variants that should render solid on Android. */
-const FILLED_ICONS = new Set([
-  "heart.fill",
-  "xmark.circle.fill",
-  "bell.slash.fill",
-]);
 export function Glass({
   children,
   style,

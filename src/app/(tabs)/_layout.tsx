@@ -4,15 +4,15 @@ import {
   AndroidGlassMenuProvider,
   AndroidGlassTab,
 } from "expo-android-glass-view";
-import { MessageCircle, Sparkles, Settings } from "lucide-react-native";
+import { SFIcon } from "../../ui/SFIcon";
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenBackground } from "../../ui/ScreenBackground";
 
 const TABS = [
-  { name: "chats", label: "Chats", Icon: MessageCircle },
-  { name: "stories", label: "Stories", Icon: Sparkles },
-  { name: "settings", label: "Settings", Icon: Settings },
+  { name: "chats", label: "Chats", icon: "message" },
+  { name: "stories", label: "Stories", icon: "photo.stack" },
+  { name: "settings", label: "Settings", icon: "gear" },
 ] as const;
 
 const ACCENT = "#3D92E9";
@@ -51,12 +51,12 @@ function GlassTabBar({ state, navigation }: TabBarProps) {
       refractionAmount={16}
       style={[styles.bar, { bottom: Math.max(insets.bottom, 16) + 8 }]}
     >
-      {TABS.map(({ label, Icon }) => (
+      {TABS.map(({ label, icon }) => (
         <AndroidGlassTab
           key={label}
           label={label}
           labelStyle={[styles.label, { color: ICON_IDLE }]}
-          icon={<Icon size={22} color={ICON_IDLE} strokeWidth={2} />}
+          icon={<SFIcon name={icon} size={22} color={ICON_IDLE} />}
         />
       ))}
     </AndroidGlassBottomTabs>

@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { SymbolView } from "expo-symbols";
+import { SFIcon } from "../../../../ui/SFIcon";
 import { useRef, useState } from "react";
 import {
   Alert,
@@ -120,12 +120,7 @@ export function Composer({
                 hitSlop={6}
                 style={[styles.round, { backgroundColor: theme.chip }]}
               >
-                <SymbolView
-                  name="plus"
-                  size={19}
-                  weight="medium"
-                  tintColor={theme.label}
-                />
+                <SFIcon name="plus" size={19} color={theme.label} />
               </Pressable>
               <View style={styles.spacer} />
               <View style={styles.round}>
@@ -149,12 +144,7 @@ export function Composer({
                     hitSlop={6}
                     style={[styles.round, { backgroundColor: theme.chip }]}
                   >
-                    <SymbolView
-                      name="mic.fill"
-                      size={18}
-                      weight="medium"
-                      tintColor={theme.label}
-                    />
+                    <SFIcon name="mic.fill" size={18} color={theme.label} />
                   </Pressable>
                 </Animated.View>
                 <Animated.View
@@ -172,12 +162,7 @@ export function Composer({
                     onPress={submit}
                     style={[styles.round, { backgroundColor: theme.outgoing }]}
                   >
-                    <SymbolView
-                      name="arrow.up"
-                      size={17}
-                      weight="bold"
-                      tintColor={theme.outgoingText}
-                    />
+                    <SFIcon name="arrow.up" size={17} color={theme.outgoingText} />
                   </Pressable>
                 </Animated.View>
               </View>

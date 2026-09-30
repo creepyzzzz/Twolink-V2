@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { SymbolView } from "expo-symbols";
+import { SFIcon } from "../../../../ui/SFIcon";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
@@ -318,12 +318,7 @@ function StoryItem({
             style={[styles.add, { backgroundColor: theme.chip }]}
             accessibilityElementsHidden
           >
-            <SymbolView
-              name="plus"
-              size={26}
-              weight="medium"
-              tintColor={theme.label}
-            />
+            <SFIcon name="plus" size={26} color={theme.label} />
           </View>
         ) : (
           <View

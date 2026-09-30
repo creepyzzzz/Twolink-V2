@@ -1,4 +1,4 @@
-import { SymbolView, type SFSymbol } from "expo-symbols";
+import { SFIcon } from "../../../../ui/SFIcon";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet } from "react-native";
 import Animated, {
@@ -14,7 +14,7 @@ import { useTheme } from "../../hooks/use-theme";
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Props = {
-  symbol?: SFSymbol;
+  symbol?: string;
   size?: number;
   iconSize?: number;
   tint?: string;
@@ -62,12 +62,7 @@ export function GlassButton({
       >
         {children ??
           (symbol ? (
-            <SymbolView
-              name={symbol}
-              size={iconSize}
-              weight="semibold"
-              tintColor={tint ?? theme.label}
-            />
+            <SFIcon name={symbol} size={iconSize} color={tint ?? theme.label} />
           ) : null)}
       </Glass>
     </AnimatedPressable>
