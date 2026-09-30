@@ -46,6 +46,7 @@ const NAMES = [
   "speaker.slash.fill",
   "envelope.open.fill",
   "envelope.badge.fill",
+  "chart.bar",
 ];
 
 const bySource = {};

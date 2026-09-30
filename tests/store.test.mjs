@@ -223,3 +223,27 @@ test("unread: seed converts a legacy unread count into a marker", () => {
   assert.equal(seedLastReadId(msgs, 9), undefined);
   assert.equal(seedLastReadId([], 0), undefined);
 });
+
+test("Fable: group polls create and take single-choice votes", () => {
+  const s = () => fable.getState();
+  const gid = s().createGroup("Trip planners", ["mara", "theo"]);
+  assert.equal(s().createPoll(gid, "", ["a", "b"]), "");
+  assert.equal(s().createPoll(gid, "Q?", ["only"]), "");
+  const mid = s().createPoll(gid, "Beach or hills?", ["Beach", "Hills", ""]);
+  assert.ok(mid);
+  const msg = s().threads[gid].at(-1);
+  assert.equal(msg.poll.question, "Beach or hills?");
+  assert.deepEqual(
+    msg.poll.options.map((o) => o.text),
+    ["Beach", "Hills"],
+  );
+  s().votePoll(gid, mid, "opt-0", "me");
+  s().votePoll(gid, mid, "opt-1", "mara");
+  let opts = s().threads[gid].at(-1).poll.options;
+  assert.deepEqual(opts[0].votes, ["me"]);
+  assert.deepEqual(opts[1].votes, ["mara"]);
+  s().votePoll(gid, mid, "opt-1", "me"); // change vote
+  opts = s().threads[gid].at(-1).poll.options;
+  assert.deepEqual(opts[0].votes, []);
+  assert.deepEqual(opts[1].votes, ["mara", "me"]);
+});

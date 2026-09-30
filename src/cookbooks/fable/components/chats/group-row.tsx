@@ -85,7 +85,11 @@ export const GroupRow = memo(function GroupRow({
       : "";
   const preview = last
     ? `${senderName ? `${senderName}: ` : ""}${
-        last.photo ? "Shared a photo" : last.text
+        last.photo
+          ? "Shared a photo"
+          : last.poll
+            ? `Poll: ${last.poll.question}`
+            : last.text
       }`
     : `${group.memberIds.length} members`;
 

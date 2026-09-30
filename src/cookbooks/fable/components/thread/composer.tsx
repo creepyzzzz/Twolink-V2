@@ -1,6 +1,6 @@
 import { SFIcon } from "../../../../ui/SFIcon";
 import { useRef, useState } from "react";
-import { useFable } from "../../data/store";
+import { getGroup, useFable } from "../../data/store";
 import {
   Pressable,
   StyleSheet,
@@ -35,6 +35,8 @@ type Props = {
   insetBottom: number;
   onSend: (text: string) => void;
   onAttach: () => void;
+  /** Group threads only: opens the poll composer sheet. */
+  onCreatePoll: () => void;
   onLayoutHeight: (h: number) => void; // full height incl. safe-area padding
   /** When set, a slim iMessage-style "replying to" strip sits above the input. */
   replyPreview?: ReplyPreview | null;
@@ -51,6 +53,7 @@ export function Composer({
   insetBottom,
   onSend,
   onAttach,
+  onCreatePoll,
   onLayoutHeight,
   replyPreview,
   onCancelReply,
@@ -58,6 +61,7 @@ export function Composer({
   const theme = useTheme();
   const inputRef = useRef<TextInput>(null);
   const setDraft = useFable((state) => state.setDraft);
+  const isGroup = useFable((s) => getGroup(s.groups, threadId) != null);
   // Restored once on mount — the input is uncontrolled after that.
   const initialDraft = useFable.getState().drafts[threadId] ?? "";
   const draft = useRef(initialDraft);
@@ -216,6 +220,27 @@ export function Composer({
                   Photo Library
                 </Text>
               </Pressable>
+              {isGroup && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Create a poll"
+                  onPress={() => {
+                    setMenuOpen(false);
+                    onCreatePoll();
+                  }}
+                  style={({ pressed }) => [
+                    styles.item,
+                    { backgroundColor: pressed ? theme.chip : "transparent" },
+                  ]}
+                >
+                  <View
+                    style={[styles.itemIcon, { backgroundColor: theme.chip }]}
+                  >
+                    <SFIcon name="chart.bar" size={18} color={theme.label} />
+                  </View>
+                  <Text style={[Type.body, { color: theme.label }]}>Poll</Text>
+                </Pressable>
+              )}
             </Glass>
           </Animated.View>
         )}

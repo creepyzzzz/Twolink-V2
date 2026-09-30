@@ -27,6 +27,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Bubble } from "../components/thread/bubble";
 import { Composer, type ReplyPreview } from "../components/thread/composer";
 import { PhotoViewer } from "../components/thread/photo-viewer";
+import { PollCard } from "../components/thread/poll-card";
+import { PollSheet } from "../components/thread/poll-sheet";
 import {
   ReactionOverlay,
   type ReactionTarget,
@@ -101,6 +103,8 @@ function ThreadScreen({ id }: { id: string }) {
   } | null>(null);
   // Forwarding: the message being sent to another thread (person picker).
   const [forwarding, setForwarding] = useState<Message | null>(null);
+  // Group poll composer sheet.
+  const [pollOpen, setPollOpen] = useState(false);
   // Swipe-to-reply target: arms the composer's reply strip.
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   // In-conversation search.
@@ -316,8 +320,61 @@ function ThreadScreen({ id }: { id: string }) {
     [scrollToEnd, id, replyTo, person],
   );
 
-  const onAttach = useCallback(async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  // Group polls: create the poll, then a few members vote over the next
+  // seconds so it feels alive.
+  const handleCreatePoll = useCallback(
+    (question: string, options: string[]) => {
+      const messageId = useFable.getState().createPoll(id, question, options);
+      setPollOpen(false);
+      if (!messageId || !group) return;
+      scrollToEnd();
+      const voters = [...group.memberIds]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, Math.min(3, group.memberIds.length));
+      voters.forEach((voterId, i) => {
+        const t = setTimeout(() => {
+          const st = useFable.getState();
+          const opts =
+            st.threads[id]?.find((m) => m.id === messageId)?.poll?.options ??
+            [];
+          if (opts.length === 0) return;
+          st.votePoll(
+            id,
+            messageId,
+            opts[(voterId.length + i) % opts.length].id,
+            voterId,
+          );
+        }, 2000 + i * 2200);
+        timers.current.push(t);
+      });
+    },
+    [id, group, scrollToEnd],
+  );
+
+  // Voting: your vote lands immediately, then one member follows it.
+  const handleVote = useCallback(
+    (messageId: string, optionId: string) => {
+      useFable.getState().votePoll(id, messageId, optionId, "me");
+      if (!group) return;
+      const t = setTimeout(() => {
+        const st = useFable.getState();
+        const opts =
+          st.threads[id]?.find((m) => m.id === messageId)?.poll?.options ??
+          [];
+        const candidates = group.memberIds.filter(
+          (m) => !opts.some((o) => o.votes.includes(m)),
+        );
+        if (candidates.length === 0) return;
+        const voter =
+          candidates[Math.floor(Math.random() * candidates.length)];
+        st.votePoll(id, messageId, optionId, voter);
+      }, 2600);
+      timers.current.push(t);
+    },
+    [id, group],
+  );
+
+  const onAttach = useCallback(async () => {    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert(
         "Photos",
@@ -545,6 +602,16 @@ function ThreadScreen({ id }: { id: string }) {
                   {label}
                 </Text>
               )}
+              {msg.poll ? (
+                <PollCard
+                  message={msg}
+                  mine={msg.from === "me"}
+                  senderName={
+                    msg.from !== "me" ? senderName(msg) || undefined : undefined
+                  }
+                  onVote={(optionId) => handleVote(msg.id, optionId)}
+                />
+              ) : (
               <Bubble
                 message={msg}
                 person={person}
@@ -560,6 +627,7 @@ function ThreadScreen({ id }: { id: string }) {
                   msg.from !== "me" ? senderName(msg) || undefined : undefined
                 }
               />
+              )}
             </View>
           ))}
           {typing && (group ? typingPerson : person) && (
@@ -578,6 +646,7 @@ function ThreadScreen({ id }: { id: string }) {
         insetBottom={insets.bottom}
         onSend={onSend}
         onAttach={onAttach}
+        onCreatePoll={() => setPollOpen(true)}
         onLayoutHeight={setComposerHeight}
         replyPreview={replyPreview}
         onCancelReply={() => setReplyTo(null)}
@@ -657,8 +726,7 @@ function ThreadScreen({ id }: { id: string }) {
       )}
 
       {forwarding && (
-        <Sheet detent={0.6}>
-          <Text style={[styles.forwardTitle, { color: theme.label }]}>
+        <Sheet detent={0.6}>          <Text style={[styles.forwardTitle, { color: theme.label }]}>
             Forward to
           </Text>
           <SheetScrollView showsVerticalScrollIndicator={false}>
@@ -678,6 +746,13 @@ function ThreadScreen({ id }: { id: string }) {
             ))}
           </SheetScrollView>
         </Sheet>
+      )}
+
+      {pollOpen && group && (
+        <PollSheet
+          onClose={() => setPollOpen(false)}
+          onCreate={handleCreatePoll}
+        />
       )}
 
       {viewerSource && (

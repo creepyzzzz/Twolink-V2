@@ -6,6 +6,20 @@ export type ReplyQuote = {
   photo?: boolean;
 };
 
+/** One option in a group poll. */
+export type PollOption = {
+  id: string;
+  text: string;
+  /** Voter ids ("me" or a Person id). Single-choice: at most one per voter. */
+  votes: string[];
+};
+
+/** A group poll attached to a message; `text` mirrors the question. */
+export type Poll = {
+  question: string;
+  options: PollOption[];
+};
+
 export type Message = {
   id: string;
   from: "me" | "them";
@@ -20,6 +34,8 @@ export type Message = {
   replyTo?: ReplyQuote;
   /** Emoji tapbacks on this message (long-press to add/remove). */
   reactions?: string[];
+  /** Group poll attached to this message. */
+  poll?: Poll;
 };
 
 const mara: Message[] = [
