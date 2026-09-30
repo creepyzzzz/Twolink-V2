@@ -48,6 +48,7 @@ const NAMES = [
   "envelope.badge.fill",
   "chart.bar",
   "clock",
+  "folder",
 ];
 
 const bySource = {};
