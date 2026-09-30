@@ -30,7 +30,6 @@ const NAMES = [
   "paperplane",
   "circle",
   "arrowshape.turn.up.left",
-  "face.smiling",
 ];
 
 const bySource = {};

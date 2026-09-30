@@ -1,5 +1,5 @@
 import { SFIcon } from "../../../../ui/SFIcon";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import {
   Keyboard,
   Pressable,
@@ -8,13 +8,10 @@ import {
   TextInput,
   View,
   type LayoutChangeEvent,
-  type NativeSyntheticEvent,
-  type TextInputSelectionChangeEventData,
 } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import Animated, {
   FadeInDown,
-  FadeOutDown,
   LinearTransition,
 } from "react-native-reanimated";
 
@@ -22,7 +19,6 @@ import { Glass } from "../ui/glass";
 import { EASE_OUT } from "../../constants/motion";
 import { Accent, Radius, Space, Type } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
-import { EmojiPanel } from "./emoji-panel";
 
 const BTN = 44;
 
@@ -45,7 +41,7 @@ type Props = {
 /**
  * The floating composer card in liquid glass: the text line on top,
  * a row of round actions beneath. It rides the keyboard, including the
- * interactive drag-to-dismiss.
+ * interactive drag-to-dismiss. Emoji come from the device keyboard.
  */
 export function Composer({
   insetBottom,
@@ -58,8 +54,6 @@ export function Composer({
   const theme = useTheme();
   const inputRef = useRef<TextInput>(null);
   const draft = useRef("");
-  const selRef = useRef({ start: 0, end: 0 });
-  const [emojiOpen, setEmojiOpen] = useState(false);
 
   const onChangeText = (t: string) => {
     draft.current = t;
@@ -69,37 +63,12 @@ export function Composer({
     const text = draft.current.trim();
     if (!text) return;
     inputRef.current?.clear();
-    onChangeText("");
+    draft.current = "";
     onSend(text);
   };
 
   const onLayout = (e: LayoutChangeEvent) =>
     onLayoutHeight(e.nativeEvent.layout.height);
-
-  const onSelectionChange = (
-    e: NativeSyntheticEvent<TextInputSelectionChangeEventData>,
-  ) => {
-    selRef.current = e.nativeEvent.selection;
-  };
-
-  /** Insert an emoji at the caret, iOS-keyboard style. */
-  const insertEmoji = (emoji: string) => {
-    const { start, end } = selRef.current;
-    const cur = draft.current;
-    const safeStart = Math.min(start, cur.length);
-    const safeEnd = Math.min(end, cur.length);
-    const next = cur.slice(0, safeStart) + emoji + cur.slice(safeEnd);
-    draft.current = next;
-    inputRef.current?.setNativeProps({ text: next });
-    const pos = safeStart + emoji.length;
-    selRef.current = { start: pos, end: pos };
-    requestAnimationFrame(() => {
-      inputRef.current?.setNativeProps({
-        selection: { start: pos, end: pos },
-      });
-    });
-    onChangeText(next);
-  };
 
   return (
     <KeyboardStickyView
@@ -156,8 +125,6 @@ export function Composer({
               placeholder="Message"
               placeholderTextColor={theme.placeholder}
               onChangeText={onChangeText}
-              onSelectionChange={onSelectionChange}
-              onFocus={() => setEmojiOpen(false)}
               onSubmitEditing={submit}
               submitBehavior="submit"
               returnKeyType="send"
@@ -178,29 +145,6 @@ export function Composer({
               >
                 <SFIcon name="plus" size={19} color={theme.label} />
               </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Emoji"
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setEmojiOpen((v) => !v);
-                }}
-                hitSlop={6}
-                style={[
-                  styles.round,
-                  {
-                    backgroundColor: emojiOpen
-                      ? theme.outgoing
-                      : theme.chip,
-                  },
-                ]}
-              >
-                <SFIcon
-                  name="face.smiling"
-                  size={20}
-                  color={emojiOpen ? theme.outgoingText : theme.label}
-                />
-              </Pressable>
               <View style={styles.spacer} />
               <Pressable
                 accessibilityRole="button"
@@ -212,14 +156,6 @@ export function Composer({
                 <SFIcon name="arrow.up" size={17} color={theme.outgoingText} />
               </Pressable>
             </View>
-            {emojiOpen && (
-              <Animated.View
-                entering={FadeInDown.duration(220).easing(EASE_OUT.factory())}
-                exiting={FadeOutDown.duration(160)}
-              >
-                <EmojiPanel onPick={insertEmoji} />
-              </Animated.View>
-            )}
           </Glass>
         </Animated.View>
       </View>
