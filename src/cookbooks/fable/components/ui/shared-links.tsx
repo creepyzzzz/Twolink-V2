@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { SFIcon } from "../../../../ui/SFIcon";
-import { Glass } from "./glass";
 import { Radius, Space, Type } from "../../constants/theme";
 import type { Message } from "../../data/messages";
 import { useTheme } from "../../hooks/use-theme";
@@ -61,7 +60,12 @@ export function SharedLinks({ messages }: { messages: Message[] }) {
       <Text style={[Type.caption, styles.section, { color: theme.secondary }]}>
         Shared Links
       </Text>
-      <Glass style={[styles.card, { marginTop: 0, paddingVertical: Space[2] }]}>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme.surface, marginTop: 0, paddingVertical: Space[2] },
+        ]}
+      >
         {links.map((link) => (
           <Pressable
             key={link.url}
@@ -95,7 +99,7 @@ export function SharedLinks({ messages }: { messages: Message[] }) {
             <SFIcon name="chevron.right" size={14} color={theme.tertiary} />
           </Pressable>
         ))}
-      </Glass>
+      </View>
     </>
   );
 }
