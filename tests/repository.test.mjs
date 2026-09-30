@@ -59,6 +59,11 @@ test("Cookbook route adapters resolve to independently organized screen implemen
     ]) {
       const file = path.join(root, "src/app", cookbook, `${route}.tsx`);
       const text = readFileSync(file, "utf8");
+      // The retired fable conversation forwards to the unified Kesha screen.
+      if (cookbook === "fable" && route === "chat/[id]") {
+        assert.ok(text.includes('pathname: "/chat/[id]"'));
+        continue;
+      }
       assert.ok(text.includes(`cookbooks/${cookbook}/screens/${component}`));
       const target = /from ["']([^"']+)["']/.exec(text)[1];
       assert.ok(existsSync(path.resolve(path.dirname(file), `${target}.tsx`)));

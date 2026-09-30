@@ -66,7 +66,7 @@ export default function Compose() {
             accessibilityLabel={`Message ${item.name}`}
             onPress={() =>
               router.replace({
-                pathname: "/fable/chat/[id]",
+                pathname: "/chat/[id]",
                 params: { id: item.id },
               })
             }
