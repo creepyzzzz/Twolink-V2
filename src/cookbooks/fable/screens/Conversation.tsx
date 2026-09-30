@@ -201,14 +201,11 @@ function ThreadScreen({ id }: { id: string }) {
     () =>
       messages.map((msg, i) => {
         const prev = messages[i - 1];
-        const next = messages[i + 1];
-        const showAvatar =
-          msg.from === "them" && (!next || next.from !== "them");
         const first = !prev || prev.from !== msg.from;
         const yesterday = msg.at.startsWith("Yesterday");
         const dayBreak = !prev || prev.at.startsWith("Yesterday") !== yesterday;
         const label = dayBreak ? (yesterday ? "Yesterday" : "Today") : null;
-        return { msg, showAvatar, first, label, animate: i >= mountedCount };
+        return { msg, first, label, animate: i >= mountedCount };
       }),
     [messages, mountedCount],
   );
@@ -250,7 +247,7 @@ function ThreadScreen({ id }: { id: string }) {
             { paddingBottom: composerHeight + Space[2] },
           ]}
         >
-          {rows.map(({ msg, showAvatar, first, label, animate }) => (
+          {rows.map(({ msg, first, label, animate }) => (
             <View key={msg.id}>
               {label && (
                 <Text
@@ -262,7 +259,6 @@ function ThreadScreen({ id }: { id: string }) {
               <Bubble
                 message={msg}
                 person={person}
-                showAvatar={showAvatar}
                 first={first}
                 animate={animate}
                 onReact={onReact}

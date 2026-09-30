@@ -13,8 +13,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { BUBBLE_AVATAR } from "./bubble";
-import { Orb } from "../ui/orb";
 import { Radius, Space } from "../../constants/theme";
 import type { Person } from "../../data/people";
 import { useScheme, useTheme } from "../../hooks/use-theme";
@@ -56,7 +54,6 @@ export function TypingBubble({ person }: { person: Person }) {
       exiting={FadeOut.duration(140)}
       style={styles.row}
     >
-      <Orb source={person.avatar} size={BUBBLE_AVATAR} />
       <View
         accessibilityLabel={`${person.first} is typing`}
         style={[

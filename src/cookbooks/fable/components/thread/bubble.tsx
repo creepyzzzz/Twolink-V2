@@ -13,7 +13,6 @@ import Animated, {
 
 import { SFIcon } from "../../../../ui/SFIcon";
 import { Glass } from "../ui/glass";
-import { Orb } from "../ui/orb";
 import { EASE_OUT, SNAP, SOFT } from "../../constants/motion";
 import { Accent, Ink, Radius, Space, Type } from "../../constants/theme";
 import type { Message } from "../../data/messages";
@@ -21,9 +20,8 @@ import type { Person } from "../../data/people";
 import { useScheme, useTheme } from "../../hooks/use-theme";
 import type { ReactionTarget } from "./reaction-picker";
 
-export const BUBBLE_AVATAR = 26;
-
 /**
+ * Fable conversation bubble.
  * Outgoing bubbles leave the composer: they start where the text was typed,
  * a shade lighter and slightly larger (the composer's own scale), and settle
  * into place as ink. Scaling down from 1.02 keeps the glyphs crisp.
@@ -48,7 +46,6 @@ const enterOutgoing = () => {
 type Props = {
   message: Message;
   person: Person;
-  showAvatar: boolean; // last incoming bubble in a run carries the avatar, grouped by sender
   first: boolean; // first bubble of a run gets the wider gap
   animate: boolean; // only messages that arrive after mount animate in
   onReact: (message: Message, target: ReactionTarget) => void;
@@ -68,7 +65,6 @@ const DRAG_MAX = 76;
 export const Bubble = memo(function Bubble({
   message,
   person,
-  showAvatar,
   first,
   animate,
   onReact,
@@ -208,11 +204,6 @@ export const Bubble = memo(function Bubble({
             dragStyle,
           ]}
         >
-          {!mine && (
-            <View style={styles.avatarSlot}>
-              {showAvatar && <Orb source={person.avatar} size={BUBBLE_AVATAR} />}
-            </View>
-          )}
           <Animated.View style={[styles.hint, hintStyle]}>
             <View
               style={[styles.hintCircle, { backgroundColor: theme.chip }]}
@@ -337,10 +328,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 8,
-  },
-  avatarSlot: {
-    width: BUBBLE_AVATAR,
-    height: BUBBLE_AVATAR,
   },
   photoWrap: {
     width: "72%",
