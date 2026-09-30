@@ -63,7 +63,6 @@ export default function SettingsScreen() {
   const [readReceipts, setReadReceipts] = useState(true);
   const [typingIndicators, setTypingIndicators] = useState(true);
   const [notifications, setNotifications] = useState(true);
-  const [haptics, setHaptics] = useState(true);
   const [glassIntensity, setGlassIntensity] = useState(0.55);
 
   return (
@@ -116,12 +115,6 @@ export default function SettingsScreen() {
             label="Message notifications"
             value={notifications}
             onChange={setNotifications}
-          />
-          <ToggleRow
-            label="Haptics"
-            hint="Subtle vibrations on send, react and tab switches"
-            value={haptics}
-            onChange={setHaptics}
             last
           />
         </Section>

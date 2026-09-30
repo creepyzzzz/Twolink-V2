@@ -44,8 +44,6 @@ import {
   GlassButton,
   Icon,
   Button,
-  tick,
-  impact,
   FadeEdge,
 } from "../ui";
 import { usePortraitNavigation } from "../flight";
@@ -130,7 +128,6 @@ function Conversation({ id }: { id: string }) {
     input.current?.clear();
     setHasText(false);
     setAttachments(false);
-    impact();
     sending.set(
       reduced
         ? 1
@@ -157,7 +154,6 @@ function Conversation({ id }: { id: string }) {
   const react = (message: string) => {
     useChat.getState().heart(id, message);
     setReaction(null);
-    impact();
   };
   return (
     <View key={fontScale} style={{ flex: 1, backgroundColor: t.bg }}>
@@ -181,7 +177,6 @@ function Conversation({ id }: { id: string }) {
         />
         <Pressable
           onPress={() => {
-            tick();
             setToast(
               person.group
                 ? "Your Sunday people"
@@ -272,7 +267,6 @@ function Conversation({ id }: { id: string }) {
                 active={focused}
                 onLongPress={() => {
                   Keyboard.dismiss();
-                  tick();
                   setReaction(item.id);
                 }}
                 onHeart={() => react(item.id)}
@@ -460,7 +454,6 @@ function Conversation({ id }: { id: string }) {
                   testID="attachments"
                   accessibilityLabel="Share a photo"
                   onPress={() => {
-                    tick();
                     Keyboard.dismiss();
                     setAttachments(!attachments);
                   }}

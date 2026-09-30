@@ -18,7 +18,7 @@ import Animated, {
   useAnimatedReaction,
   type SharedValue,
 } from "react-native-reanimated";
-import { Avatar, tick } from "./ui";
+import { Avatar } from "./ui";
 import { people, type Person } from "./data";
 import { SNAP, useTheme } from "./theme";
 import {
@@ -247,7 +247,6 @@ function Orb({
           if (progress.get() < 0.7) {
             onToggle();
           } else {
-            tick();
             openPortrait();
           }
         }}

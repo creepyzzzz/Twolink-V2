@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import { SFIcon } from "../../../../ui/SFIcon";
 import { useRef, useState } from "react";
 import {
@@ -73,7 +72,6 @@ export function Composer({
     if (!text) return;
     inputRef.current?.clear();
     onChangeText("");
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSend(text);
   };
 

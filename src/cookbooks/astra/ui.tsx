@@ -12,9 +12,7 @@ import { SFIcon } from "../../ui/SFIcon";
 import { AdaptiveGlassView } from "../../ui/GlassView";
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Haptics from "expo-haptics";
 import { createButton } from "@gluestack-ui/button";
-import { useChat } from "./data";
 import { useFlight } from "./flight";
 import { GlassPortrait } from "./GlassPortrait";
 import type { SharedValue } from "react-native-reanimated";
@@ -27,13 +25,6 @@ export const Button = createButton({
   Spinner: ActivityIndicator,
   Icon: View,
 });
-export function tick() {
-  if (useChat.getState().haptics) void Haptics.selectionAsync();
-}
-export function impact() {
-  if (useChat.getState().haptics)
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-}
 export function Icon({
   name,
   size = 21,
@@ -108,7 +99,6 @@ export function GlassButton({
       accessibilityLabel={label}
       testID={testID}
       onPress={() => {
-        tick();
         onPress();
       }}
       style={{ width: size, height: size }}

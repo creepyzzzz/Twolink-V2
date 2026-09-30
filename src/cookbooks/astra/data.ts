@@ -150,13 +150,11 @@ type ChatState = {
   read: string[];
   muted: string[];
   theme: "system" | "light" | "dark";
-  haptics: boolean;
   send: (id: string, text: string, kind?: Message["kind"]) => void;
   heart: (id: string, message: string) => void;
   markRead: (id: string) => void;
   setTheme: (theme: ChatState["theme"]) => void;
   toggleMute: (id: string) => void;
-  toggleHaptics: () => void;
   reset: () => void;
 };
 export const useChat = create<ChatState>()(
@@ -166,7 +164,6 @@ export const useChat = create<ChatState>()(
       read: [],
       muted: [],
       theme: "system",
-      haptics: true,
       send: (id, text, kind = "text") => {
         if (
           !people.some((person) => person.id === id) ||
@@ -208,7 +205,6 @@ export const useChat = create<ChatState>()(
             ? state.muted.filter((x) => x !== id)
             : [...state.muted, id],
         })),
-      toggleHaptics: () => set((state) => ({ haptics: !state.haptics })),
       reset: () => set({ threads: {}, read: [], muted: [] }),
     }),
     {

@@ -1,12 +1,11 @@
 import React from "react";
-import { View, Text, ScrollView, Switch, Pressable, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { router } from "expo-router";
 import { useChat } from "../data";
 import { useTheme } from "../theme";
-import { Glass, GlassButton, Icon } from "../ui";
+import { GlassButton, Icon } from "../ui";
 export default function Settings() {
-  const t = useTheme(),
-    haptics = useChat((s) => s.haptics);
+  const t = useTheme();
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: t.bg }}
@@ -40,26 +39,6 @@ export default function Settings() {
           onPress={() => router.back()}
         />
       </View>
-      <Glass
-        style={{
-          marginTop: 4,
-          padding: 18,
-          borderRadius: 26,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Text style={{ fontSize: 16, color: t.text }}>
-          A little haptic feedback
-        </Text>
-        <Switch
-          accessibilityLabel="Haptic feedback"
-          value={haptics}
-          onValueChange={() => useChat.getState().toggleHaptics()}
-          trackColor={{ true: "#555D63" }}
-        />
-      </Glass>
       <View style={{ gap: 12, paddingTop: 28 }}>
         <Text style={{ fontSize: 18, fontWeight: "600", color: t.text }}>
           Good company. Less noise.

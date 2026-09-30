@@ -1,5 +1,4 @@
 import { router } from "expo-router";
-import * as Haptics from "expo-haptics";
 import { useCallback, useRef, useState } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, {
@@ -27,8 +26,6 @@ import { CHATS } from "../data/chats";
 import { STORIES, type Person } from "../data/people";
 import { openStory } from "../data/story-state";
 import { useTheme } from "../hooks/use-theme";
-
-const tick = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
 /** A drag that begins this far below the closed title locks the rail zone out. */
 const LOCK_BELOW = STORIES_H + 40;
@@ -65,13 +62,12 @@ export default function ChatsScreen() {
   });
   const stretch = useDerivedValue(() => Math.max(0, -y.get()));
 
-  // JS state and a haptic exactly once per crossing of the midpoint.
+  // JS state exactly once per crossing of the midpoint.
   useAnimatedReaction(
     () => progress.get() > 0.5,
     (open, prev) => {
       if (prev !== null && open !== prev) {
         runOnJS(setIsOpen)(open);
-        runOnJS(tick)();
       }
     },
   );

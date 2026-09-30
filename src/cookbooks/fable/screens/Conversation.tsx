@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import {
@@ -102,7 +101,6 @@ function ThreadScreen({ id }: { id: string }) {
             (useFable.getState().threads[id]?.length ?? 0) % REPLIES.length
           ];
         useFable.getState().append(id, reply, "them");
-        Haptics.selectionAsync();
         scrollToEnd();
       }, 1800);
       timers.current.push(t1, t2);

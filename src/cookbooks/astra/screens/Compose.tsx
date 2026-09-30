@@ -4,7 +4,7 @@ import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
 import { people } from "../data";
 import { useTheme } from "../theme";
-import { Avatar, Glass, GlassButton, Icon, tick } from "../ui";
+import { Avatar, Glass, GlassButton, Icon } from "../ui";
 export default function Compose() {
   const t = useTheme(),
     [query, setQuery] = useState("");
@@ -70,7 +70,6 @@ export default function Compose() {
             testID={`compose-${item.id}`}
             accessibilityLabel={`Message ${item.name}`}
             onPress={() => {
-              tick();
               router.replace({
                 pathname: "/astra/chat/[id]",
                 params: { id: item.id },

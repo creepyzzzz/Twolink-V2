@@ -36,7 +36,6 @@ import {
   Glass,
   GlassButton,
   Icon,
-  tick,
   FadeEdge,
   Button,
 } from "../ui";
@@ -63,7 +62,7 @@ export default function Inbox() {
       return;
     }
     Keyboard.dismiss();
-    settle(destination.get() === 1 ? 0 : 1, 0, true);
+    settle(destination.get() === 1 ? 0 : 1, 0);
   };
   const panel = useAnimatedStyle(() => ({
     transform: [{ translateY: CIRCLE_TRAVEL * p.get() }],
@@ -267,7 +266,6 @@ export default function Inbox() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: tab === filter }}
                 onPress={() => {
-                  tick();
                   setFilter(tab);
                 }}
                 style={{ height: 36 }}
@@ -404,7 +402,6 @@ function ChatRow({
       testID={`chat-${person.id}`}
       accessibilityLabel={`${person.name}, ${preview ?? person.preview}${unread ? ", unread" : ""}`}
       onPress={() => {
-        tick();
         openPortrait();
       }}
       style={{

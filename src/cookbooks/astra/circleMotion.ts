@@ -10,7 +10,6 @@ import {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { BLOOM, SNAP } from "./theme";
-import { tick } from "./ui";
 
 // The portrait drop and the content displacement share the same spacing budget.
 export const CIRCLE_DROP = 56;
@@ -31,7 +30,7 @@ export function useCircleMotion(onSettled: (expanded: boolean) => void) {
       ? progress.get()
       : withSpring(progress.get(), { damping: 20, stiffness: 210, mass: 0.65 }),
   );
-  const settle = (target: number, velocity = 0, feedback = false) => {
+  const settle = (target: number, velocity = 0) => {
     "worklet";
     destination.set(target);
     contact.set(withSpring(0, SNAP));
@@ -52,7 +51,6 @@ export function useCircleMotion(onSettled: (expanded: boolean) => void) {
             },
           ),
     );
-    if (feedback) scheduleOnRN(tick);
   };
   return {
     progress,
@@ -122,7 +120,7 @@ export function useCirclePan(
     .onEnd((e, success) => {
       if (!eligible.get() || !success) return;
       const projected = progress.get() + (e.velocityY * 0.12) / CIRCLE_TRAVEL;
-      settle(projected > 0.5 ? 1 : 0, e.velocityY, true);
+      settle(projected > 0.5 ? 1 : 0, e.velocityY);
     })
     .onFinalize((_e, success) => {
       if (!eligible.get() || success) return;
