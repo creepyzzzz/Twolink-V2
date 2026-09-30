@@ -1,11 +1,12 @@
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
+import { AndroidGlassToggle } from "expo-android-glass-view";
 import { useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   View,
   useWindowDimensions,
@@ -15,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PhotoViewer } from "../components/thread/photo-viewer";
 import { Avatar } from "../components/ui/avatar";
 import { Glass } from "../components/ui/glass";
-import { Radius, Space, Type } from "../constants/theme";
+import { Accent, Radius, Space, Type } from "../constants/theme";
 import { messagesFor } from "../data/messages";
 import { PEOPLE_BY_ID } from "../data/people";
 import { useFable } from "../data/store";
@@ -53,65 +54,80 @@ function ProfileScreen({ id }: { id: string }) {
     viewerIndex != null ? photos[viewerIndex] : undefined;
 
   return (
-    <View
-      style={[
-        styles.root,
-        { backgroundColor: theme.bg, paddingTop: insets.top + Space[5] },
-      ]}
-    >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + Space[8] },
-        ]}
+    <View style={[styles.root, { backgroundColor: theme.bg }]}>
+      {/* The panel: same rounded-top card language as the chat screen. */}
+      <View
+        style={{
+          flex: 1,
+          marginTop: insets.top + 8,
+          borderTopLeftRadius: Radius.panel,
+          borderTopRightRadius: Radius.panel,
+          borderCurve: "continuous",
+          overflow: "hidden",
+          backgroundColor: theme.surface,
+        }}
       >
-        <Avatar source={person.avatar} size={96} />
-        <Text style={[styles.name, { color: theme.label }]}>
-          {person.name}
-        </Text>
-        <Text style={[Type.caption, { color: theme.secondary, marginTop: 4 }]}>
-          {person.storyState === "none" ? "No recent story" : `Story ${person.storyAgo} ago`}
-        </Text>
-
-        <Glass style={styles.card}>
-          <View style={styles.row}>
-            <Text style={[Type.body, { color: theme.label }]}>Mute</Text>
-            <Switch
-              accessibilityLabel={`Mute ${person.first}`}
-              value={muted}
-              onValueChange={() => toggleMute(id)}
-            />
-          </View>
-        </Glass>
-
-        <Text style={[Type.caption, styles.section, { color: theme.secondary }]}>
-          Shared Photos
-        </Text>
-        {photos.length > 0 ? (
-          <View style={[styles.grid, { gap }]}>
-            {photos.map((m, i) => (
-              <Pressable
-                key={m.id}
-                accessibilityRole="button"
-                accessibilityLabel="Open shared photo"
-                onPress={() => setViewerIndex(i)}
-                style={{ width: cell, height: cell }}
-              >
-                <Image
-                  source={m.photoUri ? { uri: m.photoUri } : person.story}
-                  style={styles.thumb}
-                  contentFit="cover"
-                />
-              </Pressable>
-            ))}
-          </View>
-        ) : (
-          <Text style={[Type.preview, { color: theme.tertiary }]}>
-            No shared photos yet.
+        <LinearGradient
+          pointerEvents="none"
+          colors={[theme.surface, theme.panelEnd]}
+          locations={[0, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom + Space[8] },
+          ]}
+        >
+          <Avatar source={person.avatar} size={96} />
+          <Text style={[styles.name, { color: theme.label }]}>
+            {person.name}
           </Text>
-        )}
-      </ScrollView>
+          <Text style={[Type.caption, { color: theme.secondary, marginTop: 4 }]}>
+            {person.storyState === "none" ? "No recent story" : `Story ${person.storyAgo} ago`}
+          </Text>
+
+          <Glass style={styles.card}>
+            <View style={styles.row}>
+              <Text style={[Type.body, { color: theme.label }]}>Mute</Text>
+              <AndroidGlassToggle
+                accessibilityLabel={`Mute ${person.first}`}
+                value={muted}
+                onValueChange={() => toggleMute(id)}
+                accentColor={Accent}
+              />
+            </View>
+          </Glass>
+
+          <Text style={[Type.caption, styles.section, { color: theme.secondary }]}>
+            Shared Photos
+          </Text>
+          {photos.length > 0 ? (
+            <View style={[styles.grid, { gap }]}>
+              {photos.map((m, i) => (
+                <Pressable
+                  key={m.id}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open shared photo"
+                  onPress={() => setViewerIndex(i)}
+                  style={{ width: cell, height: cell }}
+                >
+                  <Image
+                    source={m.photoUri ? { uri: m.photoUri } : person.story}
+                    style={styles.thumb}
+                    contentFit="cover"
+                  />
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <Text style={[Type.preview, { color: theme.tertiary }]}>
+              No shared photos yet.
+            </Text>
+          )}
+        </ScrollView>
+      </View>
 
       {viewerPhoto && (
         <PhotoViewer
@@ -131,6 +147,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Space[4],
+    paddingTop: Space[5],
     alignItems: "center",
   },
   name: {

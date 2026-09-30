@@ -55,6 +55,15 @@ export function SearchBar({
     >
       <View style={styles.row}>
         <Glass style={styles.field}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close search"
+            hitSlop={8}
+            onPress={onClose}
+            style={styles.backButton}
+          >
+            <SFIcon name="chevron.left" size={17} color={theme.label} />
+          </Pressable>
           <SFIcon name="magnifyingglass" size={16} color={theme.secondary} />
           <TextInput
             ref={inputRef}
@@ -65,6 +74,7 @@ export function SearchBar({
             placeholderTextColor={theme.placeholder}
             returnKeyType="search"
             selectionColor={Accent}
+            textAlignVertical="center"
             style={[Type.body, styles.input, { color: theme.label }]}
           />
           {query.length > 0 && (
@@ -78,14 +88,6 @@ export function SearchBar({
             </Pressable>
           )}
         </Glass>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Cancel search"
-          hitSlop={8}
-          onPress={onClose}
-        >
-          <Text style={[Type.body, { color: Accent }]}>Cancel</Text>
-        </Pressable>
       </View>
       {trimmed.length > 0 && (
         <View style={styles.navRow}>
@@ -139,10 +141,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    height: 44,
     borderRadius: 18,
     borderCurve: "continuous",
     paddingHorizontal: Space[3],
-    paddingVertical: 9,
+  },
+  backButton: {
+    width: 30,
+    height: 30,
+    marginLeft: -6,
+    alignItems: "center",
+    justifyContent: "center",
   },
   input: {
     flex: 1,
