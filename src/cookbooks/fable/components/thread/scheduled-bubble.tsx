@@ -27,6 +27,7 @@ export function ScheduledBubble({
         accessibilityRole="button"
         accessibilityLabel={`Scheduled for ${scheduledLabel(item.at)}. Cancel the send?`}
         onPress={onCancel}
+        onLongPress={onCancel}
         style={({ pressed }) => [
           styles.card,
           {
