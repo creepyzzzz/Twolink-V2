@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createMMKV } from "react-native-mmkv";
-import { messagesFor, type Message, type ReplyQuote } from "./messages";
+import { messagesFor, olderMessagesFor, type Message, type ReplyQuote } from "./messages";
 import { PEOPLE_BY_ID, type AvatarFace } from "./people";
 
 const storage = createMMKV({ id: "fable-local-v1" });
@@ -15,6 +15,8 @@ type State = {
   threads: Record<string, Message[]>;
   read: string[];
   muted: Record<string, boolean>;
+  /** How many older-history pages have been prepended per thread. */
+  historyPage: Record<string, number>;
   theme: "system" | "light" | "dark";
   profile: Profile;
   setProfile: (patch: Partial<Profile>) => void;
@@ -25,6 +27,8 @@ type State = {
     photo?: boolean,
     opts?: { photoUri?: string; replyTo?: ReplyQuote },
   ) => void;
+  /** Prepends the next page of older history; no-op when exhausted. */
+  loadEarlier: (id: string) => void;
   markRead: (id: string) => void;
   setTheme: (theme: State["theme"]) => void;
   toggleReaction: (id: string, messageId: string, emoji: string) => void;
@@ -37,6 +41,7 @@ export const useFable = create<State>()(
       threads: {},
       read: [],
       muted: {},
+      historyPage: {},
       theme: "system",
       profile: {
         name: "Tariq",
@@ -64,6 +69,23 @@ export const useFable = create<State>()(
               },
             ],
           },
+        }));
+      },
+      loadEarlier: (id) => {
+        const person = PEOPLE_BY_ID[id];
+        if (!person) return;
+        const page = get().historyPage[id] ?? 0;
+        const older = olderMessagesFor(id, person.first, page);
+        if (older.length === 0) return;
+        set((state) => ({
+          threads: {
+            ...state.threads,
+            [id]: [
+              ...older,
+              ...(state.threads[id] ?? messagesFor(id, person.first)),
+            ],
+          },
+          historyPage: { ...state.historyPage, [id]: page + 1 },
         }));
       },
       markRead: (id) => {
@@ -95,7 +117,7 @@ export const useFable = create<State>()(
         set((state) => ({
           muted: { ...state.muted, [id]: !state.muted[id] },
         })),
-      reset: () => set({ threads: {}, read: [] }),
+      reset: () => set({ threads: {}, read: [], historyPage: {} }),
     }),
     {
       name: "fable-state",

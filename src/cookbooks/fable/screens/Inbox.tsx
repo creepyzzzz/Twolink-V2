@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { useMinimizeOnScrollHandler } from "expo-android-glass-view";
 import { useCallback, useRef, useState } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, {
@@ -53,6 +54,8 @@ export default function ChatsScreen() {
   const lockedSV = useSharedValue(false);
   const dragStart = useSharedValue(STORIES_H);
   const settling = useSharedValue(false); // a snap we issued is in flight
+  // Shrinks the tab bar to its compact pill while the chat list scrolls.
+  const minimizeOnScroll = useMinimizeOnScrollHandler();
 
   // While locked, the only way into the rail zone is the scroll view's bounce
   // after a fling to the top; show it as a hint, not a half-open rail.
@@ -110,6 +113,22 @@ export default function ChatsScreen() {
       y.set(yy);
       // Lock as soon as the list is well below the title, long before any fling back up.
       if (yy > LOCK_BELOW) lock(true);
+      // Feed the tab-bar minimize handler a rail-relative offset: the list
+      // rests at STORIES_H (rail tucked under the title), so resting counts
+      // as "top" and the bar stays expanded there.
+      const minimize = minimizeOnScroll;
+      if (minimize) {
+        const adjY = Math.max(0, yy - STORIES_H);
+        runOnJS(minimize)({
+          nativeEvent: {
+            contentOffset: { x: 0, y: adjY },
+            // The handler only clamps y into [0, contentH - layoutH]; pin the
+            // range open so the adjusted offset passes through untouched.
+            contentSize: { width: 0, height: Number.MAX_SAFE_INTEGER },
+            layoutMeasurement: { width: 0, height: 0 },
+          },
+        } as never);
+      }
     },
     onEndDrag: (e) => {
       const yy = e.contentOffset.y;

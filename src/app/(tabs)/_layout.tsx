@@ -3,6 +3,7 @@ import {
   AndroidGlassBottomTabs,
   AndroidGlassMenuProvider,
   AndroidGlassTab,
+  MinimizeOnScrollProvider,
 } from "expo-android-glass-view";
 import { SFIcon } from "../../ui/SFIcon";
 import { StyleSheet } from "react-native";
@@ -65,7 +66,11 @@ function GlassTabBar({ state, navigation }: TabBarProps) {
 export default function TabsLayout() {
   return (
     <AndroidGlassMenuProvider>
-      <ScreenBackground>
+      {/* Shares one minimize state between the tab bar and the tab screens:
+          scrolling down shrinks the bar to its compact pill, scrolling up or
+          reaching the top expands it again. */}
+      <MinimizeOnScrollProvider>
+        <ScreenBackground>
         <Tabs
           tabBar={(props: TabBarProps) => <GlassTabBar {...props} />}
           screenOptions={{
@@ -80,6 +85,7 @@ export default function TabsLayout() {
           <Tabs.Screen name="settings" />
         </Tabs>
       </ScreenBackground>
+      </MinimizeOnScrollProvider>
     </AndroidGlassMenuProvider>
   );
 }

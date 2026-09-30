@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   AndroidGlassSlider,
   AndroidGlassToggle,
+  useMinimizeOnScrollHandler,
 } from "expo-android-glass-view";
 import { SFIcon } from "../../ui/SFIcon";
 import { AdaptiveGlassView } from "../../ui/GlassView";
@@ -64,12 +65,16 @@ export default function SettingsScreen() {
   const [typingIndicators, setTypingIndicators] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [glassIntensity, setGlassIntensity] = useState(0.55);
+  // Shrinks the tab bar to its compact pill while the settings scroll.
+  const minimizeOnScroll = useMinimizeOnScrollHandler();
 
   return (
     <ScreenBackground>
       <StatusBar style="dark" />
       <ScrollView
         style={styles.flex}
+        onScroll={minimizeOnScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={[
           styles.content,
           { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 },

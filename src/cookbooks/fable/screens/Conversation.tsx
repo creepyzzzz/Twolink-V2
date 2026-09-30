@@ -9,7 +9,15 @@ import {
   useState,
   type Ref,
 } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  View,
+  ActivityIndicator,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from "react-native";
 import { KeyboardChatScrollView } from "react-native-keyboard-controller";
 import Animated, { useAnimatedRef } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,7 +33,7 @@ import { SearchBar } from "../components/thread/search-bar";
 import { THREAD_NAV_H, ThreadHeader } from "../components/thread/thread-header";
 import { TypingBubble } from "../components/thread/typing";
 import { Radius, Space, Type } from "../constants/theme";
-import { REPLIES, messagesFor, type Message } from "../data/messages";
+import { REPLIES, messagesFor, olderMessagesFor, type Message } from "../data/messages";
 import { PEOPLE_BY_ID } from "../data/people";
 import { useTheme } from "../hooks/use-theme";
 
@@ -79,6 +87,14 @@ function ThreadScreen({ id }: { id: string }) {
   const [composerHeight, setComposerHeight] = useState(0);
   // Row top offsets (content coordinates) for scrolling to search matches.
   const rowTops = useRef(new Map<string, number>());
+  // Scroll-up pagination: how many older-history pages are already in.
+  const historyPage = useFable((state) => state.historyPage[id] ?? 0);
+  const hasEarlier = olderMessagesFor(id, person.first, historyPage).length > 0;
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  // Geometry bookkeeping so prepending history doesn't move the viewport.
+  const contentHeight = useRef(0);
+  const scrollY = useRef(0);
+  const prependAdjust = useRef<number | null>(null);
 
   // Include the floating composer in content geometry before the initial scroll.
   // Keyboard Controller supplies only the moving keyboard inset.
@@ -89,6 +105,50 @@ function ThreadScreen({ id }: { id: string }) {
       listRef.current?.scrollToEnd({ animated: false }),
     );
   }, [composerHeight, listRef]);
+
+  // Prepends the next older-history page, holding the viewport on the message
+  // that was at the top so the list doesn't jump.
+  const loadEarlierMessages = useCallback(() => {
+    if (loadingEarlier) return;
+    setLoadingEarlier(true);
+    prependAdjust.current = contentHeight.current;
+    const t = setTimeout(() => {
+      useFable.getState().loadEarlier(id);
+      setLoadingEarlier(false);
+    }, 700);
+    timers.current.push(t);
+  }, [id, loadingEarlier]);
+
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = e.nativeEvent.contentOffset.y;
+      scrollY.current = y;
+      if (y <= 48 && !loadingEarlier && hasEarlier) loadEarlierMessages();
+    },
+    [loadingEarlier, hasEarlier, loadEarlierMessages],
+  );
+
+  // One content-size handler: initial bottom positioning, plus the prepend
+  // adjustment that keeps the viewport pinned after older messages land.
+  const handleContentSizeChange = useCallback(
+    (_w: number, h: number) => {
+      const prev = contentHeight.current;
+      contentHeight.current = h;
+      if (prependAdjust.current != null) {
+        prependAdjust.current = null;
+        const delta = h - prev;
+        if (delta > 0) {
+          const y = Math.max(0, scrollY.current + delta);
+          requestAnimationFrame(() =>
+            listRef.current?.scrollTo({ y, animated: false }),
+          );
+        }
+      } else {
+        positionInitially();
+      }
+    },
+    [positionInitially, listRef],
+  );
 
   useEffect(() => {
     const pending = timers.current;
@@ -261,17 +321,22 @@ function ThreadScreen({ id }: { id: string }) {
     setMatchIdx(0);
   }, []);
 
+  const dayOf = useCallback((at: string) => {
+    if (at.startsWith("Yesterday")) return "Yesterday";
+    // "Tuesday 14:02" -> "Tuesday"; "9:41" / "now" -> "Today".
+    return at.includes(" ") ? at.split(" ")[0] : "Today";
+  }, []);
+
   const rows = useMemo(
     () =>
       messages.map((msg, i) => {
         const prev = messages[i - 1];
         const first = !prev || prev.from !== msg.from;
-        const yesterday = msg.at.startsWith("Yesterday");
-        const dayBreak = !prev || prev.at.startsWith("Yesterday") !== yesterday;
-        const label = dayBreak ? (yesterday ? "Yesterday" : "Today") : null;
-        return { msg, first, label, animate: i >= mountedCount };
+        const label = dayOf(msg.at);
+        const dayBreak = !prev || dayOf(prev.at) !== label;
+        return { msg, first, label: dayBreak ? label : null, animate: i >= mountedCount };
       }),
-    [messages, mountedCount],
+    [messages, mountedCount, dayOf],
   );
 
   const panelTop = insets.top + THREAD_NAV_H + Space[1];
@@ -308,7 +373,9 @@ function ThreadScreen({ id }: { id: string }) {
           keyboardDismissMode="interactive"
           contentInsetAdjustmentBehavior="never"
           showsVerticalScrollIndicator={false}
-          onContentSizeChange={positionInitially}
+          onContentSizeChange={handleContentSizeChange}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           onScrollBeginDrag={() => setReaction(null)}
           contentContainerStyle={[
             styles.content,
@@ -345,6 +412,11 @@ function ThreadScreen({ id }: { id: string }) {
           ))}
           {typing && <TypingBubble person={person} />}
         </KeyboardChatScrollView>
+        {loadingEarlier && (
+          <View pointerEvents="none" style={styles.olderLoading}>
+            <ActivityIndicator size="small" color={theme.tertiary} />
+          </View>
+        )}
       </View>
 
       <Composer
@@ -417,6 +489,15 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingTop: Space[6],
+  },
+  // Older-history loading spinner: floats over the panel, never shifts layout.
+  olderLoading: {
+    position: "absolute",
+    top: 24,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 3,
   },
   day: {
     textAlign: "center",

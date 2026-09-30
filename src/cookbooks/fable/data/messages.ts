@@ -151,3 +151,122 @@ export const REPLIES = [
   "Deal. I will sort the rest.",
   "Send me the details and I am in.",
 ];
+
+/**
+ * Older history for scroll-up pagination. Page 0 is the most recent older
+ * batch; pages are prepended one at a time. Returns [] when the history is
+ * exhausted. Local stand-in data — when the real backend lands, this becomes
+ * the paginated fetch and the prepend mechanism stays the same.
+ */
+type OlderTuple = [from: Message["from"], text: string, time: string];
+
+function buildOlder(
+  personId: string,
+  page: number,
+  day: string,
+  items: OlderTuple[],
+): Message[] {
+  return items.map(([from, text, time], i) => ({
+    id: `old-${personId}-p${page}-${i}`,
+    from,
+    text,
+    at: `${day} ${time}`,
+  }));
+}
+
+const MARA_HISTORY: OlderTuple[][] = [
+  [
+    ["them", "Work is eating me alive this week.", "18:44"],
+    ["me", "Same. I forgot what daylight looks like.", "19:02"],
+    ["them", "We need to get out of the city soon. Seriously.", "19:03"],
+    ["me", "Say the word and I am packing a bag.", "19:15"],
+    ["them", "I am saying the word. Cabin. This month.", "19:16"],
+  ],
+  [
+    ["me", "Did Elena ever send those photos from the lake?", "12:20"],
+    ["them", "She did! They are gorgeous, check the group.", "12:45"],
+    ["me", "Okay that water is unreal.", "13:02"],
+    ["them", "Right? That is exactly the energy we need.", "13:03"],
+  ],
+  [
+    ["them", "Lazy Sunday verdict: this couch and I are one now.", "16:30"],
+    ["me", "Respect. I just finished a 10k, I am deceased.", "17:05"],
+    ["them", "Show-off. Proud of you though.", "17:06"],
+  ],
+];
+
+const THEO_HISTORY: OlderTuple[][] = [
+  [
+    ["me", "That bassline on track 2 is stuck in my head.", "20:11"],
+    ["them", "Good stuck or bad stuck?", "20:30"],
+    ["me", "The best kind. Do not you dare change it.", "20:44"],
+    ["them", "Noted. Track 2 is now untouchable.", "20:45"],
+  ],
+  [
+    ["them", "Studio is booked for Thursday. Bring your ears.", "11:15"],
+    ["me", "Would not miss it. Same time as last?", "11:40"],
+    ["them", "Yeah, seven. I will order food so we do not die.", "11:41"],
+  ],
+  [
+    ["me", "Found that sample pack you mentioned.", "15:20"],
+    ["them", "The dusty drums one? It is gold.", "15:55"],
+    ["me", "Already chopped three loops from it.", "16:10"],
+    ["them", "Send them over, I want to hear.", "16:12"],
+  ],
+];
+
+const GENERIC_HISTORY = (name: string): OlderTuple[][] => [
+  [
+    ["them", `Hey, it is ${name}. Did you catch the match last night?`, "19:02"],
+    ["me", "Second half only. That last-minute goal was unreal.", "19:20"],
+    ["them", "I nearly woke the whole building.", "19:21"],
+    ["me", "We should watch one together sometime.", "19:40"],
+    ["them", "Deal. I will hold you to that.", "19:41"],
+  ],
+  [
+    ["me", "This week is already a lot and it is only Monday.", "09:12"],
+    ["them", "Three meetings before lunch over here.", "09:30"],
+    ["them", "Coffee later? I need to complain in person.", "09:31"],
+    ["me", "Always. Same spot at five?", "10:02"],
+    ["them", "Perfect. Do not be late this time.", "10:05"],
+    ["me", "That was ONE time.", "10:06"],
+  ],
+  [
+    ["them", "Okay hear me out — road trip next month?", "14:15"],
+    ["me", "I am listening...", "14:40"],
+    ["them", "Nothing crazy. Just drive somewhere with actual hills.", "14:41"],
+    ["me", "You had me at hills.", "15:05"],
+    ["them", "I will look into places this week.", "15:06"],
+  ],
+];
+
+const FABLE_HISTORY: OlderTuple[][] = [
+  [
+    ["them", "Earlier: reactions are here. Long-press any message.", "09:00"],
+    [
+      "them",
+      "And search: tap the magnifier in any conversation to find words.",
+      "09:01",
+    ],
+  ],
+];
+
+const HISTORY_DAYS = ["Tuesday", "Monday", "Sunday"];
+
+export function olderMessagesFor(
+  personId: string,
+  first: string,
+  page: number,
+): Message[] {
+  const pages =
+    personId === "mara"
+      ? MARA_HISTORY
+      : personId === "theo"
+        ? THEO_HISTORY
+        : personId === "fable"
+          ? FABLE_HISTORY
+          : GENERIC_HISTORY(first);
+  const items = pages[page];
+  if (!items) return [];
+  return buildOlder(personId, page, HISTORY_DAYS[page] ?? "Earlier", items);
+}
