@@ -80,7 +80,11 @@ export function GlassTabBar({ state, navigation }: TabBarProps) {
     >
       <Animated.View style={tuckStyle}>
         <AdaptiveGlassView
-          tintColor="rgba(255,255,255,0.55)"
+          // Whisper-light tint: the native side paints tint as a flat wash
+          // over the blur, and 0.55 white buries the blur into a
+          // solid-looking capsule on light backdrops. Blur + refraction +
+          // rim carry the glass; the tint is only a light frost.
+          tintColor="rgba(255,255,255,0.20)"
           blurRadius={24}
           refractionHeight={8}
           refractionAmount={14}
