@@ -77,20 +77,29 @@ export function GlassAlertHost() {
             {alert.actions.map((action) => (
               <AndroidGlassButton
                 key={action.text}
-                title={action.text}
-                titleStyle={[
-                  styles.actionTitle,
-                  action.style === "destructive" && { color: DESTRUCTIVE },
-                  action.style === "default" && { color: Accent },
-                  action.style === "cancel" && { color: theme.label },
-                ]}
                 tintColor="rgba(255, 255, 255, 0.25)"
                 onPress={() => {
                   dismissAlert();
                   action.onPress?.();
                 }}
                 style={styles.action}
-              />
+              >
+                {/* Rendered as a child (not the title prop) so the label is
+                    guaranteed single-line: it shrinks to fit instead of
+                    wrapping onto a second line. */}
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  style={[
+                    styles.actionTitle,
+                    action.style === "destructive" && { color: DESTRUCTIVE },
+                    action.style === "default" && { color: Accent },
+                    action.style === "cancel" && { color: theme.label },
+                  ]}
+                >
+                  {action.text}
+                </Text>
+              </AndroidGlassButton>
             ))}
           </View>
         </AndroidGlassView>

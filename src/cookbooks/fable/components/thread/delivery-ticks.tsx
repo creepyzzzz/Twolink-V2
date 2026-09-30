@@ -24,10 +24,10 @@ const AnimatedPath = createAnimatedComponent(Path);
  * Kept in its own file: sibling components trip the v6 hooks linter when
  * they share a file with Bubble's gesture hooks.
  */
-const TICK_1 = "M2.5 8 L7 12.5 L15.5 3";
-const TICK_2 = "M8 8 L12.5 12.5 L21 3";
+const TICK_1 = "M2 7.5 L5.5 11 L12 3";
+const TICK_2 = "M9 7.5 L12.5 11 L19 3";
 /** Measured path length of each tick (both are identical). */
-const TICK_LEN = 19.12;
+const TICK_LEN = 15.26;
 const READ_BLUE = "#34B7F1";
 const DRAW_MS = 350;
 
@@ -71,9 +71,9 @@ export function DeliveryTicks({ message }: { message: Message }) {
         <Text style={[styles.editedLabel, { color: gray }]}>Edited</Text>
       )}
       <Svg
-        width={34}
-        height={22}
-        viewBox="0 0 22 14"
+        width={20}
+        height={12}
+        viewBox="0 0 24 14"
         fill="none"
         accessibilityLabel={
           read ? "Read" : delivered ? "Delivered" : "Sent"

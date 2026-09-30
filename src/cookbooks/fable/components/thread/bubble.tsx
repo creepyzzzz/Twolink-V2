@@ -403,8 +403,11 @@ const styles = StyleSheet.create({
   row: {
     paddingHorizontal: Space[4],
   },
-  /** Outgoing stack: the bubble with its ticks tucked underneath. */
+  /** Outgoing stack: the bubble with its ticks tucked underneath. flex: 1
+      gives the column a definite width so the bubble's percentage maxWidth
+      resolves — without it short messages collapse into vertical text. */
   mineColumn: {
+    flex: 1,
     alignItems: "flex-end",
   },
   dragRow: {
