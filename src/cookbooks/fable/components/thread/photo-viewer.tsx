@@ -1,7 +1,7 @@
 import { Image, type ImageProps } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import { memo } from "react";
-import { Pressable, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   FadeIn,
@@ -12,9 +12,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AndroidGlassButton } from "expo-android-glass-view";
 import { SFIcon } from "../../../../ui/SFIcon";
 import { SNAP } from "../../constants/motion";
-import { Glass } from "../ui/glass";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
@@ -108,17 +108,16 @@ export const PhotoViewer = memo(function PhotoViewer({
           />
         </Animated.View>
       </GestureDetector>
-      <Pressable
+      <AndroidGlassButton
         accessibilityRole="button"
         accessibilityLabel="Close photo"
         onPress={onClose}
-        hitSlop={10}
-        style={[styles.close, { top: insets.top + 12 }]}
+        cornerRadius={17}
+        theme="dark"
+        style={[styles.close, styles.closeCircle, { top: insets.top + 12 }]}
       >
-        <Glass interactive style={styles.closeCircle}>
-          <SFIcon name="xmark" size={15} color="#FFFFFF" />
-        </Glass>
-      </Pressable>
+        <SFIcon name="xmark" size={15} color="#FFFFFF" />
+      </AndroidGlassButton>
     </Animated.View>
   );
 });
@@ -140,7 +139,7 @@ const styles = StyleSheet.create({
   closeCircle: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    paddingHorizontal: 0,
     alignItems: "center",
     justifyContent: "center",
   },
