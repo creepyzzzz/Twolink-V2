@@ -54,7 +54,7 @@ export default function Compose() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg, paddingTop: 28 }}>
+    <View style={{ flex: 1, paddingTop: 28 }}>
       <View
         style={{
           flexDirection: "row",
@@ -109,23 +109,32 @@ export default function Compose() {
         </Pressable>
       ) : (
         <View style={{ marginHorizontal: 24, marginTop: 12 }}>
-          <TextInput
-            accessibilityLabel="Group name"
-            placeholder="Group name (optional)"
-            placeholderTextColor={theme.secondary}
-            value={groupName}
-            onChangeText={setGroupName}
-            autoCorrect={false}
-            maxLength={40}
+          <Glass
             style={{
-              padding: 16,
-              borderRadius: 24,
-              borderCurve: "continuous",
-              fontSize: 17,
-              color: theme.label,
-              backgroundColor: theme.surface,
+              height: 44,
+              borderRadius: 22,
+              paddingHorizontal: 16,
+              justifyContent: "center",
             }}
-          />
+          >
+            <TextInput
+              accessibilityLabel="Group name"
+              placeholder="Group name (optional)"
+              placeholderTextColor={theme.secondary}
+              value={groupName}
+              onChangeText={setGroupName}
+              autoCorrect={false}
+              maxLength={40}
+              style={{
+                height: 44,
+                paddingVertical: 0,
+                textAlignVertical: "center",
+                fontSize: 17,
+                fontFamily: "SFProText-Regular",
+                color: theme.label,
+              }}
+            />
+          </Glass>
           <Text
             style={[
               Type.caption,
@@ -139,25 +148,58 @@ export default function Compose() {
         </View>
       )}
 
-      <TextInput
-        accessibilityLabel="Find a friend"
-        placeholder="Find a friend"
-        placeholderTextColor={theme.secondary}
-        value={query}
-        onChangeText={setQuery}
-        autoCorrect={false}
+      <View
         style={{
-          margin: 24,
+          marginHorizontal: 24,
           marginTop: groupMode ? 12 : 24,
           marginBottom: 8,
-          padding: 16,
-          borderRadius: 24,
-          borderCurve: "continuous",
-          fontSize: 17,
-          color: theme.label,
-          backgroundColor: theme.surface,
         }}
-      />
+      >
+        <Glass
+          style={{
+            height: 44,
+            borderRadius: 22,
+            paddingHorizontal: 16,
+            flexDirection: "row",
+            gap: 10,
+            alignItems: "center",
+          }}
+        >
+          <SFIcon name="magnifyingglass" size={17} color={theme.secondary} />
+          <TextInput
+            accessibilityLabel="Find a friend"
+            placeholder="Find a friend"
+            placeholderTextColor={theme.secondary}
+            value={query}
+            onChangeText={setQuery}
+            autoCorrect={false}
+            returnKeyType="search"
+            style={{
+              flex: 1,
+              height: 44,
+              paddingVertical: 0,
+              textAlignVertical: "center",
+              fontSize: 17,
+              fontFamily: "SFProText-Regular",
+              color: theme.label,
+            }}
+          />
+          {query.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              onPress={() => setQuery("")}
+              hitSlop={8}
+            >
+              <SFIcon
+                name="xmark.circle.fill"
+                size={17}
+                color={theme.secondary}
+              />
+            </Pressable>
+          ) : null}
+        </Glass>
+      </View>
       <FlashList
         data={filtered}
         keyExtractor={(person) => person.id}

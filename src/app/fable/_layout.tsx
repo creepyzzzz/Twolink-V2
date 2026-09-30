@@ -44,6 +44,7 @@ export default function FableLayout() {
             presentation: "formSheet",
             sheetAllowedDetents: [0.75, 1],
             sheetGrabberVisible: true,
+            contentStyle: { backgroundColor: "transparent" },
           }}
         />
         <Stack.Screen
