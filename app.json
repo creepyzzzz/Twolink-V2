@@ -19,7 +19,7 @@
       "package": "com.poffu.chat",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#FEDA2E"
+        "backgroundColor": "#3394FA"
       }
     },
     "plugins": [

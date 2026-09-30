@@ -136,9 +136,9 @@
   },
   {
     "path": "assets/images/icon.png",
-    "bytes": 308472,
-    "sha256": "7e65b76e1f6b7529d16f3d8bdae87f19e6db0b1ba444f689991cbb91257f9ce8",
-    "source": "User-supplied Poffu penguin icon (chat upload 2026-09-30), white margin trimmed, resized to 1024x1024"
+    "bytes": 302298,
+    "sha256": "59aa917bfd36ff76d938d2ac90fd84d8c32029f00261997a6861730987c13574",
+    "source": "User-supplied Poffu whale icon (chat upload 2026-09-30), black margin removed, whale kept inside adaptive-icon safe zone on edge-matched blue"
   },
   {
     "path": "assets/fonts/SF-Pro-Text-Regular.otf",
