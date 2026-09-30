@@ -1,7 +1,7 @@
 import { Image, type ImageProps } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import { memo } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   FadeIn,
@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SFIcon } from "../../../../ui/SFIcon";
 import { SNAP } from "../../constants/motion";
+import { Glass } from "../ui/glass";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
@@ -114,9 +115,9 @@ export const PhotoViewer = memo(function PhotoViewer({
         hitSlop={10}
         style={[styles.close, { top: insets.top + 12 }]}
       >
-        <View style={styles.closeCircle}>
+        <Glass interactive style={styles.closeCircle}>
           <SFIcon name="xmark" size={15} color="#FFFFFF" />
-        </View>
+        </Glass>
       </Pressable>
     </Animated.View>
   );
@@ -140,7 +141,6 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(255,255,255,0.22)",
     alignItems: "center",
     justifyContent: "center",
   },
