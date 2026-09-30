@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { GroupAvatar } from "../chats/group-row";
 import { GlassButton } from "../ui/glass-button";
+import { ChatMenu } from "./chat-menu";
 import { Space, Type } from "../../constants/theme";
 import type { Group } from "../../data/store";
 import { useTheme } from "../../hooks/use-theme";
@@ -11,7 +12,8 @@ export const THREAD_NAV_H = 64;
 
 /**
  * Group twin of ThreadHeader: back, a tappable identity (opens the group
- * card), search and video. The panel begins right beneath.
+ * card), video and the ••• menu (search, wallpaper, clear chat).
+ * The panel begins right beneath.
  */
 export function GroupHeader({
   group,
@@ -55,12 +57,6 @@ export function GroupHeader({
       </Pressable>
       <View style={styles.right}>
         <GlassButton
-          symbol="magnifyingglass"
-          iconSize={17}
-          accessibilityLabel="Search in conversation"
-          onPress={onSearch}
-        />
-        <GlassButton
           symbol="video"
           iconSize={18}
           accessibilityLabel="Video call"
@@ -71,6 +67,7 @@ export function GroupHeader({
             )
           }
         />
+        <ChatMenu threadId={group.id} onSearch={onSearch} />
       </View>
     </View>
   );

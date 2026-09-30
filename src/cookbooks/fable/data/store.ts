@@ -70,6 +70,11 @@ type State = {
   markRead: (id: string) => void;
   /** Removes a single message from a thread (context-menu delete). */
   deleteMessage: (id: string, messageId: string) => void;
+  /** Removes every message from a thread. */
+  clearThread: (id: string) => void;
+  /** Per-thread chat wallpaper photo-library URIs. */
+  wallpapers: Record<string, string>;
+  setWallpaper: (id: string, uri: string | null) => void;
   setTheme: (theme: State["theme"]) => void;
   toggleReaction: (id: string, messageId: string, emoji: string) => void;
   toggleMute: (id: string) => void;
@@ -200,7 +205,21 @@ export const useFable = create<State>()(
         set((state) => ({
           muted: { ...state.muted, [id]: !state.muted[id] },
         })),
-      reset: () => set({ threads: {}, read: [], historyPage: {} }),
+      clearThread: (id) =>
+        set((state) => ({
+          threads: { ...state.threads, [id]: [] },
+          read: state.read.filter((r) => r !== id),
+        })),
+      wallpapers: {},
+      setWallpaper: (id, uri) =>
+        set((state) => {
+          const wallpapers = { ...state.wallpapers };
+          if (uri) wallpapers[id] = uri;
+          else delete wallpapers[id];
+          return { wallpapers };
+        }),
+      reset: () =>
+        set({ threads: {}, read: [], historyPage: {}, wallpapers: {} }),
     }),
     {
       name: "fable-state",

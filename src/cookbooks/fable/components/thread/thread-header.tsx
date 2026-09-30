@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Avatar } from "../ui/avatar";
 import { GlassButton } from "../ui/glass-button";
+import { ChatMenu } from "./chat-menu";
 import { Space, Type } from "../../constants/theme";
 import type { Person } from "../../data/people";
 import { useTheme } from "../../hooks/use-theme";
@@ -11,14 +12,17 @@ export const THREAD_NAV_H = 64;
 
 /**
  * The bar: back, a tappable identity (opens the contact card),
- * search and video. The panel begins right beneath.
+ * video and the ••• menu (search, wallpaper, clear chat).
+ * The panel begins right beneath.
  */
 export function ThreadHeader({
   person,
+  threadId,
   insetTop,
   onSearch,
 }: {
   person: Person;
+  threadId: string;
   insetTop: number;
   onSearch: () => void;
 }) {
@@ -55,12 +59,6 @@ export function ThreadHeader({
       </Pressable>
       <View style={styles.right}>
         <GlassButton
-          symbol="magnifyingglass"
-          iconSize={17}
-          accessibilityLabel="Search in conversation"
-          onPress={onSearch}
-        />
-        <GlassButton
           symbol="video"
           iconSize={18}
           accessibilityLabel="Video call"
@@ -71,6 +69,7 @@ export function ThreadHeader({
             )
           }
         />
+        <ChatMenu threadId={threadId} onSearch={onSearch} />
       </View>
     </View>
   );

@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   Alert,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -64,6 +65,7 @@ function ThreadScreen({ id }: { id: string }) {
   const insets = useSafeAreaInsets();
 
   const stored = useFable((state) => state.threads[id]);
+  const wallpaper = useFable((state) => state.wallpapers[id]);
   const initial = useMemo(
     () => (person ? messagesFor(person.id, person.first) : []),
     [person],
@@ -437,6 +439,7 @@ function ThreadScreen({ id }: { id: string }) {
       ) : person ? (
         <ThreadHeader
           person={person}
+          threadId={id}
           insetTop={insets.top}
           onSearch={() => setSearchOpen(true)}
         />
@@ -446,15 +449,35 @@ function ThreadScreen({ id }: { id: string }) {
       <View
         style={[
           styles.panel,
-          { top: panelTop, backgroundColor: theme.surface },
+          {
+            top: panelTop,
+            backgroundColor: wallpaper ? "transparent" : theme.surface,
+          },
         ]}
       >
-        <LinearGradient
-          pointerEvents="none"
-          colors={[theme.surface, theme.panelEnd]}
-          locations={[0, 1]}
-          style={StyleSheet.absoluteFill}
-        />
+        {wallpaper ? (
+          <>
+            <Image
+              source={{ uri: wallpaper }}
+              resizeMode="cover"
+              style={StyleSheet.absoluteFill}
+            />
+            <View
+              pointerEvents="none"
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: "rgba(242, 242, 244, 0.55)" },
+              ]}
+            />
+          </>
+        ) : (
+          <LinearGradient
+            pointerEvents="none"
+            colors={[theme.surface, theme.panelEnd]}
+            locations={[0, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
         <View pointerEvents="none" style={styles.grabberWrap}>
           <View style={[styles.grabber, { backgroundColor: theme.grabber }]} />
         </View>

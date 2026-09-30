@@ -36,6 +36,7 @@ const NAMES = [
   "person.2",
   "link",
   "trash",
+  "ellipsis",
 ];
 
 const bySource = {};

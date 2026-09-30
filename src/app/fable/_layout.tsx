@@ -1,4 +1,5 @@
 import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { AndroidGlassMenuProvider } from "expo-android-glass-view";
 import { StatusBar } from "expo-status-bar";
 import { useTheme } from "../../cookbooks/fable/hooks/use-theme";
 
@@ -7,7 +8,8 @@ export default function FableLayout() {
   const theme = useTheme();
   const nav = DefaultTheme;
   return (
-    <ThemeProvider
+    <AndroidGlassMenuProvider>
+      <ThemeProvider
       value={{
         ...nav,
         colors: { ...nav.colors, background: theme.bg, card: theme.bg },
@@ -61,5 +63,6 @@ export default function FableLayout() {
         />
       </Stack>
     </ThemeProvider>
+    </AndroidGlassMenuProvider>
   );
 }
