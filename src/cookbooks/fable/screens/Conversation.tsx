@@ -50,6 +50,7 @@ import {
 } from "../data/scheduled";
 import { ScheduledBubble } from "../components/thread/scheduled-bubble";
 import { firstUnreadId } from "../data/unread";
+import { atToDate, formatGapLabel, GAP_MS } from "../data/message-time";
 import { PEOPLE, PEOPLE_BY_ID, type Person } from "../data/people";
 import { useTheme } from "../hooks/use-theme";
 
@@ -102,6 +103,7 @@ function ThreadScreen({ id }: { id: string }) {
   useEffect(() => {
     const s = useFable.getState();
     s.setOpenThread(id);
+    s.sweepExpired();
     s.markRead(id);
     return () => {
       if (useFable.getState().openThreadId === id)
@@ -577,7 +579,22 @@ function ThreadScreen({ id }: { id: string }) {
         const first = !prev || prev.from !== msg.from;
         const label = dayOf(msg.at);
         const dayBreak = !prev || dayOf(prev.at) !== label;
-        return { msg, first, label: dayBreak ? label : null, animate: i >= mountedCount };
+        // iMessage shows a centered timestamp when a gap of an hour or
+        // more separates messages on the same day.
+        let gapLabel: string | null = null;
+        if (!dayBreak && prev) {
+          const a = atToDate(prev.at);
+          const b = atToDate(msg.at);
+          if (a && b && b.getTime() - a.getTime() >= GAP_MS)
+            gapLabel = formatGapLabel(b);
+        }
+        return {
+          msg,
+          first,
+          label: dayBreak ? label : null,
+          gapLabel,
+          animate: i >= mountedCount,
+        };
       }),
     [messages, mountedCount, dayOf],
   );
@@ -660,7 +677,7 @@ function ThreadScreen({ id }: { id: string }) {
             { paddingBottom: composerHeight + Space[2] },
           ]}
         >
-          {rows.map(({ msg, first, label, animate }) => (
+          {rows.map(({ msg, first, label, gapLabel, animate }) => (
             <View
               key={msg.id}
               onLayout={(e) =>
@@ -672,6 +689,13 @@ function ThreadScreen({ id }: { id: string }) {
                   style={[Type.caption, styles.day, { color: theme.tertiary }]}
                 >
                   {label}
+                </Text>
+              )}
+              {gapLabel && (
+                <Text
+                  style={[Type.caption, styles.day, { color: theme.tertiary }]}
+                >
+                  {gapLabel}
                 </Text>
               )}
               {msg.poll ? (
