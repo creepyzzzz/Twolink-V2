@@ -62,7 +62,7 @@ export const ReactionOverlay = memo(function ReactionOverlay({
               card) tinted dark blue — a frosted backdrop, not a flat dim. */}
           <AdaptiveGlassView
             tintColor="rgba(105, 118, 155, 0.22)"
-            blurRadius={16}
+            blurRadius={10}
             style={StyleSheet.absoluteFill}
           />
         </Pressable>
