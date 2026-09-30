@@ -479,6 +479,17 @@ function ThreadScreen({ id }: { id: string }) {
     scrollToEnd();
   }, [id, replyTo, scrollToEnd]);
 
+  /** File attachments need expo-document-picker plus a fresh dev-client
+   *  build — parked until Tariq approves the native package. */
+  const onAttachFile = useCallback(() => {
+    useFable.getState().showAlert({
+      title: "Files",
+      message:
+        "File attachments need the document picker package and a fresh dev build. Approve it in chat and I'll wire it up.",
+      actions: [{ text: "OK", style: "default" }],
+    });
+  }, []);
+
   const onOpenPhoto = useCallback(
     (message: Message) => {
       const src = message.photoUri
@@ -761,6 +772,7 @@ function ThreadScreen({ id }: { id: string }) {
         onSend={onSend}
         onAttach={onAttach}
         onCreatePoll={() => setPollOpen(true)}
+        onAttachFile={onAttachFile}
         onLayoutHeight={setComposerHeight}
         replyPreview={replyPreview}
         onCancelReply={() => setReplyTo(null)}

@@ -1,5 +1,4 @@
 import { SFIcon } from "../../../../ui/SFIcon";
-import { AndroidGlassMenu } from "expo-android-glass-view";
 import { useMemo, useRef, useState } from "react";
 import { getGroup, useFable } from "../../data/store";
 import { PEOPLE_BY_ID, type Person } from "../../data/people";
@@ -19,6 +18,7 @@ import Animated, {
   FadeInDown,
   FadeOut,
   LinearTransition,
+  ZoomIn,
 } from "react-native-reanimated";
 
 import { Glass } from "../ui/glass";
@@ -42,6 +42,8 @@ type Props = {
   onAttach: () => void;
   /** Group threads only: opens the poll composer sheet. */
   onCreatePoll: () => void;
+  /** File attachments (needs expo-document-picker — parked until approved). */
+  onAttachFile: () => void;
   onLayoutHeight: (h: number) => void; // full height incl. safe-area padding
   /** When set, a slim iMessage-style "replying to" strip sits above the input. */
   replyPreview?: ReplyPreview | null;
@@ -63,6 +65,7 @@ export function Composer({
   onSend,
   onAttach,
   onCreatePoll,
+  onAttachFile,
   onLayoutHeight,
   replyPreview,
   onCancelReply,
@@ -97,8 +100,6 @@ export function Composer({
   const [hasText, setHasText] = useState(initialDraft.trim().length > 0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  // Anchor for the native attachment menu (measured in window coordinates).
-  const menuAnchorRef = useRef<View>(null);
 
   const onChangeText = (t: string) => {
     draft.current = t;
@@ -141,11 +142,15 @@ export function Composer({
     onSchedule(text, at);
   };
 
-  /** The menu's one working item today; camera and files slot in here with
-   *  the native one-shot build. */
+  /** The menu's working items; files slot in once the native package is approved. */
   const choosePhoto = () => {
     setMenuOpen(false);
     onAttach();
+  };
+
+  const chooseFile = () => {
+    setMenuOpen(false);
+    onAttachFile();
   };
 
   const onLayout = (e: LayoutChangeEvent) =>
@@ -160,9 +165,9 @@ export function Composer({
         onLayout={onLayout}
         style={[styles.root, { paddingBottom: insetBottom + Space[2] }]}
       >
-        {/* The native attachment menu dismisses itself on outside press /
-            Android back, so only the Send Later popup needs this backdrop. */}
-        {scheduleOpen && (
+        {/* Tap-outside dismisses the custom popups (the attachment menu and
+            Send Later). */}
+        {(menuOpen || scheduleOpen) && (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Dismiss menu"
@@ -178,14 +183,6 @@ export function Composer({
             layout={LinearTransition.duration(220).easing(EASE_OUT.factory())}
             style={[styles.lift, { boxShadow: theme.lift, flex: 1 }]}
           >
-            {/* Anchor for the native attachment menu: the whole pill, so the
-                menu always lands just above it with a clear gap and never
-                overlaps — even when the pill grows to multiple lines. */}
-            <View
-              ref={menuAnchorRef}
-              collapsable={false}
-              style={styles.menuAnchor}
-            >
             <Glass style={styles.card}>
               {replyPreview && (
                 <Animated.View
@@ -258,8 +255,7 @@ export function Composer({
                   style={[Type.body, styles.input, { color: theme.label }]}
                 />
               </View>
-              </Glass>
-            </View>
+            </Glass>
           </Animated.View>
           <Pressable
             accessibilityRole="button"
@@ -289,47 +285,75 @@ export function Composer({
           </Pressable>
         </View>
         {/*
-          Attachment menu as the same native glass menu as the chat header's
-          •••: identical open animation and blur. Anchored to the whole pill
-          with placement="below" — the composer sits at the screen bottom, so
-          the native layout flips it above the pill with an 8px gap, never
-          overlapping the input.
+          Compact pill attachment menu: Gallery, Files, and Poll (groups).
+          Same frosted native-glass blur as the other menus; it floats just
+          above the input pill with a clear gap, never overlapping it.
         */}
-        <AndroidGlassMenu
-          visible={menuOpen}
-          anchorRef={menuAnchorRef}
-          placement="below"
-          items={[
-            {
-              id: "photo",
-              title: "Photo Library",
-              icon: <SFIcon name="photo" size={19} color={theme.label} />,
-            },
-            ...(isGroup
-              ? [
-                  {
-                    id: "poll",
-                    title: "Poll",
-                    icon: (
-                      <SFIcon
-                        name="chart.bar"
-                        size={19}
-                        color={theme.label}
-                      />
-                    ),
-                  },
-                ]
-              : []),
-          ]}
-          onSelect={(id) => {
-            if (id === "photo") choosePhoto();
-            else if (id === "poll") {
-              setMenuOpen(false);
-              onCreatePoll();
-            }
-          }}
-          onDismiss={() => setMenuOpen(false)}
-        />
+        {menuOpen && (
+          <Animated.View
+            entering={ZoomIn.duration(200).easing(EASE_OUT.factory())}
+            exiting={FadeOut.duration(120)}
+            style={styles.attachMenu}
+          >
+            <MenuCard style={styles.attachCard}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose from gallery"
+                onPress={choosePhoto}
+                style={({ pressed }) => [
+                  styles.item,
+                  { backgroundColor: pressed ? theme.chip : "transparent" },
+                ]}
+              >
+                <View
+                  style={[styles.itemIcon, { backgroundColor: theme.chip }]}
+                >
+                  <SFIcon name="photo" size={18} color={theme.label} />
+                </View>
+                <Text style={[Type.body, { color: theme.label }]}>
+                  Gallery
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose a file"
+                onPress={chooseFile}
+                style={({ pressed }) => [
+                  styles.item,
+                  { backgroundColor: pressed ? theme.chip : "transparent" },
+                ]}
+              >
+                <View
+                  style={[styles.itemIcon, { backgroundColor: theme.chip }]}
+                >
+                  <SFIcon name="folder" size={18} color={theme.label} />
+                </View>
+                <Text style={[Type.body, { color: theme.label }]}>Files</Text>
+              </Pressable>
+              {isGroup && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Create a poll"
+                  onPress={() => {
+                    setMenuOpen(false);
+                    onCreatePoll();
+                  }}
+                  style={({ pressed }) => [
+                    styles.item,
+                    { backgroundColor: pressed ? theme.chip : "transparent" },
+                  ]}
+                >
+                  <View
+                    style={[styles.itemIcon, { backgroundColor: theme.chip }]}
+                  >
+                    <SFIcon name="chart.bar" size={18} color={theme.label} />
+                  </View>
+                  <Text style={[Type.body, { color: theme.label }]}>Poll</Text>
+                </Pressable>
+              )}
+            </MenuCard>
+          </Animated.View>
+        )}
         {scheduleOpen && (
           <Animated.View
             entering={FadeIn.duration(160).easing(EASE_OUT.factory())}
@@ -447,9 +471,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  /** Fills the lift container so the menu anchor measures the whole pill. */
-  menuAnchor: {
-    flex: 1,
+  /** Compact pill attachment menu floating just above the input pill. */
+  attachMenu: {
+    position: "absolute",
+    left: 4,
+    bottom: "100%",
+    marginBottom: 8,
+  },
+  attachCard: {
+    borderRadius: 28,
+    borderCurve: "continuous",
+    padding: 6,
   },
   inputRow: {
     flexDirection: "row",
