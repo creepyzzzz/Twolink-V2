@@ -15,6 +15,7 @@ import { PhotoViewer } from "../components/thread/photo-viewer";
 import { GroupAvatar } from "../components/chats/group-row";
 import { Avatar } from "../components/ui/avatar";
 import { Glass } from "../components/ui/glass";
+import { SharedLinks } from "../components/ui/shared-links";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
 import { PEOPLE_BY_ID } from "../data/people";
@@ -42,9 +43,10 @@ function ProfileScreen({ id }: { id: string }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const messages = useMemo(() => stored ?? [], [stored]);
   const photos = useMemo(
-    () => (stored ?? []).filter((m) => m.photo),
-    [stored],
+    () => messages.filter((m) => m.photo),
+    [messages],
   );
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   if (!group) return null;
@@ -137,6 +139,8 @@ function ProfileScreen({ id }: { id: string }) {
             No shared photos yet.
           </Text>
         )}
+
+        <SharedLinks messages={messages} />
       </SheetScrollView>
 
       {viewerPhoto?.photoUri && (

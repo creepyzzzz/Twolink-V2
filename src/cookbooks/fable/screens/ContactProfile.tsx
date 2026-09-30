@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PhotoViewer } from "../components/thread/photo-viewer";
 import { Avatar } from "../components/ui/avatar";
 import { Glass } from "../components/ui/glass";
+import { SharedLinks } from "../components/ui/shared-links";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
 import { messagesFor } from "../data/messages";
@@ -40,10 +41,8 @@ function ProfileScreen({ id }: { id: string }) {
   const muted = useFable((state) => !!state.muted[id]);
   const toggleMute = useFable((state) => state.toggleMute);
   const stored = useFable((state) => state.threads[id]);
-  const photos = useMemo(
-    () => (stored ?? messagesFor(id, person.first)).filter((m) => m.photo),
-    [stored, id, person.first],
-  );
+  const messages = stored ?? messagesFor(id, person.first);
+  const photos = useMemo(() => messages.filter((m) => m.photo), [messages]);
 
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
@@ -107,6 +106,8 @@ function ProfileScreen({ id }: { id: string }) {
             No shared photos yet.
           </Text>
         )}
+
+        <SharedLinks messages={messages} />
       </SheetScrollView>
 
       {viewerPhoto && (

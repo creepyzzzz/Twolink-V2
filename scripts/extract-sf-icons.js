@@ -34,6 +34,7 @@ const NAMES = [
   "arrowshape.turn.up.right",
   "checkmark",
   "person.2",
+  "link",
   "trash",
 ];
 
