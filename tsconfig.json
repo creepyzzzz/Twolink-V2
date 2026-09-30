@@ -8,7 +8,12 @@
     "src/**/*.tsx",
     "*.d.ts",
     ".expo/types/**/*.ts",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    "expo-env.d.ts"
   ],
-  "exclude": ["node_modules", ".research", ".qa"]
+  "exclude": [
+    "node_modules",
+    ".research",
+    ".qa"
+  ]
 }
