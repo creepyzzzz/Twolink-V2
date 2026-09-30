@@ -149,6 +149,9 @@ const styles = StyleSheet.create({
     width: CAPSULE_W,
     height: CAPSULE_H,
     borderRadius: CAPSULE_H / 2,
-    backgroundColor: "rgba(255,255,255,0.55)",
+    // Whisper-light: a flat translucent fill here stacks over the pill's own
+    // tint and reads as a solid container (~73% white at 0.55). At 0.18 it
+    // stays a soft glass highlight marking the active tab.
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
 });
