@@ -25,9 +25,15 @@ export default function FableLayout() {
         <Stack.Screen
           name="contact/[id]"
           options={{
-            presentation: "formSheet",
-            sheetAllowedDetents: [0.75, 1],
-            sheetGrabberVisible: true,
+            presentation: "transparentModal",
+            animation: "none",
+          }}
+        />
+        <Stack.Screen
+          name="me"
+          options={{
+            presentation: "transparentModal",
+            animation: "none",
           }}
         />
         <Stack.Screen
@@ -35,14 +41,6 @@ export default function FableLayout() {
           options={{
             presentation: "formSheet",
             sheetAllowedDetents: [0.75, 1],
-            sheetGrabberVisible: true,
-          }}
-        />
-        <Stack.Screen
-          name="me"
-          options={{
-            presentation: "formSheet",
-            sheetAllowedDetents: [0.85, 1],
             sheetGrabberVisible: true,
           }}
         />
