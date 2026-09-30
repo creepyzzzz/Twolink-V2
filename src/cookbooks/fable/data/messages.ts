@@ -6,20 +6,6 @@ export type ReplyQuote = {
   photo?: boolean;
 };
 
-/** One option in a group poll. */
-export type PollOption = {
-  id: string;
-  text: string;
-  /** Voter ids ("me" or a Person id). Single-choice: at most one per voter. */
-  votes: string[];
-};
-
-/** A group poll attached to a message; `text` mirrors the question. */
-export type Poll = {
-  question: string;
-  options: PollOption[];
-};
-
 /**
  * A file attached to a message. The picker (expo-document-picker) is parked
  * until the native package batch is approved — until then `uri` stays empty
@@ -50,8 +36,6 @@ export type Message = {
   replyTo?: ReplyQuote;
   /** Emoji tapbacks on this message (long-press to add/remove). */
   reactions?: string[];
-  /** Group poll attached to this message. */
-  poll?: Poll;
   /**
    * File attached to this message. `text` mirrors the file name so inbox
    * previews, search, and reply quotes keep working unchanged.

@@ -12,6 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { SFIcon } from "../../../../ui/SFIcon";
+import { Avatar } from "../ui/avatar";
 import { Glass } from "../ui/glass";
 import { EASE_OUT, SNAP, SOFT } from "../../constants/motion";
 import { Accent, Ink, Radius, Space, Type } from "../../constants/theme";
@@ -51,6 +52,8 @@ type Props = {
   /** The chat partner — absent in group threads (their photos always carry a URI). */
   person?: Person;
   first: boolean; // first bubble of a run gets the wider gap
+  /** Last bubble of a sender's run — the group avatar shows here. */
+  last?: boolean;
   animate: boolean; // only messages that arrive after mount animate in
   onReact: (message: Message, target: ReactionTarget) => void;
   /** True while this message's reaction bar is open — the bubble stays pressed down. */
@@ -63,11 +66,13 @@ type Props = {
   highlight?: string;
   /** This message holds the currently selected search match. */
   highlightActive?: boolean;
-  /** Group threads: the sender's name, shown above incoming bubbles. */
-  senderName?: string;
+  /** Group threads: the sender's avatar art, shown left of incoming bubbles. */
+  senderAvatar?: number;
   /** Group @mentions: member first names plus your own first name. */
   mentions?: { names: string[]; self: string };
 };
+
+const AVATAR_SIZE = 32;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -78,6 +83,7 @@ export const Bubble = memo(function Bubble({
   message,
   person,
   first,
+  last,
   animate,
   onReact,
   reacting,
@@ -85,7 +91,7 @@ export const Bubble = memo(function Bubble({
   onOpenPhoto,
   highlight,
   highlightActive,
-  senderName,
+  senderAvatar,
   mentions,
 }: Props) {
   const theme = useTheme();
@@ -245,6 +251,16 @@ export const Bubble = memo(function Bubble({
               />
             </View>
           </Animated.View>
+          {/* Group threads: the sender's avatar sits left of their incoming
+              bubbles, on the last message of their run — earlier messages
+              keep a spacer so the stack stays aligned. */}
+          {!mine && senderAvatar != null && (
+            last ? (
+              <Avatar source={senderAvatar} size={AVATAR_SIZE} />
+            ) : (
+              <View style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }} />
+            )
+          )}
           {message.document ? (
             <AnimatedPressable
               ref={bubbleRef}
@@ -269,14 +285,6 @@ export const Bubble = memo(function Bubble({
               ]}
             >
               {quote}
-              {!!senderName && (
-                <Text
-                  numberOfLines={1}
-                  style={[styles.sender, { color: Accent }]}
-                >
-                  {senderName}
-                </Text>
-              )}
               <DocumentContent message={message} mine={mine} />
               {badge}
             </AnimatedPressable>
@@ -356,14 +364,6 @@ export const Bubble = memo(function Bubble({
               ]}
             >
               {quote}
-              {!!senderName && (
-                <Text
-                  numberOfLines={1}
-                  style={[styles.sender, { color: Accent }]}
-                >
-                  {senderName}
-                </Text>
-              )}
               <MessageText
                 text={message.text}
                 query={highlight}
@@ -466,11 +466,6 @@ const styles = StyleSheet.create({
   theirs: {
     paddingHorizontal: 18,
     paddingVertical: 15,
-  },
-  sender: {
-    fontSize: 13,
-    fontFamily: "SFProText-Semibold",
-    marginBottom: 4,
   },
   badge: {
     position: "absolute",

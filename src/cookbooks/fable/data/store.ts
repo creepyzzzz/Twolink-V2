@@ -159,15 +159,6 @@ type State = {
   toggleReaction: (id: string, messageId: string, emoji: string) => void;
   toggleMute: (id: string) => void;
   togglePin: (id: string) => void;
-  /** Posts a group poll; returns the message id ("" when invalid). */
-  createPoll: (id: string, question: string, options: string[]) => string;
-  /** Single-choice vote on a poll option. */
-  votePoll: (
-    id: string,
-    messageId: string,
-    optionId: string,
-    voterId: string,
-  ) => void;
   deleteThread: (id: string) => void;
   setDraft: (id: string, text: string) => void;
   /** Disappearing-message lifetime per thread, in ms (absent = off). */
@@ -433,64 +424,6 @@ export const useFable = create<State>()(
             ? state.pinned.filter((p) => p !== id)
             : [id, ...state.pinned],
         })),
-      createPoll: (id, question, options) => {
-        const clean = options
-          .map((o) => o.trim())
-          .filter(Boolean)
-          .slice(0, 5);
-        if (clean.length < 2 || !question.trim()) return "";
-        const messageId = `local-${Date.now()}-${++sequence}`;
-        const lifetime = get().disappearing[id] ?? 0;
-        const message: Message = {
-          id: messageId,
-          from: "me",
-          text: question.trim(),
-          at: "now",
-          ...(lifetime > 0 ? { expiresAt: Date.now() + lifetime } : {}),
-          poll: {
-            question: question.trim(),
-            options: clean.map((text, i) => ({
-              id: `opt-${i}`,
-              text,
-              votes: [],
-            })),
-          },
-        };
-        set((state) => ({
-          threads: {
-            ...state.threads,
-            [id]: [...(state.threads[id] ?? []), message],
-          },
-          ...(state.openThreadId === id
-            ? { lastRead: { ...state.lastRead, [id]: messageId } }
-            : {}),
-        }));
-        return messageId;
-      },
-      votePoll: (id, messageId, optionId, voterId) => {
-        set((state) => ({
-          threads: {
-            ...state.threads,
-            [id]: (state.threads[id] ?? []).map((m) =>
-              m.id === messageId && m.poll
-                ? {
-                    ...m,
-                    poll: {
-                      ...m.poll,
-                      options: m.poll.options.map((o) => ({
-                        ...o,
-                        votes:
-                          o.id === optionId
-                            ? Array.from(new Set([...o.votes, voterId]))
-                            : o.votes.filter((v) => v !== voterId),
-                      })),
-                    },
-                  }
-                : m,
-            ),
-          },
-        }));
-      },
       deleteThread: (id) =>
         set((state) => {
           const threads = { ...state.threads };

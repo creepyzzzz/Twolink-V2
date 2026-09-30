@@ -40,8 +40,6 @@ type Props = {
   insetBottom: number;
   onSend: (text: string) => void;
   onAttach: () => void;
-  /** Group threads only: opens the poll composer sheet. */
-  onCreatePoll: () => void;
   /** File attachments (needs expo-document-picker — parked until approved). */
   onAttachFile: () => void;
   onLayoutHeight: (h: number) => void; // full height incl. safe-area padding
@@ -64,7 +62,6 @@ export function Composer({
   insetBottom,
   onSend,
   onAttach,
-  onCreatePoll,
   onAttachFile,
   onLayoutHeight,
   replyPreview,
@@ -285,7 +282,7 @@ export function Composer({
           </Pressable>
         </View>
         {/*
-          Compact pill attachment menu: Gallery, Files, and Poll (groups).
+          Compact pill attachment menu: Gallery and Files.
           Same frosted native-glass blur as the other menus; it floats just
           above the input pill with a clear gap, never overlapping it.
         */}
@@ -330,27 +327,6 @@ export function Composer({
                 </View>
                 <Text style={[Type.body, { color: theme.label }]}>Files</Text>
               </Pressable>
-              {isGroup && (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Create a poll"
-                  onPress={() => {
-                    setMenuOpen(false);
-                    onCreatePoll();
-                  }}
-                  style={({ pressed }) => [
-                    styles.item,
-                    { backgroundColor: pressed ? theme.chip : "transparent" },
-                  ]}
-                >
-                  <View
-                    style={[styles.itemIcon, { backgroundColor: theme.chip }]}
-                  >
-                    <SFIcon name="chart.bar" size={18} color={theme.label} />
-                  </View>
-                  <Text style={[Type.body, { color: theme.label }]}>Poll</Text>
-                </Pressable>
-              )}
             </MenuCard>
           </Animated.View>
         )}
