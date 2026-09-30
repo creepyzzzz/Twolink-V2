@@ -81,6 +81,7 @@ export default function RootLayout() {
         <KeyboardProvider>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
+            <Stack.Screen name="onboarding" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="fable" />
             {/* My Profile: a transparent modal at root level so it presents
