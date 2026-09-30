@@ -1,7 +1,7 @@
 import { Image, type ImageProps } from "expo-image";
 import { StatusBar } from "expo-status-bar";
-import { memo } from "react";
-import { StyleSheet, View } from "react-native";
+import { memo, useEffect, useState } from "react";
+import { StyleSheet } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   FadeIn,
@@ -37,6 +37,15 @@ export const PhotoViewer = memo(function PhotoViewer({
   const scale = useSharedValue(MIN_SCALE);
   const baseScale = useSharedValue(MIN_SCALE);
   const dismissY = useSharedValue(0);
+
+  // The native glass X must mount after the viewer's fade-in completes: the
+  // AGSL effect initializes against whatever is behind it, and mounting
+  // mid-fade leaves it flat until the next redraw (e.g. a press).
+  const [closeReady, setCloseReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setCloseReady(true), 240);
+    return () => clearTimeout(t);
+  }, []);
 
   const onCloseRef = { current: onClose };
   onCloseRef.current = onClose;
@@ -107,16 +116,21 @@ export const PhotoViewer = memo(function PhotoViewer({
           />
         </Animated.View>
       </GestureDetector>
-      <View style={[styles.close, { top: insets.top + 12 }]}>
-        <GlassButton
-          symbol="xmark"
-          iconSize={15}
-          size={40}
-          tint="#FFFFFF"
-          accessibilityLabel="Close"
-          onPress={onClose}
-        />
-      </View>
+      {closeReady && (
+        <Animated.View
+          entering={FadeIn.duration(180)}
+          style={[styles.close, { top: insets.top + 12 }]}
+        >
+          <GlassButton
+            symbol="xmark"
+            iconSize={15}
+            size={40}
+            tint="#FFFFFF"
+            accessibilityLabel="Close"
+            onPress={onClose}
+          />
+        </Animated.View>
+      )}
     </Animated.View>
   );
 });
