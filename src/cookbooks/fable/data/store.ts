@@ -10,6 +10,8 @@ export type Profile = {
   name: string;
   about: string;
   face: AvatarFace;
+  /** Optional photo-library avatar; takes precedence over `face`. */
+  photoUri?: string;
 };
 export type AppSettings = {
   readReceipts: boolean;

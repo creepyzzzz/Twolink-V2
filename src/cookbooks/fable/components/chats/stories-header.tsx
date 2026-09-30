@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { SFIcon } from "../../../../ui/SFIcon";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -65,6 +66,7 @@ export function StoriesHeader({
 }: Props) {
   const theme = useTheme();
   const myFace = useFable((state) => state.profile.face);
+  const myPhotoUri = useFable((state) => state.profile.photoUri);
   const [titleWidth, setTitleWidth] = useState(48);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const sx = useScrollOffset(scrollRef);
@@ -154,12 +156,28 @@ export function StoriesHeader({
         pointerEvents="box-none"
         style={[styles.bar, { top: insetTop, height: NAV_H }]}
       >
-        <OrbButton
-          source={AVATAR_FACES[myFace]}
-          size={40}
-          accessibilityLabel="Your profile"
-          onPress={onPressMe}
-        />
+        {myPhotoUri ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Your profile"
+            hitSlop={8}
+            onPress={onPressMe}
+            style={{ width: 40, height: 40, borderRadius: 20, overflow: "hidden" }}
+          >
+            <Image
+              source={{ uri: myPhotoUri }}
+              style={{ width: 40, height: 40 }}
+              contentFit="cover"
+            />
+          </Pressable>
+        ) : (
+          <OrbButton
+            source={AVATAR_FACES[myFace]}
+            size={40}
+            accessibilityLabel="Your profile"
+            onPress={onPressMe}
+          />
+        )}
         <View pointerEvents="box-none" style={styles.titleWrap}>
           <Animated.Text
             onLayout={(e) =>

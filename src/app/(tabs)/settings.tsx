@@ -10,6 +10,7 @@ import {
 import { SFIcon } from "../../ui/SFIcon";
 import { AdaptiveGlassView } from "../../ui/GlassView";
 import { ScreenBackground } from "../../ui/ScreenBackground";
+import { MyAvatar } from "../../cookbooks/fable/components/ui/my-avatar";
 import { useFable } from "../../cookbooks/fable/data/store";
 
 const ACCENT = "#3D92E9";
@@ -98,11 +99,7 @@ export default function SettingsScreen() {
             tintColor="rgba(255,255,255,0.55)"
             blurRadius={18}
           >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {profileName.trim().charAt(0).toUpperCase() || "T"}
-              </Text>
-            </View>
+            <MyAvatar size={56} />
             <View style={styles.profileText}>
               <Text style={styles.profileName}>{profileName}</Text>
               <Text style={styles.profileSub}>TwoLink private build</Text>

@@ -1,7 +1,9 @@
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 
 import { Avatar } from "../components/ui/avatar";
+import { MyAvatar } from "../components/ui/my-avatar";
 import { Glass } from "../components/ui/glass";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
@@ -23,7 +25,28 @@ export default function MyProfile() {
   const profile = useFable((state) => state.profile);
   const setProfile = useFable((state) => state.setProfile);
 
-  const pickFace = (face: AvatarFace) => setProfile({ face });
+  const pickFace = (face: AvatarFace) =>
+    setProfile({ face, photoUri: undefined });
+
+  /** Choose a real photo from the library as your avatar. */
+  const pickPhoto = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Photos",
+        "Allow photo access to use a picture as your avatar.",
+      );
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (res.canceled || res.assets.length === 0) return;
+    setProfile({ photoUri: res.assets[0].uri });
+  };
 
   return (
     <Sheet detent={0.85}>
@@ -34,7 +57,23 @@ export default function MyProfile() {
           { paddingBottom: insets.bottom + Space[8] },
         ]}
       >
-        <Avatar source={AVATAR_FACES[profile.face]} size={96} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Change your profile photo"
+          onPress={pickPhoto}
+        >
+          <MyAvatar size={96} />
+        </Pressable>
+        {profile.photoUri ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Remove profile photo"
+            onPress={() => setProfile({ photoUri: undefined })}
+            style={styles.removePhoto}
+          >
+            <Text style={[Type.caption, { color: Accent }]}>Remove photo</Text>
+          </Pressable>
+        ) : null}
         <Text style={[styles.name, { color: theme.label }]}>
           {profile.name || "Your name"}
         </Text>
@@ -175,5 +214,10 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     alignItems: "center",
     justifyContent: "center",
+  },
+  removePhoto: {
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
 });
