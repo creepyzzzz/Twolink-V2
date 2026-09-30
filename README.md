@@ -26,6 +26,22 @@ npx expo run:ios            # macOS + Xcode 26 + iOS 26 simulator
 
 Copy `.env.example` to `.env` when you start the Supabase wiring (values stay out of git).
 
+## Planned native packages (one-shot dev build)
+
+These Expo packages are slated for a single dev-client rebuild, to be installed later on the project owner's word — **do not `npm install` them yet**. Each adds native code and/or permissions, so they all land together in one fresh build:
+
+- `expo-camera` — in-chat camera capture for taking photos/videos without leaving the thread.
+- `expo-image-picker` — pick photos and videos from the device library (already installed; listed here for the build manifest).
+- `expo-video` — inline video playback for video messages.
+- `expo-file-system` — local file read/write: persisting picked media and managing the cache.
+- `expo-sharing` — the system share sheet, for forwarding media and files out of the app.
+- `expo-media-library` — save media to the device gallery and read gallery assets.
+- `expo-notifications` — push and local notifications for new messages.
+- `expo-secure-store` — encrypted on-device storage for auth tokens and vault secrets.
+- `expo-clipboard` — copy message text to the clipboard (and paste into the composer).
+
+Deliberately excluded per the project owner's decision: `expo-audio` (voice messages — feature removed) and `expo-haptics` (haptics removed from the app entirely).
+
 ## Project structure
 
 ```

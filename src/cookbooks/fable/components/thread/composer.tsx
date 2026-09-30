@@ -1,8 +1,6 @@
 import { SFIcon } from "../../../../ui/SFIcon";
-import { requestRecordingPermissionsAsync } from "expo-audio";
 import { useRef, useState } from "react";
 import {
-  Alert,
   Keyboard,
   Pressable,
   StyleSheet,
@@ -18,9 +16,6 @@ import Animated, {
   FadeInDown,
   FadeOutDown,
   LinearTransition,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
 } from "react-native-reanimated";
 
 import { Glass } from "../ui/glass";
@@ -28,7 +23,6 @@ import { EASE_OUT } from "../../constants/motion";
 import { Accent, Radius, Space, Type } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
 import { EmojiPanel } from "./emoji-panel";
-import { VoiceRecorder } from "./voice-recorder";
 
 const BTN = 44;
 
@@ -36,13 +30,11 @@ export type ReplyPreview = {
   name: string;
   text: string;
   photo: boolean;
-  voice?: boolean;
 };
 
 type Props = {
   insetBottom: number;
   onSend: (text: string) => void;
-  onSendVoice: (uri: string, durationSec: number, waveform: number[]) => void;
   onAttach: () => void;
   onLayoutHeight: (h: number) => void; // full height incl. safe-area padding
   /** When set, a slim iMessage-style "replying to" strip sits above the input. */
@@ -53,13 +45,11 @@ type Props = {
 /**
  * The floating composer card in liquid glass: the text line on top,
  * a row of round actions beneath. It rides the keyboard, including the
- * interactive drag-to-dismiss, and the send button swaps in for the mic
- * the moment there is text.
+ * interactive drag-to-dismiss.
  */
 export function Composer({
   insetBottom,
   onSend,
-  onSendVoice,
   onAttach,
   onLayoutHeight,
   replyPreview,
@@ -69,27 +59,10 @@ export function Composer({
   const inputRef = useRef<TextInput>(null);
   const draft = useRef("");
   const selRef = useRef({ start: 0, end: 0 });
-  const [hasText, setHasText] = useState(false);
-  const [recording, setRecording] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const sendT = useSharedValue(0);
-
-  const sendStyle = useAnimatedStyle(() => ({
-    opacity: sendT.get(),
-    transform: [{ scale: 0.7 + 0.3 * sendT.get() }],
-  }));
-  const micStyle = useAnimatedStyle(() => ({
-    opacity: 1 - sendT.get(),
-    transform: [{ scale: 1 - 0.3 * sendT.get() }],
-  }));
 
   const onChangeText = (t: string) => {
     draft.current = t;
-    const has = t.trim().length > 0;
-    if (has !== hasText) {
-      setHasText(has);
-      sendT.set(withTiming(has ? 1 : 0, { duration: 180, easing: EASE_OUT }));
-    }
   };
 
   const submit = () => {
@@ -128,30 +101,6 @@ export function Composer({
     onChangeText(next);
   };
 
-  const startRecording = async () => {
-    Keyboard.dismiss();
-    setEmojiOpen(false);
-    let perm;
-    try {
-      perm = await requestRecordingPermissionsAsync();
-    } catch {
-      perm = null;
-    }
-    if (!perm?.granted) {
-      Alert.alert(
-        "Microphone",
-        "Voice recording needs microphone access and the latest dev build. Allow the microphone in Settings, or rebuild the dev client if you just updated.",
-      );
-      return;
-    }
-    setRecording(true);
-  };
-
-  const sendVoice = (uri: string, durationSec: number, waveform: number[]) => {
-    setRecording(false);
-    onSendVoice(uri, durationSec, waveform);
-  };
-
   return (
     <KeyboardStickyView
       offset={{ closed: 0, opened: insetBottom }}
@@ -185,11 +134,7 @@ export function Composer({
                     numberOfLines={1}
                     style={[Type.preview, { color: theme.secondary }]}
                   >
-                    {replyPreview.photo
-                      ? "Photo"
-                      : replyPreview.voice
-                        ? "Voice message"
-                        : replyPreview.text}
+                    {replyPreview.photo ? "Photo" : replyPreview.text}
                   </Text>
                 </View>
                 <Pressable
@@ -203,115 +148,77 @@ export function Composer({
                 </Pressable>
               </Animated.View>
             )}
-            {recording ? (
-              <VoiceRecorder
-                onSend={sendVoice}
-                onCancel={() => setRecording(false)}
-              />
-            ) : (
-              <>
-                <TextInput
-                  ref={inputRef}
-                  accessibilityLabel="Message"
-                  testID="fable-message-input"
-                  multiline
-                  placeholder="Message"
-                  placeholderTextColor={theme.placeholder}
-                  onChangeText={onChangeText}
-                  onSelectionChange={onSelectionChange}
-                  onFocus={() => setEmojiOpen(false)}
-                  onSubmitEditing={submit}
-                  submitBehavior="submit"
-                  returnKeyType="send"
-                  enablesReturnKeyAutomatically
-                  selectionColor={Accent}
-                  style={[Type.body, styles.input, { color: theme.label }]}
+            <TextInput
+              ref={inputRef}
+              accessibilityLabel="Message"
+              testID="fable-message-input"
+              multiline
+              placeholder="Message"
+              placeholderTextColor={theme.placeholder}
+              onChangeText={onChangeText}
+              onSelectionChange={onSelectionChange}
+              onFocus={() => setEmojiOpen(false)}
+              onSubmitEditing={submit}
+              submitBehavior="submit"
+              returnKeyType="send"
+              enablesReturnKeyAutomatically
+              selectionColor={Accent}
+              style={[Type.body, styles.input, { color: theme.label }]}
+            />
+            <View style={styles.actions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Share a photo"
+                onPress={() => {
+                  Keyboard.dismiss();
+                  onAttach();
+                }}
+                hitSlop={6}
+                style={[styles.round, { backgroundColor: theme.chip }]}
+              >
+                <SFIcon name="plus" size={19} color={theme.label} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Emoji"
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setEmojiOpen((v) => !v);
+                }}
+                hitSlop={6}
+                style={[
+                  styles.round,
+                  {
+                    backgroundColor: emojiOpen
+                      ? theme.outgoing
+                      : theme.chip,
+                  },
+                ]}
+              >
+                <SFIcon
+                  name="face.smiling"
+                  size={20}
+                  color={emojiOpen ? theme.outgoingText : theme.label}
                 />
-                <View style={styles.actions}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Share a photo"
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      onAttach();
-                    }}
-                    hitSlop={6}
-                    style={[styles.round, { backgroundColor: theme.chip }]}
-                  >
-                    <SFIcon name="plus" size={19} color={theme.label} />
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Emoji"
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      setEmojiOpen((v) => !v);
-                    }}
-                    hitSlop={6}
-                    style={[
-                      styles.round,
-                      {
-                        backgroundColor: emojiOpen
-                          ? theme.outgoing
-                          : theme.chip,
-                      },
-                    ]}
-                  >
-                    <SFIcon
-                      name="face.smiling"
-                      size={20}
-                      color={emojiOpen ? theme.outgoingText : theme.label}
-                    />
-                  </Pressable>
-                  <View style={styles.spacer} />
-                  <View style={styles.round}>
-                    <Animated.View
-                      accessibilityElementsHidden={hasText}
-                      importantForAccessibility={
-                        hasText ? "no-hide-descendants" : "auto"
-                      }
-                      pointerEvents={hasText ? "none" : "auto"}
-                      style={[StyleSheet.absoluteFill, micStyle]}
-                    >
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Voice message"
-                        onPress={() => void startRecording()}
-                        hitSlop={6}
-                        style={[styles.round, { backgroundColor: theme.chip }]}
-                      >
-                        <SFIcon name="mic.fill" size={18} color={theme.label} />
-                      </Pressable>
-                    </Animated.View>
-                    <Animated.View
-                      accessibilityElementsHidden={!hasText}
-                      importantForAccessibility={
-                        hasText ? "auto" : "no-hide-descendants"
-                      }
-                      pointerEvents={hasText ? "auto" : "none"}
-                      style={[StyleSheet.absoluteFill, sendStyle]}
-                    >
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Send"
-                        hitSlop={6}
-                        onPress={submit}
-                        style={[styles.round, { backgroundColor: theme.outgoing }]}
-                      >
-                        <SFIcon name="arrow.up" size={17} color={theme.outgoingText} />
-                      </Pressable>
-                    </Animated.View>
-                  </View>
-                </View>
-                {emojiOpen && (
-                  <Animated.View
-                    entering={FadeInDown.duration(220).easing(EASE_OUT.factory())}
-                    exiting={FadeOutDown.duration(160)}
-                  >
-                    <EmojiPanel onPick={insertEmoji} />
-                  </Animated.View>
-                )}
-              </>
+              </Pressable>
+              <View style={styles.spacer} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Send"
+                hitSlop={6}
+                onPress={submit}
+                style={[styles.round, { backgroundColor: theme.outgoing }]}
+              >
+                <SFIcon name="arrow.up" size={17} color={theme.outgoingText} />
+              </Pressable>
+            </View>
+            {emojiOpen && (
+              <Animated.View
+                entering={FadeInDown.duration(220).easing(EASE_OUT.factory())}
+                exiting={FadeOutDown.duration(160)}
+              >
+                <EmojiPanel onPick={insertEmoji} />
+              </Animated.View>
             )}
           </Glass>
         </Animated.View>

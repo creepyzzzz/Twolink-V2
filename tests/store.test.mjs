@@ -31,7 +31,7 @@ function load(file) {
       };
     if (id.startsWith(".")) {
       const resolved = path.resolve(path.dirname(file), id);
-      if (/\.(png|jpe?g|webp|wav|mp3|m4a)$/.test(resolved)) return resolved;
+      if (/\.(png|jpe?g|webp)$/.test(resolved)) return resolved;
       const source = [resolved, `${resolved}.ts`, `${resolved}.tsx`].find(
         existsSync,
       );
