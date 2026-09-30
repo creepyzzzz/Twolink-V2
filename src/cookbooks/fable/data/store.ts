@@ -77,6 +77,8 @@ type State = {
   muted: Record<string, boolean>;
   /** Thread ids pinned to the top of the inbox, most-recent pin first. */
   pinned: string[];
+  /** Thread ids the user deleted from the inbox (hidden everywhere). */
+  deleted: string[];
   /** Unsent composer text per thread — the inbox shows these as drafts. */
   drafts: Record<string, string>;
   /** Your posted stories, newest first (persisted photo-library URIs). */
@@ -131,6 +133,7 @@ type State = {
   toggleReaction: (id: string, messageId: string, emoji: string) => void;
   toggleMute: (id: string) => void;
   togglePin: (id: string) => void;
+  deleteThread: (id: string) => void;
   setDraft: (id: string, text: string) => void;
   reset: () => void;
 };
@@ -142,6 +145,7 @@ export const useFable = create<State>()(
       muted: {},
       pinned: [],
       drafts: {},
+      deleted: [],
       myStories: [],
       groups: {},
       postStory: (uri) =>
@@ -267,6 +271,25 @@ export const useFable = create<State>()(
             ? state.pinned.filter((p) => p !== id)
             : [id, ...state.pinned],
         })),
+      deleteThread: (id) =>
+        set((state) => {
+          const threads = { ...state.threads };
+          delete threads[id];
+          const drafts = { ...state.drafts };
+          delete drafts[id];
+          const muted = { ...state.muted };
+          delete muted[id];
+          return {
+            threads,
+            drafts,
+            muted,
+            pinned: state.pinned.filter((p) => p !== id),
+            read: state.read.filter((r) => r !== id),
+            deleted: state.deleted.includes(id)
+              ? state.deleted
+              : [...state.deleted, id],
+          };
+        }),
       setDraft: (id, text) =>
         set((state) => {
           if ((state.drafts[id] ?? "") === text) return state;
@@ -297,6 +320,7 @@ export const useFable = create<State>()(
         set({
           threads: {},
           read: [],
+          deleted: [],
           historyPage: {},
           wallpapers: {},
           pendingWallpaper: null,

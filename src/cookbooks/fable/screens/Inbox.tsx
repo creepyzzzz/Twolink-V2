@@ -31,7 +31,7 @@ import {
   StoriesHeader,
 } from "../components/chats/stories-header";
 import { EASE_OUT } from "../constants/motion";
-import { Accent, Space } from "../constants/theme";
+import { Accent, Space, Type } from "../constants/theme";
 import { CHATS } from "../data/chats";
 import { PEOPLE_BY_ID, STORIES, type Person } from "../data/people";
 import { openStory, pickAndPostStory } from "../data/story-state";
@@ -190,16 +190,37 @@ export default function ChatsScreen() {
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"All" | "Unread" | "Groups">("All");
-  /** Tiny floating pin button shown on long-press — positioned at the finger. */
-  const [pinFab, setPinFab] = useState<{
+  /** Long-press context pill shown at the finger: pin + delete. */
+  const [menu, setMenu] = useState<{
     id: string;
     x: number;
     y: number;
   } | null>(null);
+  const deleted = useFable((state) => state.deleted);
   const togglePin = useFable((state) => state.togglePin);
+  const deleteThread = useFable((state) => state.deleteThread);
+  const showAlert = useFable((state) => state.showAlert);
   const onPinPress = useCallback(
-    (id: string, x: number, y: number) => setPinFab({ id, x, y }),
-    [],
+    (id: string, x: number, y: number) => setMenu({ id, x, y }),
+    [setMenu],
+  );
+  const onDeletePress = useCallback(
+    (id: string, name: string) => {
+      setMenu(null);
+      showAlert({
+        title: `Delete chat with ${name}?`,
+        message: "This removes the conversation from your inbox.",
+        actions: [
+          { text: "Cancel", style: "cancel", onPress: () => {} },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => deleteThread(id),
+          },
+        ],
+      });
+    },
+    [deleteThread, showAlert, setMenu],
   );
   const read = useFable((state) => state.read);
   const groupsRecord = useFable((state) => state.groups);
@@ -223,13 +244,18 @@ export default function ChatsScreen() {
     if (filter !== "Groups") return [];
     const q = query.trim().toLowerCase();
     return pinSort(
-      groups.filter((group) => !q || group.name.toLowerCase().includes(q)),
+      groups.filter(
+        (group) =>
+          !deleted.includes(group.id) &&
+          (!q || group.name.toLowerCase().includes(q)),
+      ),
     );
-  }, [groups, query, filter, pinSort]);
+  }, [groups, query, filter, pinSort, deleted]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return pinSort(
       CHATS.filter((chat) => {
+        if (deleted.includes(chat.id)) return false;
         if (filter === "Groups") return false;
         if (filter === "Unread" && !(chat.unread > 0 && !read.includes(chat.id)))
           return false;
@@ -240,14 +266,14 @@ export default function ChatsScreen() {
         );
       }),
     );
-  }, [query, filter, read, pinSort]);
+  }, [query, filter, read, pinSort, deleted]);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
       <Animated.ScrollView
         ref={listRef}
         onScroll={onScroll}
-        onScrollBeginDrag={() => setPinFab(null)}
+        onScrollBeginDrag={() => setMenu(null)}
         scrollEventThrottle={16}
         animatedProps={lockProps}
         contentInsetAdjustmentBehavior="never"
@@ -409,15 +435,26 @@ export default function ChatsScreen() {
         onPressMe={() => router.push("/me")}
       />
 
-      {pinFab && (
-        <PinFab
-          x={Math.min(Math.max(pinFab.x - 23, 16), width - 62)}
-          y={Math.min(Math.max(pinFab.y - 78, 110), height - 220)}
-          pinned={pinned.includes(pinFab.id)}
-          onDismiss={() => setPinFab(null)}
-          onToggle={() => {
-            togglePin(pinFab.id);
-            setPinFab(null);
+      {menu && (
+        <PinPill
+          x={Math.min(Math.max(menu.x - 110, 12), width - 232)}
+          y={Math.min(Math.max(menu.y - 128, 110), height - 260)}
+          pinned={pinned.includes(menu.id)}
+          onDismiss={() => setMenu(null)}
+          onTogglePin={() => {
+            togglePin(menu.id);
+            setMenu(null);
+          }}
+          onDelete={() => {
+            const group = groups.find((g) => g.id === menu.id);
+            const chat = group
+              ? undefined
+              : CHATS.find((c) => c.id === menu.id);
+            const person = chat ? PEOPLE_BY_ID[chat.personId] : undefined;
+            onDeletePress(
+              menu.id,
+              group?.name ?? person?.first ?? person?.name ?? "this chat",
+            );
           }}
         />
       )}
@@ -435,32 +472,45 @@ const styles = StyleSheet.create({
     marginTop: 32,
     paddingHorizontal: 40,
   },
-  pinFab: {
+  pinPill: {
     position: "absolute",
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+  },
+  pinAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  pinDivider: {
+    width: 1,
+    height: 24,
   },
 });
 
 /**
- * The tiny long-press pin button: a 46pt solid circle floating at the
- * finger, tap to pin/unpin, tap anywhere else (or scroll) to dismiss.
+ * The long-press context pill: liquid glass, floating at the finger, with
+ * Pin/Unpin and Delete. Tap anywhere else (or scroll) to dismiss.
  */
-function PinFab({
+function PinPill({
   x,
   y,
   pinned,
   onDismiss,
-  onToggle,
+  onTogglePin,
+  onDelete,
 }: {
   x: number;
   y: number;
   pinned: boolean;
   onDismiss: () => void;
-  onToggle: () => void;
+  onTogglePin: () => void;
+  onDelete: () => void;
 }) {
   const theme = useTheme();
   return (
@@ -469,26 +519,35 @@ function PinFab({
       onPress={onDismiss}
       style={StyleSheet.absoluteFill}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={pinned ? "Unpin chat" : "Pin chat"}
-        onPress={onToggle}
-        style={[
-          styles.pinFab,
-          {
-            left: x,
-            top: y,
-            backgroundColor: theme.surface,
-            boxShadow: theme.lift,
-          },
-        ]}
-      >
-        <SFIcon
-          name={pinned ? "pin.slash" : "pin.fill"}
-          size={18}
-          color={theme.label}
+      <Glass style={[styles.pinPill, { left: x, top: y }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={pinned ? "Unpin chat" : "Pin chat"}
+          onPress={onTogglePin}
+          style={styles.pinAction}
+        >
+          <SFIcon
+            name={pinned ? "pin.slash" : "pin.fill"}
+            size={17}
+            color={theme.label}
+          />
+          <Text style={[Type.caption, { color: theme.label }]}>
+            {pinned ? "Unpin" : "Pin"}
+          </Text>
+        </Pressable>
+        <View
+          style={[styles.pinDivider, { backgroundColor: theme.hairline }]}
         />
-      </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Delete chat"
+          onPress={onDelete}
+          style={styles.pinAction}
+        >
+          <SFIcon name="trash" size={17} color="#FF3B30" />
+          <Text style={[Type.caption, { color: "#FF3B30" }]}>Delete</Text>
+        </Pressable>
+      </Glass>
     </Pressable>
   );
 }

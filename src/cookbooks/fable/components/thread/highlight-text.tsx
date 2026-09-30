@@ -1,9 +1,9 @@
 import { useMemo } from "react";
-import { Linking, Text } from "react-native";
+import { Text } from "react-native";
 
 import { Accent, Type } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
-import { splitUrlSegments } from "./link-preview";
+import { openExternalUrl, splitUrlSegments } from "./link-preview";
 
 type TextPart = { text: string; match: boolean };
 
@@ -68,9 +68,7 @@ export function MessageText({
     <Text style={base}>
       {segments.map((seg, si) => {
         const parts = splitParts(seg.text, q);
-        const open = seg.url
-          ? () => void Linking.openURL(seg.text)
-          : undefined;
+        const open = seg.url ? () => openExternalUrl(seg.text) : undefined;
         return (
           <Text
             key={si}

@@ -12,15 +12,39 @@ export function extractUrls(text: string): string[] {
     .map((s) => s.text);
 }
 
+/** Bare links get https:// so they open and fetch like full URLs. */
+export function normalizeUrl(raw: string): string {
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+
+/** Open a detected link (bare or full) in the browser. Never throws. */
+export function openExternalUrl(raw: string) {
+  void Linking.openURL(normalizeUrl(raw)).catch(() => {});
+}
+
 export type UrlSegment = { text: string; url: boolean };
+
+// Well-known TLDs — bare "name.tld" only linkifies on these, so ordinary
+// words with dots ("e.g. this", "v2.0", "file.txt") stay plain text.
+const BARE_TLDS =
+  "com|org|net|io|co|in|me|ai|app|dev|info|biz|us|uk|ca|au|de|fr|es|it|nl|se|ch|jp|cn|br|ru|xyz|online|site|tech|store|blog|tv|cc|ly|gg|sh|news|media|link|click|top|vip|pro|name|mobi|asia|eu";
+
+const URL_RE = new RegExp(
+  String.raw`https?:\/\/[^\s<>"')\]]+` +
+    String.raw`|www\.[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}(?:\/[^\s<>"')\]]*)?` +
+    String.raw`|[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.(?:${BARE_TLDS})(?:\/[^\s<>"')\]]*)?`,
+  "gi",
+);
 
 /** Split text into plain and URL segments, preserving every character. */
 export function splitUrlSegments(text: string): UrlSegment[] {
   const segs: UrlSegment[] = [];
   let i = 0;
-  const re = /https?:\/\/[^\s<>"')\]]+/g;
+  URL_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
+  while ((m = URL_RE.exec(text)) !== null) {
+    // Don't linkify the domain half of an email address (user@host.com).
+    if (m.index > 0 && text[m.index - 1] === "@") continue;
     const raw = m[0];
     const trimmed = raw.replace(/[,.;!?]+$/, "");
     if (m.index > i) segs.push({ text: text.slice(i, m.index), url: false });
@@ -65,7 +89,7 @@ async function fetchPreview(url: string): Promise<Preview | null> {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 6000);
-    const res = await fetch(url, {
+    const res = await fetch(normalizeUrl(url), {
       signal: ctrl.signal,
       headers: { Accept: "text/html" },
     });
@@ -76,7 +100,8 @@ async function fetchPreview(url: string): Promise<Preview | null> {
       metaContent(head, "og:title") ??
       head.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim();
     let image = metaContent(head, "og:image");
-    if (image?.startsWith("/")) image = new URL(image, url).href;
+    if (image?.startsWith("/"))
+      image = new URL(image, normalizeUrl(url)).href;
     const preview: Preview | null =
       title || image ? { title, image } : null;
     cache.set(url, preview);
@@ -87,9 +112,9 @@ async function fetchPreview(url: string): Promise<Preview | null> {
   }
 }
 
-function domainOf(url: string): string | null {
+function domainOf(raw: string): string | null {
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    return new URL(normalizeUrl(raw)).hostname.replace(/^www\./, "");
   } catch {
     return null;
   }
@@ -126,7 +151,7 @@ export function LinkPreview({ url, mine }: { url: string; mine: boolean }) {
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={`Open link: ${title}`}
-      onPress={() => void Linking.openURL(url)}
+      onPress={() => openExternalUrl(url)}
       style={[styles.card, { backgroundColor: cardBg }]}
     >
       {preview?.image ? (
