@@ -1,6 +1,5 @@
 import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { StoryHost } from "../../cookbooks/fable/components/stories/story-viewer";
 import { useTheme } from "../../cookbooks/fable/hooks/use-theme";
 
 export const unstable_settings = { initialRouteName: "index" };
@@ -44,7 +43,6 @@ export default function FableLayout() {
           options={{ presentation: "fullScreenModal" }}
         />
       </Stack>
-      <StoryHost />
     </ThemeProvider>
   );
 }

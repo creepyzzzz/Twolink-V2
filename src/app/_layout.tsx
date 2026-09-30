@@ -10,6 +10,7 @@ import {
   initialWindowMetrics,
 } from "react-native-safe-area-context";
 import { preloadOrbImages } from "../cookbooks/fable/components/ui/orb-images";
+import { StoryHost } from "../cookbooks/fable/components/stories/story-viewer";
 import { ME, FABLE_TEAM, PEOPLE } from "../cookbooks/fable/data/people";
 import { portraits, coast } from "../cookbooks/astra/data";
 
@@ -59,6 +60,9 @@ export default function RootLayout() {
             <Stack.Screen name="fable" />
             <Stack.Screen name="astra" />
           </Stack>
+          {/* Story viewer: mounted once, above the navigator, so it sits on
+              top of every flow (tabs and fable stack alike). */}
+          <StoryHost />
         </KeyboardProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
