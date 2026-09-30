@@ -734,10 +734,16 @@ function ThreadScreen({ id }: { id: string }) {
           {typing && (group ? typingPerson : person) && (
             <TypingBubble person={(group ? typingPerson : person) as Person} />
           )}
-          {scheduled.map((item) => (
+          {scheduled.map((item, i) => (
             <ScheduledBubble
               key={item.id}
               item={item}
+              // Same vertical rhythm as regular bubbles: a wide gap when the
+              // sender changes, a tight one inside the sender's own run.
+              first={
+                i === 0 &&
+                (typing || rows[rows.length - 1]?.msg.from !== "me")
+              }
               onCancel={() => cancelScheduled(item)}
             />
           ))}

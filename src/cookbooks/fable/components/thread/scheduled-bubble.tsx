@@ -12,14 +12,17 @@ import { useTheme } from "../../hooks/use-theme";
  */
 export function ScheduledBubble({
   item,
+  first = true,
   onCancel,
 }: {
   item: ScheduledMessage;
+  /** First bubble of the sender's run: gets the wider top gap, like Bubble. */
+  first?: boolean;
   onCancel: () => void;
 }) {
   const theme = useTheme();
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, { marginTop: first ? Space[5] : Space[2] }]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Scheduled for ${scheduledLabel(item.at)}. Cancel the send?`}
@@ -54,7 +57,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     paddingHorizontal: 16,
-    marginVertical: 2,
   },
   card: {
     maxWidth: "78%",
