@@ -44,6 +44,20 @@ export type Wallpaper = {
   blur: number;
 };
 
+/** One button in the in-window glass alert. */
+export type GlassAlertAction = {
+  text: string;
+  style?: "default" | "cancel" | "destructive";
+  onPress?: () => void;
+};
+
+/** Spec for the in-window glass alert (replaces the platform Alert). */
+export type GlassAlertSpec = {
+  title: string;
+  message?: string;
+  actions: GlassAlertAction[];
+};
+
 /**
  * Reads a stored wallpaper, tolerating the plain-URI shape written before
  * the editor existed.
@@ -102,6 +116,13 @@ type State = {
   setPendingWallpaper: (
     pending: { threadId: string; uri: string } | null,
   ) => void;
+  /**
+   * Transient in-window alert. Rendered by GlassAlertHost in the same window
+   * (not a native Modal) so the glass card can blur the screen behind it.
+   */
+  alert: GlassAlertSpec | null;
+  showAlert: (spec: GlassAlertSpec) => void;
+  dismissAlert: () => void;
   setTheme: (theme: State["theme"]) => void;
   toggleReaction: (id: string, messageId: string, emoji: string) => void;
   toggleMute: (id: string) => void;
@@ -247,6 +268,9 @@ export const useFable = create<State>()(
         }),
       pendingWallpaper: null,
       setPendingWallpaper: (pending) => set({ pendingWallpaper: pending }),
+      alert: null,
+      showAlert: (spec) => set({ alert: spec }),
+      dismissAlert: () => set({ alert: null }),
       reset: () =>
         set({
           threads: {},
@@ -254,6 +278,7 @@ export const useFable = create<State>()(
           historyPage: {},
           wallpapers: {},
           pendingWallpaper: null,
+          alert: null,
         }),
     }),
     {

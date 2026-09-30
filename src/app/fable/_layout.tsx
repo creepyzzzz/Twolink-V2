@@ -1,7 +1,9 @@
 import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { AndroidGlassMenuProvider } from "expo-android-glass-view";
 import { StatusBar } from "expo-status-bar";
+import { View } from "react-native";
 import { useTheme } from "../../cookbooks/fable/hooks/use-theme";
+import { GlassAlertHost } from "../../cookbooks/fable/components/ui/glass-alert";
 
 export const unstable_settings = { initialRouteName: "index" };
 export default function FableLayout() {
@@ -16,12 +18,13 @@ export default function FableLayout() {
       }}
     >
       <StatusBar style="dark" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.bg },
-        }}
-      >
+      <View style={{ flex: 1 }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: theme.bg },
+          }}
+        >
         <Stack.Screen name="index" />
         <Stack.Screen name="chat/[id]" />
         <Stack.Screen
@@ -65,7 +68,11 @@ export default function FableLayout() {
           name="wallpaper"
           options={{ presentation: "fullScreenModal" }}
         />
-      </Stack>
+        </Stack>
+        {/* In-window glass alert host: renders above every fable screen so the
+            card's glass can blur the content behind it. */}
+        <GlassAlertHost />
+      </View>
     </ThemeProvider>
     </AndroidGlassMenuProvider>
   );

@@ -8,15 +8,8 @@ import { SFIcon } from "../../../../ui/SFIcon";
 import { useFable } from "../../data/store";
 import { useTheme } from "../../hooks/use-theme";
 import { GlassButton } from "../ui/glass-button";
-import { GlassAlert, type GlassAlertAction } from "../ui/glass-alert";
 
 const DESTRUCTIVE_RED = "#FF545B";
-
-type AlertSpec = {
-  title: string;
-  message?: string;
-  actions: GlassAlertAction[];
-};
 
 /**
  * The ••• button in a chat header. Opens kagantemizkan's native glass menu
@@ -32,12 +25,12 @@ export function ChatMenu({
   const theme = useTheme();
   const anchorRef = useRef<View>(null);
   const [open, setOpen] = useState(false);
-  const [alert, setAlert] = useState<AlertSpec | null>(null);
+  const showAlert = useFable((s) => s.showAlert);
 
   const pickWallpaper = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      setAlert({
+      showAlert({
         title: "Photos",
         message: "Allow photo access to choose a chat wallpaper.",
         actions: [{ text: "OK", style: "default" }],
@@ -62,7 +55,7 @@ export function ChatMenu({
   };
 
   const onClear = () => {
-    setAlert({
+    showAlert({
       title: "Clear chat?",
       message: "All messages in this conversation will be deleted.",
       actions: [
@@ -123,13 +116,6 @@ export function ChatMenu({
           else if (id === "clear") onClear();
         }}
         onDismiss={() => setOpen(false)}
-      />
-      <GlassAlert
-        visible={alert !== null}
-        title={alert?.title ?? ""}
-        message={alert?.message}
-        actions={alert?.actions ?? []}
-        onDismiss={() => setAlert(null)}
       />
     </>
   );
