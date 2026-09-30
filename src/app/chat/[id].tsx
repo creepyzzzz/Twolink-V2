@@ -49,7 +49,7 @@ import { AdaptiveGlassView } from "../../ui/GlassView";
 import { ScreenBackground } from "../../ui/ScreenBackground";
 
 const ME_ID = "me";
-const ACCENT = "#8ab4ff";
+const ACCENT = "#3D92E9";
 
 const REPLIES = [
   "Haha exactly",
@@ -101,7 +101,7 @@ function AttachButton({ onPickImage }: { onPickImage: () => void }) {
           accessibilityRole="button"
           accessibilityLabel="Attach"
         >
-          <Plus size={22} color="rgba(255,255,255,0.9)" />
+          <Plus size={22} color="rgba(23,25,27,0.85)" />
         </Pressable>
       </View>
       <AndroidGlassMenu
@@ -111,7 +111,7 @@ function AttachButton({ onPickImage }: { onPickImage: () => void }) {
         onSelect={(id) => {
           if (id === "photo") onPickImage();
         }}
-        theme="dark"
+        theme="light"
         items={[{ id: "photo", title: "Photo library", icon: "photo" }]}
       />
     </>
@@ -126,25 +126,25 @@ const glassTheme = {
     // bubble fills transparent so the refraction shows through.
     incomingBubble: "transparent",
     outgoingBubble: "transparent",
-    incomingText: "#f2f4f8",
+    incomingText: "#242628",
     outgoingText: "#ffffff",
-    incomingMeta: "rgba(255,255,255,0.6)",
-    outgoingMeta: "rgba(255,255,255,0.72)",
-    senderName: "rgba(255,255,255,0.75)",
-    ticksSent: "rgba(255,255,255,0.55)",
+    incomingMeta: "rgba(36,38,40,0.55)",
+    outgoingMeta: "rgba(255,255,255,0.78)",
+    senderName: "rgba(36,38,40,0.7)",
+    ticksSent: "rgba(36,38,40,0.5)",
     ticksRead: ACCENT,
-    separator: "rgba(255,255,255,0.14)",
+    separator: "rgba(23,25,27,0.1)",
     inputBackground: "transparent",
     inputBarBackground: "transparent",
-    inputText: "#ffffff",
-    placeholder: "rgba(255,255,255,0.42)",
-    dayPillBackground: "rgba(255,255,255,0.14)",
-    dayPillText: "#ffffff",
-    surface: "rgba(24,26,44,0.92)",
-    reactionBackground: "rgba(255,255,255,0.12)",
-    reactionActiveBackground: "rgba(138,180,255,0.35)",
+    inputText: "#17191B",
+    placeholder: "rgba(23,25,27,0.4)",
+    dayPillBackground: "rgba(255,255,255,0.75)",
+    dayPillText: "#17191B",
+    surface: "rgba(255,255,255,0.94)",
+    reactionBackground: "rgba(23,25,27,0.06)",
+    reactionActiveBackground: "rgba(61,146,233,0.18)",
     outgoingOverlay: "rgba(255,255,255,0.08)",
-    error: "#ff8a80",
+    error: "#d32f2f",
     inputFieldBorder: "transparent",
   },
   radii: {
@@ -284,7 +284,7 @@ function ConversationBody({ person }: { person: Person }) {
     return (
       <AdaptiveGlassView
         style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleTheirs]}
-        tintColor={isOwn ? "rgba(120,160,255,0.20)" : "rgba(255,255,255,0.10)"}
+        tintColor={isOwn ? "rgba(61,146,233,0.72)" : "rgba(255,255,255,0.55)"}
         blurRadius={12}
         refractionHeight={7}
         refractionAmount={13}
@@ -323,7 +323,7 @@ function ConversationBody({ person }: { person: Person }) {
           }}
           interactive
           tintColor={
-            canSend ? "rgba(120,160,255,0.45)" : "rgba(255,255,255,0.08)"
+            canSend ? "rgba(61,146,233,0.9)" : "rgba(23,25,27,0.06)"
           }
           style={styles.sendBtn}
           accessibilityRole="button"
@@ -331,7 +331,7 @@ function ConversationBody({ person }: { person: Person }) {
         >
           <SendHorizontal
             size={17}
-            color={canSend ? "#fff" : "rgba(255,255,255,0.45)"}
+            color={canSend ? "#fff" : "rgba(23,25,27,0.35)"}
           />
         </AndroidGlassButton>
       </View>
@@ -356,7 +356,7 @@ function ConversationBody({ person }: { person: Person }) {
         ) : null}
         <AdaptiveGlassView
           style={styles.toolbar}
-          tintColor="rgba(14,16,34,0.5)"
+          tintColor="rgba(255,255,255,0.65)"
           blurRadius={20}
           refractionHeight={8}
           refractionAmount={12}
@@ -383,7 +383,7 @@ function ConversationBody({ person }: { person: Person }) {
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable
           onPress={back}
@@ -392,7 +392,7 @@ function ConversationBody({ person }: { person: Person }) {
           accessibilityRole="button"
           accessibilityLabel="Back"
         >
-          <ChevronLeft size={26} color="#fff" />
+          <ChevronLeft size={26} color="#17191B" />
         </Pressable>
         <View
           ref={headerRef}
@@ -418,7 +418,7 @@ function ConversationBody({ person }: { person: Person }) {
           onSend={onSend}
           user={{ _id: ME_ID, name: "Tariq" }}
           theme={glassTheme}
-          colorScheme="dark"
+          colorScheme="light"
           renderBubble={renderBubble}
           renderAvatar={renderAvatar}
           renderInputToolbar={renderInputToolbar}
@@ -472,13 +472,13 @@ export default function ConversationScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  notFound: { color: "#fff", fontSize: 17, fontWeight: "600" },
+  notFound: { color: "#17191B", fontSize: 17, fontWeight: "600" },
   backBtn: {
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 18,
-    backgroundColor: "rgba(138,180,255,0.25)",
+    backgroundColor: "rgba(61,146,233,0.9)",
   },
   backBtnText: { color: "#fff", fontWeight: "600" },
   header: {
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   headerBack: { padding: 6 },
   headerAvatar: { width: 40, height: 40, borderRadius: 20, marginLeft: 4 },
   headerText: { marginLeft: 10, flex: 1 },
-  headerName: { color: "#fff", fontSize: 17, fontWeight: "700" },
+  headerName: { color: "#17191B", fontSize: 17, fontWeight: "700" },
   headerStatus: {
     color: ACCENT,
     fontSize: 12.5,
@@ -534,10 +534,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   replyPreview: {
-    backgroundColor: "rgba(138,180,255,0.14)",
+    backgroundColor: "rgba(61,146,233,0.12)",
     borderRadius: 14,
     marginBottom: 8,
     marginHorizontal: 4,
   },
-  replyPreviewText: { color: "rgba(255,255,255,0.85)" },
+  replyPreviewText: { color: "rgba(23,25,27,0.85)" },
 });

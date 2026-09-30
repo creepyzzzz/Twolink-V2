@@ -10,7 +10,10 @@ import { ChevronRight } from "lucide-react-native";
 import { AdaptiveGlassView } from "../../ui/GlassView";
 import { ScreenBackground } from "../../ui/ScreenBackground";
 
-const ACCENT = "#8ab4ff";
+const ACCENT = "#3D92E9";
+const INK = "#17191B";
+const INK_SOFT = "rgba(23,25,27,0.55)";
+const INK_FAINT = "rgba(23,25,27,0.35)";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -18,7 +21,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <Text style={styles.sectionTitle}>{title}</Text>
       <AdaptiveGlassView
         style={styles.card}
-        tintColor="rgba(20,22,40,0.35)"
+        tintColor="rgba(255,255,255,0.55)"
         blurRadius={18}
       >
         {children}
@@ -65,7 +68,7 @@ export default function SettingsScreen() {
 
   return (
     <ScreenBackground>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <ScrollView
         style={styles.flex}
         contentContainerStyle={[
@@ -79,7 +82,7 @@ export default function SettingsScreen() {
         {/* Profile */}
         <AdaptiveGlassView
           style={styles.profile}
-          tintColor="rgba(20,22,40,0.35)"
+          tintColor="rgba(255,255,255,0.55)"
           blurRadius={18}
         >
           <View style={styles.avatar}>
@@ -89,7 +92,7 @@ export default function SettingsScreen() {
             <Text style={styles.profileName}>Tariq</Text>
             <Text style={styles.profileSub}>TwoLink private build</Text>
           </View>
-          <ChevronRight size={20} color="rgba(255,255,255,0.4)" />
+          <ChevronRight size={20} color={INK_FAINT} />
         </AdaptiveGlassView>
 
         <Section title="Privacy">
@@ -142,7 +145,7 @@ export default function SettingsScreen() {
             {/* Live preview: the same native glass, driven by the slider. */}
             <AdaptiveGlassView
               style={styles.preview}
-              tintColor="rgba(138,180,255,0.18)"
+              tintColor="rgba(61,146,233,0.12)"
               blurRadius={4 + glassIntensity * 26}
               refractionAmount={6 + glassIntensity * 22}
             >
@@ -160,7 +163,7 @@ export default function SettingsScreen() {
           </View>
           <Pressable style={styles.row} accessibilityRole="button">
             <Text style={styles.rowLabel}>Open-source licenses</Text>
-            <ChevronRight size={20} color="rgba(255,255,255,0.4)" />
+            <ChevronRight size={20} color={INK_FAINT} />
           </Pressable>
         </Section>
       </ScrollView>
@@ -175,7 +178,7 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: "800",
     letterSpacing: -1,
-    color: "#fff",
+    color: INK,
     marginBottom: 18,
   },
   profile: {
@@ -189,21 +192,21 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(138,180,255,0.25)",
+    backgroundColor: "rgba(61,146,233,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { fontSize: 24, fontWeight: "700", color: "#fff" },
+  avatarText: { fontSize: 24, fontWeight: "700", color: ACCENT },
   profileText: { flex: 1, marginLeft: 14 },
-  profileName: { fontSize: 19, fontWeight: "700", color: "#fff" },
-  profileSub: { fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 2 },
+  profileName: { fontSize: 19, fontWeight: "700", color: INK },
+  profileSub: { fontSize: 13, color: INK_SOFT, marginTop: 2 },
   section: { marginTop: 22 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1.2,
-    color: "rgba(255,255,255,0.5)",
+    color: INK_SOFT,
     marginBottom: 8,
     marginLeft: 4,
   },
@@ -215,17 +218,17 @@ const styles = StyleSheet.create({
   },
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: "rgba(23,25,27,0.08)",
   },
   rowText: { flex: 1, paddingRight: 12 },
-  rowLabel: { fontSize: 16, fontWeight: "600", color: "#fff" },
+  rowLabel: { fontSize: 16, fontWeight: "600", color: INK },
   rowHint: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.5)",
+    color: INK_SOFT,
     marginTop: 3,
     lineHeight: 18,
   },
-  rowValue: { fontSize: 14, color: "rgba(255,255,255,0.55)" },
+  rowValue: { fontSize: 14, color: INK_SOFT },
   sliderBlock: { paddingVertical: 8 },
   sliderHeader: {
     flexDirection: "row",
@@ -243,7 +246,7 @@ const styles = StyleSheet.create({
   },
   previewText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.85)",
+    color: "rgba(23,25,27,0.75)",
     textAlign: "center",
     lineHeight: 20,
   },

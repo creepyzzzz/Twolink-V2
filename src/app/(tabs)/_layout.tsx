@@ -8,7 +8,6 @@ import { MessageCircle, Sparkles, Settings } from "lucide-react-native";
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenBackground } from "../../ui/ScreenBackground";
-import { useTheme as useAstraTheme } from "../../cookbooks/astra/theme";
 
 const TABS = [
   { name: "chats", label: "Chats", Icon: MessageCircle },
@@ -16,9 +15,8 @@ const TABS = [
   { name: "settings", label: "Settings", Icon: Settings },
 ] as const;
 
-const ACCENT = "#8ab4ff";
-const ICON_IDLE_DARK = "rgba(232,234,237,0.72)";
-const ICON_IDLE_LIGHT = "rgba(24,26,32,0.68)";
+const ACCENT = "#3D92E9";
+const ICON_IDLE = "rgba(24,26,32,0.68)";
 
 /** Structural subset of the tab-bar props — avoids the vendored types. */
 type TabBarProps = {
@@ -32,12 +30,7 @@ type TabBarProps = {
  */
 function GlassTabBar({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
-  const system = useAstraTheme();
-  // The settings tab is fixed-dark by design; chats/stories follow the
-  // system theme, so the bar always matches the surface it floats over.
-  const dark =
-    state.routes[state.index]?.name === "settings" ? true : system.dark;
-  const idle = dark ? ICON_IDLE_DARK : ICON_IDLE_LIGHT;
+  // TwoLink is light-theme only — the bar always matches the light surface.
   return (
     <AndroidGlassBottomTabs
       selectedIndex={state.index}
@@ -45,11 +38,11 @@ function GlassTabBar({ state, navigation }: TabBarProps) {
         const route = state.routes[index];
         if (route && index !== state.index) navigation.navigate(route.name);
       }}
-      theme={dark ? "dark" : "light"}
+      theme="light"
       accentColor={ACCENT}
       // Light glass brightens the backdrop to near-white, which vanishes
       // over the light inbox — a translucent veil keeps the capsule frosted.
-      containerColor={dark ? undefined : "rgba(255,255,255,0.78)"}
+      containerColor="rgba(255,255,255,0.78)"
       blurRadius={30}
       refractionHeight={9}
       refractionAmount={16}
@@ -59,8 +52,8 @@ function GlassTabBar({ state, navigation }: TabBarProps) {
         <AndroidGlassTab
           key={label}
           label={label}
-          labelStyle={[styles.label, { color: idle }]}
-          icon={<Icon size={22} color={idle} strokeWidth={2} />}
+          labelStyle={[styles.label, { color: ICON_IDLE }]}
+          icon={<Icon size={22} color={ICON_IDLE} strokeWidth={2} />}
         />
       ))}
     </AndroidGlassBottomTabs>

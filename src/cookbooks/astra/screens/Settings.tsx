@@ -3,10 +3,9 @@ import { View, Text, ScrollView, Switch, Pressable, Alert } from "react-native";
 import { router } from "expo-router";
 import { useChat } from "../data";
 import { useTheme } from "../theme";
-import { Glass, GlassButton, Icon, tick } from "../ui";
+import { Glass, GlassButton, Icon } from "../ui";
 export default function Settings() {
   const t = useTheme(),
-    theme = useChat((s) => s.theme),
     haptics = useChat((s) => s.haptics);
   return (
     <ScrollView
@@ -41,49 +40,9 @@ export default function Settings() {
           onPress={() => router.back()}
         />
       </View>
-      <Text style={{ fontSize: 13, color: t.muted, paddingBottom: 12 }}>
-        APPEARANCE
-      </Text>
-      <Glass style={{ padding: 6, borderRadius: 26, flexDirection: "row" }}>
-        {(["system", "light", "dark"] as const).map((v) => (
-          <Pressable
-            key={v}
-            accessibilityLabel={`${v} appearance`}
-            testID={`theme-${v}`}
-            onPress={() => {
-              tick();
-              useChat.getState().setTheme(v);
-            }}
-            style={{
-              flex: 1,
-              paddingVertical: 15,
-              borderRadius: 22,
-              backgroundColor: "transparent",
-              alignItems: "center",
-            }}
-          >
-            {v === theme && (
-              <Glass
-                clear
-                tint={t.dark ? "#B9CED54D" : "#667F882C"}
-                style={{ position: "absolute", inset: 0, borderRadius: 22 }}
-              />
-            )}
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: "500",
-                color: t.text,
-              }}
-            >
-              {v[0].toUpperCase() + v.slice(1)}
-            </Text>
-          </Pressable>
-        ))}
-      </Glass>
       <Glass
         style={{
-          marginTop: 20,
+          marginTop: 4,
           padding: 18,
           borderRadius: 26,
           flexDirection: "row",

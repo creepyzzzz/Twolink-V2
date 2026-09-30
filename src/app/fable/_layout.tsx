@@ -1,13 +1,12 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { StoryHost } from "../../cookbooks/fable/components/stories/story-viewer";
-import { useScheme, useTheme } from "../../cookbooks/fable/hooks/use-theme";
+import { useTheme } from "../../cookbooks/fable/hooks/use-theme";
 
 export const unstable_settings = { initialRouteName: "index" };
 export default function FableLayout() {
-  const scheme = useScheme();
   const theme = useTheme();
-  const nav = scheme === "dark" ? DarkTheme : DefaultTheme;
+  const nav = DefaultTheme;
   return (
     <ThemeProvider
       value={{
@@ -15,7 +14,7 @@ export default function FableLayout() {
         colors: { ...nav.colors, background: theme.bg, card: theme.bg },
       }}
     >
-      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      <StatusBar style="dark" />
       <Stack
         screenOptions={{
           headerShown: false,
