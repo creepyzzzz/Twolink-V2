@@ -1,5 +1,6 @@
 import { AndroidGlassMenu } from "expo-android-glass-view";
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { Alert, View } from "react-native";
 
@@ -40,7 +41,10 @@ export function ChatMenu({
       quality: 0.85,
     });
     if (res.canceled || res.assets.length === 0) return;
-    useFable.getState().setWallpaper(threadId, res.assets[0].uri);
+    useFable
+      .getState()
+      .setPendingWallpaper({ threadId, uri: res.assets[0].uri });
+    router.push("/fable/wallpaper");
   };
 
   const onWallpaper = () => {

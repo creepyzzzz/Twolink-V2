@@ -44,7 +44,7 @@ import { REPLIES, messagesFor, olderMessagesFor, type Message } from "../data/me
 import { PEOPLE, PEOPLE_BY_ID, type Person } from "../data/people";
 import { useTheme } from "../hooks/use-theme";
 
-import { useFable, getGroup } from "../data/store";
+import { useFable, getGroup, normalizeWallpaper } from "../data/store";
 import { NotFound } from "../../NotFound";
 
 export default function ConversationRoute() {
@@ -65,7 +65,8 @@ function ThreadScreen({ id }: { id: string }) {
   const insets = useSafeAreaInsets();
 
   const stored = useFable((state) => state.threads[id]);
-  const wallpaper = useFable((state) => state.wallpapers[id]);
+  const wallpaperRaw = useFable((state) => state.wallpapers[id]);
+  const wallpaper = normalizeWallpaper(wallpaperRaw);
   const initial = useMemo(
     () => (person ? messagesFor(person.id, person.first) : []),
     [person],
@@ -458,9 +459,10 @@ function ThreadScreen({ id }: { id: string }) {
         {wallpaper ? (
           <>
             <Image
-              source={{ uri: wallpaper }}
+              source={{ uri: wallpaper.uri }}
               resizeMode="cover"
-              style={StyleSheet.absoluteFill}
+              blurRadius={wallpaper.blur * 25}
+              style={[StyleSheet.absoluteFill, { opacity: wallpaper.opacity }]}
             />
             <View
               pointerEvents="none"

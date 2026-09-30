@@ -61,6 +61,10 @@ export default function FableLayout() {
           name="photo"
           options={{ presentation: "fullScreenModal" }}
         />
+        <Stack.Screen
+          name="wallpaper"
+          options={{ presentation: "fullScreenModal" }}
+        />
       </Stack>
     </ThemeProvider>
     </AndroidGlassMenuProvider>

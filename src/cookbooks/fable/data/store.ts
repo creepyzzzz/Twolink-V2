@@ -35,6 +35,28 @@ export function getGroup(
     ? groups[id]
     : undefined;
 }
+/** Per-thread chat wallpaper: photo-library URI plus edit adjustments. */
+export type Wallpaper = {
+  uri: string;
+  /** 0..1 — image opacity over the panel. */
+  opacity: number;
+  /** 0..1 — mapped to blurRadius 0..25. */
+  blur: number;
+};
+
+/**
+ * Reads a stored wallpaper, tolerating the plain-URI shape written before
+ * the editor existed.
+ */
+export function normalizeWallpaper(
+  raw: string | Wallpaper | undefined,
+): Wallpaper | undefined {
+  if (!raw) return undefined;
+  return typeof raw === "string"
+    ? { uri: raw, opacity: 1, blur: 0 }
+    : raw;
+}
+
 type State = {
   threads: Record<string, Message[]>;
   read: string[];
@@ -73,8 +95,13 @@ type State = {
   /** Removes every message from a thread. */
   clearThread: (id: string) => void;
   /** Per-thread chat wallpaper photo-library URIs. */
-  wallpapers: Record<string, string>;
-  setWallpaper: (id: string, uri: string | null) => void;
+  wallpapers: Record<string, string | Wallpaper>;
+  setWallpaper: (id: string, wallpaper: Wallpaper | null) => void;
+  /** Image picked for wallpaper editing but not yet saved. */
+  pendingWallpaper: { threadId: string; uri: string } | null;
+  setPendingWallpaper: (
+    pending: { threadId: string; uri: string } | null,
+  ) => void;
   setTheme: (theme: State["theme"]) => void;
   toggleReaction: (id: string, messageId: string, emoji: string) => void;
   toggleMute: (id: string) => void;
@@ -211,15 +238,23 @@ export const useFable = create<State>()(
           read: state.read.filter((r) => r !== id),
         })),
       wallpapers: {},
-      setWallpaper: (id, uri) =>
+      setWallpaper: (id, wallpaper) =>
         set((state) => {
           const wallpapers = { ...state.wallpapers };
-          if (uri) wallpapers[id] = uri;
+          if (wallpaper) wallpapers[id] = wallpaper;
           else delete wallpapers[id];
           return { wallpapers };
         }),
+      pendingWallpaper: null,
+      setPendingWallpaper: (pending) => set({ pendingWallpaper: pending }),
       reset: () =>
-        set({ threads: {}, read: [], historyPage: {}, wallpapers: {} }),
+        set({
+          threads: {},
+          read: [],
+          historyPage: {},
+          wallpapers: {},
+          pendingWallpaper: null,
+        }),
     }),
     {
       name: "fable-state",
