@@ -6,6 +6,7 @@ import { GlassButton } from "../ui/glass-button";
 import { ChatMenu } from "./chat-menu";
 import { Space, Type } from "../../constants/theme";
 import type { Group } from "../../data/store";
+import { groupDisplayName } from "../../data/store";
 import { useTheme } from "../../hooks/use-theme";
 
 export const THREAD_NAV_H = 64;
@@ -38,7 +39,7 @@ export function GroupHeader({
       />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${group.name} — group info`}
+        accessibilityLabel={`${groupDisplayName(group)} — group info`}
         onPress={() =>
           router.push({
             pathname: "/fable/group/[id]",
@@ -52,7 +53,7 @@ export function GroupHeader({
           numberOfLines={1}
           style={[Type.caption, { color: theme.secondary, marginTop: 4 }]}
         >
-          {group.name} · {group.memberIds.length}
+          {groupDisplayName(group)} · {group.memberIds.length}
         </Text>
       </Pressable>
       <View style={styles.right}>

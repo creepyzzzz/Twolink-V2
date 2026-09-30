@@ -6,7 +6,7 @@ import { SFIcon } from "../../../ui/SFIcon";
 import { Avatar } from "../components/ui/avatar";
 import { Glass } from "../components/ui/glass";
 import { GlassButton } from "../components/ui/glass-button";
-import { PEOPLE, PEOPLE_BY_ID } from "../data/people";
+import { PEOPLE } from "../data/people";
 import { useFable } from "../data/store";
 import { Accent, Type } from "../constants/theme";
 import { useTheme } from "../hooks/use-theme";
@@ -34,13 +34,9 @@ export default function Compose() {
   const create = () => {
     if (selected.length === 0) return;
     const store = useFable.getState();
-    const autoName =
-      selected
-        .slice(0, 2)
-        .map((id) => PEOPLE_BY_ID[id]?.first ?? "")
-        .filter(Boolean)
-        .join(", ") + (selected.length > 2 ? ` +${selected.length - 2}` : "");
-    const name = groupName.trim() || autoName || "New group";
+    // Only a name the user typed is stored — a blank field lets the chat
+    // row and header fall back to member names via groupDisplayName().
+    const name = groupName.trim();
     const id = store.createGroup(name, selected);
     // A couple of hellos so the new thread feels alive.
     store.append(id, "Hey everyone! 🙌", "them", false, {

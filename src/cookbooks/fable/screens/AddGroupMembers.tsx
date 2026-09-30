@@ -14,7 +14,7 @@ import { Avatar } from "../components/ui/avatar";
 import { MenuCard } from "../components/ui/menu-card";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { PEOPLE } from "../data/people";
-import { getGroup, useFable } from "../data/store";
+import { getGroup, groupDisplayName, useFable } from "../data/store";
 import { Accent, Space, Type } from "../constants/theme";
 import { useTheme } from "../hooks/use-theme";
 import { NotFound } from "../../NotFound";
@@ -94,7 +94,7 @@ function AddMembersScreen({ id }: { id: string }) {
 
         <Text style={[Type.caption, { color: theme.secondary }]}>
           {selected.length === 0
-            ? `Adding to ${group.name}`
+            ? `Adding to ${groupDisplayName(group)}`
             : `${selected.length} member${selected.length === 1 ? "" : "s"} selected`}
         </Text>
 

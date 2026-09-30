@@ -40,7 +40,7 @@ import { messagesFor } from "../data/messages";
 import { PEOPLE_BY_ID, STORIES, type Person } from "../data/people";
 import { unreadCount } from "../data/unread";
 import { openStory, pickAndPostStory } from "../data/story-state";
-import { useFable } from "../data/store";
+import { useFable, groupDisplayName } from "../data/store";
 import { useTheme } from "../hooks/use-theme";
 import { SFIcon } from "../../../ui/SFIcon";
 
@@ -265,7 +265,7 @@ export default function ChatsScreen() {
       groups.filter(
         (group) =>
           !deleted.includes(group.id) &&
-          (!q || group.name.toLowerCase().includes(q)),
+          (!q || groupDisplayName(group).toLowerCase().includes(q)),
       ),
     );
   }, [groups, query, filter, pinSort, deleted]);

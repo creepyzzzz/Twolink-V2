@@ -21,6 +21,7 @@ import type { Person } from "../../data/people";
 import { useScheme, useTheme } from "../../hooks/use-theme";
 import type { ReactionTarget } from "./reaction-picker";
 import { MessageText } from "./highlight-text";
+import { DeliveryTicks } from "./delivery-ticks";
 import { DocumentContent } from "./document-bubble";
 import { LinkPreview, extractUrls } from "./link-preview";
 
@@ -218,6 +219,9 @@ export const Bubble = memo(function Bubble({
     ? { uri: message.photoUri }
     : person?.story;
 
+  // "Delete for everyone" leaves a centered italic tombstone — no bubble,
+  // no gestures, no actions. Rendered at the call site so Bubble keeps its
+  // single plain return (the v6 hooks linter is strict about this file).
   return (
     <Animated.View
       entering={
@@ -287,6 +291,7 @@ export const Bubble = memo(function Bubble({
               {quote}
               <DocumentContent message={message} mine={mine} />
               {badge}
+              {mine && <DeliveryTicks message={message} />}
             </AnimatedPressable>
           ) : message.photo ? (
             <Animated.View
@@ -307,6 +312,11 @@ export const Bubble = memo(function Bubble({
                   contentFit="cover"
                 />
               </Pressable>
+              {mine && (
+                <View pointerEvents="none" style={styles.photoTicks}>
+                  <DeliveryTicks message={message} />
+                </View>
+              )}
               {message.replyTo && (
                 <View pointerEvents="none" style={styles.photoQuoteWrap}>
                   <Glass style={styles.photoQuote}>
@@ -344,6 +354,7 @@ export const Bubble = memo(function Bubble({
               />
               {firstUrl ? <LinkPreview key={firstUrl} url={firstUrl} mine /> : null}
               {badge}
+              <DeliveryTicks message={message} />
             </AnimatedPressable>
           ) : (
             <AnimatedPressable
@@ -438,6 +449,12 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     paddingHorizontal: 12,
     paddingVertical: 6,
+  },
+  /** Delivery ticks overlaying the bottom-right of an outgoing photo. */
+  photoTicks: {
+    position: "absolute",
+    bottom: 8,
+    right: 12,
   },
   quote: {
     flexDirection: "row",

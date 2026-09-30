@@ -46,7 +46,22 @@ export type Message = {
    * sent after the thread's timer was enabled.
    */
   expiresAt?: number;
+  /** True once the sender edited the text after sending. */
+  edited?: boolean;
+  /**
+   * Delivery state for outgoing messages (WhatsApp-style ticks). Incoming
+   * messages never carry one. Simulated: sent → delivered → read.
+   */
+  status?: MessageStatus;
+  /**
+   * "Delete for everyone" replaces the content with a tombstone instead of
+   * removing the row, so the thread keeps its shape.
+   */
+  deletedForEveryone?: boolean;
 };
+
+/** Delivery state for outgoing messages (WhatsApp-style ticks). */
+export type MessageStatus = "sent" | "delivered" | "read";
 
 const mara: Message[] = [
   {

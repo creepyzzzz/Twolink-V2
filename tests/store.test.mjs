@@ -415,3 +415,78 @@ test("app lock: PIN set/unlock round-trips in memory", () => {
   s().setAppUnlocked(true);
   s().reset();
 });
+
+test("messages: outgoing start at sent; status advances; edit marks edited", () => {
+  const s = () => fable.getState();
+  s().reset();
+  s().append("mara", "hello world");
+  const sent = s().threads["mara"].at(-1);
+  assert.equal(sent.from, "me");
+  assert.equal(sent.status, "sent");
+  s().setMessageStatus("mara", sent.id, "delivered");
+  assert.equal(s().threads["mara"].at(-1).status, "delivered");
+  s().setMessageStatus("mara", sent.id, "read");
+  assert.equal(s().threads["mara"].at(-1).status, "read");
+  s().editMessage("mara", sent.id, "hello edited");
+  const edited = s().threads["mara"].at(-1);
+  assert.equal(edited.text, "hello edited");
+  assert.equal(edited.edited, true);
+  // Blank edits are ignored.
+  s().editMessage("mara", sent.id, "   ");
+  assert.equal(s().threads["mara"].at(-1).text, "hello edited");
+  s().reset();
+});
+
+test("messages: delete for me removes; delete for everyone tombstones", () => {
+  const s = () => fable.getState();
+  s().reset();
+  s().append("mara", "remove me");
+  const m1 = s().threads["mara"].at(-1);
+  s().deleteMessage("mara", m1.id, "me");
+  assert.ok(!s().threads["mara"].some((m) => m.id === m1.id));
+  s().append("mara", "retract me");
+  const m2 = s().threads["mara"].at(-1);
+  s().deleteMessage("mara", m2.id, "everyone");
+  const tomb = s().threads["mara"].find((m) => m.id === m2.id);
+  assert.equal(tomb.deletedForEveryone, true);
+  assert.equal(tomb.text, "");
+  s().reset();
+});
+
+test("groups: creator is admin; rename/member/promote are admin-gated", () => {
+  const {
+    groupAdminIds,
+    groupDisplayName,
+    isGroupAdmin,
+  } = load(path.join(root, "src/cookbooks/fable/data/store.ts"));
+  const s = () => fable.getState();
+  s().reset();
+  const gid = s().createGroup("Weekend plan", ["me", "mara", "jonas"]);
+  let g = s().groups[gid];
+  assert.deepEqual(groupAdminIds(g), ["me"]);
+  assert.ok(isGroupAdmin(g, "me"));
+  assert.ok(!isGroupAdmin(g, "mara"));
+  assert.equal(groupDisplayName(g), "Weekend plan");
+  // Rename.
+  s().setGroupName(gid, "  Beach trip  ");
+  assert.equal(s().groups[gid].name, "Beach trip");
+  // Empty display name falls back to member first names.
+  s().setGroupName(gid, "   ");
+  assert.equal(groupDisplayName(s().groups[gid]), "You, Mara, Jonas");
+  s().setGroupName(gid, "Beach trip");
+  // Promote + demote.
+  s().setGroupAdmin(gid, "mara", true);
+  assert.ok(isGroupAdmin(s().groups[gid], "mara"));
+  s().setGroupAdmin(gid, "mara", false);
+  assert.ok(!isGroupAdmin(s().groups[gid], "mara"));
+  // The last admin can't be demoted or removed.
+  s().setGroupAdmin(gid, "me", false);
+  assert.ok(isGroupAdmin(s().groups[gid], "me"));
+  s().removeGroupMember(gid, "me");
+  assert.ok(s().groups[gid].memberIds.includes("me"));
+  // Removing a regular member works.
+  s().removeGroupMember(gid, "jonas");
+  g = s().groups[gid];
+  assert.ok(!g.memberIds.includes("jonas"));
+  s().reset();
+});

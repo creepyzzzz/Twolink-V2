@@ -11,7 +11,7 @@ import { SFIcon } from "../../../../ui/SFIcon";
 import { Avatar } from "../ui/avatar";
 import { Accent, Space, Type } from "../../constants/theme";
 import { PEOPLE_BY_ID } from "../../data/people";
-import { useFable, type Group } from "../../data/store";
+import { useFable, groupDisplayName, type Group } from "../../data/store";
 import { unreadCount } from "../../data/unread";
 import { scheduledLabel } from "../../data/scheduled";
 import { useTheme } from "../../hooks/use-theme";
@@ -105,9 +105,13 @@ export const GroupRow = memo(function GroupRow({
       ? (PEOPLE_BY_ID[last.senderId]?.first ?? "")
       : "";
   const preview = last
-    ? `${senderName ? `${senderName}: ` : ""}${
-        last.photo ? "Shared a photo" : last.text
-      }`
+    ? last.deletedForEveryone
+      ? last.from === "me"
+        ? "You deleted this message"
+        : "This message was deleted"
+      : `${senderName ? `${senderName}: ` : ""}${
+          last.photo ? "Shared a photo" : last.text
+        }`
     : `${group.memberIds.length} members`;
 
   return (
@@ -115,7 +119,7 @@ export const GroupRow = memo(function GroupRow({
       <Pressable
           testID={`fable-group-${group.id}`}
           accessibilityRole="button"
-          accessibilityLabel={`${group.name}${unread ? ", unread" : ""}${muted ? ", muted" : ""}${pinned ? ", pinned" : ""}. ${preview}`}
+          accessibilityLabel={`${groupDisplayName(group)}${unread ? ", unread" : ""}${muted ? ", muted" : ""}${pinned ? ", pinned" : ""}. ${preview}`}
           onPress={() =>
             router.push({
               pathname: "/fable/chat/[id]",
@@ -132,7 +136,7 @@ export const GroupRow = memo(function GroupRow({
           <GroupAvatar memberIds={group.memberIds} size={ROW_AVATAR} />
           <View style={styles.body}>
             <Text numberOfLines={1} style={[Type.name, { color: theme.label }]}>
-              {group.name}
+              {groupDisplayName(group)}
             </Text>
             <Text
               numberOfLines={1}

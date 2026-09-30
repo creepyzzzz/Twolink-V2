@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -21,7 +22,13 @@ import { SharedDocuments } from "../components/ui/shared-documents";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
 import { PEOPLE_BY_ID } from "../data/people";
-import { useFable, getGroup } from "../data/store";
+import {
+  useFable,
+  getGroup,
+  groupAdminIds,
+  groupDisplayName,
+  isGroupAdmin,
+} from "../data/store";
 import { useTheme } from "../hooks/use-theme";
 import { NotFound } from "../../NotFound";
 
@@ -51,7 +58,38 @@ function ProfileScreen({ id }: { id: string }) {
     [messages],
   );
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
   if (!group) return null;
+
+  const isAdmin = isGroupAdmin(group, "me");
+  const admins = groupAdminIds(group);
+  const saveName = () => {
+    if (nameDraft.trim()) useFable.getState().setGroupName(id, nameDraft);
+    setRenaming(false);
+  };
+  const onMemberLongPress = (memberId: string) => {
+    if (!isAdmin || memberId === "me") return;
+    const store = useFable.getState();
+    const admin = admins.includes(memberId);
+    const person = PEOPLE_BY_ID[memberId];
+    store.showAlert({
+      title: person?.name ?? "Member",
+      actions: [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: admin ? "Remove admin" : "Make admin",
+          style: "default",
+          onPress: () => store.setGroupAdmin(id, memberId, !admin),
+        },
+        {
+          text: "Remove from group",
+          style: "destructive",
+          onPress: () => store.removeGroupMember(id, memberId),
+        },
+      ],
+    });
+  };
 
   const gap = 3;
   const cell = (width - Space[4] * 2 - gap * 2) / 3;
@@ -68,7 +106,53 @@ function ProfileScreen({ id }: { id: string }) {
         ]}
       >
         <GroupAvatar memberIds={group.memberIds} size={96} />
-        <Text style={[styles.name, { color: theme.label }]}>{group.name}</Text>
+        <View style={styles.nameRow}>
+          {renaming ? (
+            <TextInput
+              accessibilityLabel="Group name"
+              value={nameDraft}
+              onChangeText={setNameDraft}
+              onSubmitEditing={saveName}
+              autoFocus
+              returnKeyType="done"
+              maxLength={48}
+              selectionColor={Accent}
+              style={[
+                styles.nameInput,
+                { color: theme.label, borderColor: theme.hairline },
+              ]}
+            />
+          ) : (
+            <Text style={[styles.name, { color: theme.label }]}>
+              {groupDisplayName(group)}
+            </Text>
+          )}
+          {isAdmin &&
+            (renaming ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Save group name"
+                onPress={saveName}
+                hitSlop={10}
+                style={styles.nameEdit}
+              >
+                <SFIcon name="checkmark" size={18} color={Accent} />
+              </Pressable>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Edit group name"
+                onPress={() => {
+                  setNameDraft(group.name);
+                  setRenaming(true);
+                }}
+                hitSlop={10}
+                style={styles.nameEdit}
+              >
+                <SFIcon name="pencil" size={15} color={theme.secondary} />
+              </Pressable>
+            ))}
+        </View>
         <Text style={[Type.caption, { color: theme.secondary, marginTop: 4 }]}>
           {group.memberIds.length} member
           {group.memberIds.length === 1 ? "" : "s"}
@@ -78,7 +162,7 @@ function ProfileScreen({ id }: { id: string }) {
           <View style={styles.row}>
             <Text style={[Type.body, { color: theme.label }]}>Mute</Text>
             <AndroidGlassToggle
-              accessibilityLabel={`Mute ${group.name}`}
+              accessibilityLabel={`Mute ${groupDisplayName(group)}`}
               value={muted}
               onValueChange={() => toggleMute(id)}
               accentColor={Accent}
@@ -115,31 +199,48 @@ function ProfileScreen({ id }: { id: string }) {
                     params: { id: memberId },
                   })
                 }
+                onLongPress={() => onMemberLongPress(memberId)}
+                delayLongPress={350}
                 style={styles.memberRow}
               >
                 <Avatar source={person.avatar} size={44} />
-                <Text style={[Type.body, { color: theme.label }]}>
-                  {person.name}
-                </Text>
+                <View style={styles.memberNameCol}>
+                  <Text style={[Type.body, { color: theme.label }]}>
+                    {memberId === "me" ? "You" : person.name}
+                  </Text>
+                  {admins.includes(memberId) && (
+                    <Text
+                      style={[
+                        Type.caption,
+                        styles.adminBadge,
+                        { color: theme.secondary },
+                      ]}
+                    >
+                      admin
+                    </Text>
+                  )}
+                </View>
               </Pressable>
             );
           })}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Add members to group"
-            onPress={() =>
-              router.push({
-                pathname: "/fable/group/add-members/[id]",
-                params: { id },
-              })
-            }
-            style={styles.memberRow}
-          >
-            <View style={[styles.addCircle, { borderColor: Accent }]}>
-              <SFIcon name="plus" size={20} color={Accent} />
-            </View>
-            <Text style={[Type.body, { color: Accent }]}>Add Members</Text>
-          </Pressable>
+          {isAdmin && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add members to group"
+              onPress={() =>
+                router.push({
+                  pathname: "/fable/group/add-members/[id]",
+                  params: { id },
+                })
+              }
+              style={styles.memberRow}
+            >
+              <View style={[styles.addCircle, { borderColor: Accent }]}>
+                <SFIcon name="plus" size={20} color={Accent} />
+              </View>
+              <Text style={[Type.body, { color: Accent }]}>Add Members</Text>
+            </Pressable>
+          )}
         </View>
 
         <Text style={[Type.caption, styles.section, { color: theme.secondary }]}>
@@ -193,7 +294,37 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: "SFProText-Semibold" as const,
     letterSpacing: -0.4,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     marginTop: Space[3],
+  },
+  nameEdit: {
+    padding: 4,
+  },
+  nameInput: {
+    fontSize: 24,
+    fontFamily: "SFProText-Semibold" as const,
+    letterSpacing: -0.4,
+    borderBottomWidth: 1,
+    minWidth: 140,
+    textAlign: "center",
+    paddingBottom: 2,
+  },
+  memberNameCol: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  adminBadge: {
+    borderWidth: 1,
+    borderColor: "rgba(120,120,126,0.4)",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
   },
   card: {
     alignSelf: "stretch",

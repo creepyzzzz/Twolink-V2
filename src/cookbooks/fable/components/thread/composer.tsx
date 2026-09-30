@@ -48,6 +48,16 @@ type Props = {
   onCancelReply?: () => void;
   /** Queue the text to send at a later time (long-press the send button). */
   onSchedule: (text: string, at: number) => void;
+  /** When set, the composer edits this message instead of sending a new one. */
+  editPreview?: { messageId: string; text: string } | null;
+  onSaveEdit?: (messageId: string, text: string) => void;
+  onCancelEdit?: () => void;
+  /**
+   * Overrides the restored thread draft as the input's initial text. The
+   * parent passes the message text here (with a remounting `key`) when edit
+   * mode starts.
+   */
+  initialText?: string;
 };
 
 /**
@@ -67,6 +77,10 @@ export function Composer({
   replyPreview,
   onCancelReply,
   onSchedule,
+  editPreview,
+  onSaveEdit,
+  onCancelEdit,
+  initialText,
 }: Props) {
   const theme = useTheme();
   const inputRef = useRef<TextInput>(null);
@@ -90,8 +104,9 @@ export function Composer({
       .filter((m) => m.first.toLowerCase().startsWith(mentionQuery))
       .slice(0, 5);
   }, [mentionQuery, groupMembers]);
-  // Restored once on mount — the input is uncontrolled after that.
-  const initialDraft = useFable.getState().drafts[threadId] ?? "";
+  // Restored once on mount — the input is uncontrolled after that. In edit
+  // mode the parent remounts with `initialText` set to the message text.
+  const initialDraft = initialText ?? useFable.getState().drafts[threadId] ?? "";
   const draft = useRef(initialDraft);
   // Drives the send button's empty/filled styling; the input stays uncontrolled.
   const [hasText, setHasText] = useState(initialDraft.trim().length > 0);
@@ -100,7 +115,8 @@ export function Composer({
 
   const onChangeText = (t: string) => {
     draft.current = t;
-    setDraft(threadId, t);
+    // While editing, the thread draft stays stashed — typing must not clobber it.
+    if (!editPreview) setDraft(threadId, t);
     setHasText(t.trim().length > 0);
     if (!isGroup) return;
     const m = t.match(/@([\p{L}\p{N}_]*)$/u);
@@ -118,17 +134,27 @@ export function Composer({
     setMentionQuery(null);
   };
 
+  // Edit mode: stash the thread draft, load the message text into the input,
+  // and restore the draft when editing ends (save or cancel). The parent
+  // remounts the composer (via `key`) when edit mode toggles, so the
+  // uncontrolled input simply starts from `initialText` — no effects needed.
   const submit = () => {
     const text = draft.current.trim();
     if (!text) return;
     inputRef.current?.clear();
     draft.current = "";
-    setDraft(threadId, "");
     setHasText(false);
+    if (editPreview) {
+      onSaveEdit?.(editPreview.messageId, text);
+      return;
+    }
+    setDraft(threadId, "");
     onSend(text);
   };
 
   const scheduleText = (at: number) => {
+    // Scheduling an edit makes no sense — it stays a plain send-path action.
+    if (editPreview) return;
     const text = draft.current.trim();
     setScheduleOpen(false);
     if (!text) return;
@@ -207,6 +233,39 @@ export function Composer({
                     accessibilityRole="button"
                     accessibilityLabel="Cancel reply"
                     onPress={onCancelReply}
+                    hitSlop={8}
+                    style={styles.replyClose}
+                  >
+                    <SFIcon name="xmark" size={12} color={theme.tertiary} />
+                  </Pressable>
+                </Animated.View>
+              )}
+              {editPreview && (
+                <Animated.View
+                  entering={FadeInDown.duration(220).easing(EASE_OUT.factory())}
+                  style={styles.replyRow}
+                >
+                  <View
+                    style={[styles.replyBar, { backgroundColor: Accent }]}
+                  />
+                  <View style={styles.replyTextWrap}>
+                    <Text
+                      numberOfLines={1}
+                      style={[Type.caption, { color: Accent }]}
+                    >
+                      Editing message
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[Type.preview, { color: theme.secondary }]}
+                    >
+                      {editPreview.text}
+                    </Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel editing"
+                    onPress={onCancelEdit}
                     hitSlop={8}
                     style={styles.replyClose}
                   >

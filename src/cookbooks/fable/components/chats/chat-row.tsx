@@ -46,9 +46,13 @@ export const ChatRow = memo(function ChatRow({
       .at(0),
   );
   const preview = last
-    ? last.photo
-      ? "Shared a photo"
-      : last.text
+    ? last.deletedForEveryone
+      ? last.from === "me"
+        ? "You deleted this message"
+        : "This message was deleted"
+      : last.photo
+        ? "Shared a photo"
+        : last.text
     : chat.preview;
   const fromMe = last ? last.from === "me" : chat.fromMe;
 

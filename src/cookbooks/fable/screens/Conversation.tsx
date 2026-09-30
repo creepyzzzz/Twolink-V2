@@ -25,6 +25,7 @@ import Animated, { useAnimatedRef } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bubble } from "../components/thread/bubble";
+import { DeletedTombstone } from "../components/thread/tombstone";
 import { Composer, type ReplyPreview } from "../components/thread/composer";
 import { PhotoViewer } from "../components/thread/photo-viewer";
 import {
@@ -42,6 +43,7 @@ import { SFIcon } from "../../../ui/SFIcon";
 import { Radius, Space, Type } from "../constants/theme";
 import { REPLIES, messagesFor, olderMessagesFor, type Message } from "../data/messages";
 import { mentionedIds } from "../data/mentions";
+import { copyText } from "../lib/clipboard";
 import {
   scheduledLabel,
   type ScheduledMessage,
@@ -121,6 +123,11 @@ function ThreadScreen({ id }: { id: string }) {
   const [forwarding, setForwarding] = useState<Message | null>(null);
   // Swipe-to-reply target: arms the composer's reply strip.
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  // Editing: the outgoing text message loaded into the composer.
+  const [editing, setEditing] = useState<{
+    messageId: string;
+    text: string;
+  } | null>(null);
   // In-conversation search.
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -259,18 +266,70 @@ function ThreadScreen({ id }: { id: string }) {
     setReaction(null);
   }, [reaction]);
 
+  const onCopyMessage = useCallback(async () => {
+    const message = reaction?.message;
+    setReaction(null);
+    if (!message || message.deletedForEveryone) return;
+    const text = message.document ? message.document.name : message.text;
+    const ok = await copyText(text);
+    if (!ok)
+      useFable.getState().showAlert({
+        title: "Copy isn't ready yet",
+        message: "Copy will be enabled in the next build.",
+        actions: [{ text: "OK", style: "default" }],
+      });
+  }, [reaction]);
+
+  const onEditMessage = useCallback(() => {
+    const message = reaction?.message;
+    setReaction(null);
+    if (
+      !message ||
+      message.from !== "me" ||
+      message.photo ||
+      message.document ||
+      message.deletedForEveryone
+    )
+      return;
+    setEditing({ messageId: message.id, text: message.text });
+  }, [reaction]);
+
   const onDeleteMessage = useCallback(() => {
     const message = reaction?.message;
     setReaction(null);
-    if (!message) return;
-    Alert.alert("Delete message?", "This removes it from this conversation.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => useFable.getState().deleteMessage(id, message.id),
-      },
-    ]);
+    if (!message || message.deletedForEveryone) return;
+    const store = useFable.getState();
+    if (message.from !== "me") {
+      store.showAlert({
+        title: "Delete message?",
+        message: "This removes it from this conversation.",
+        actions: [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete for me",
+            style: "destructive",
+            onPress: () => store.deleteMessage(id, message.id, "me"),
+          },
+        ],
+      });
+      return;
+    }
+    store.showAlert({
+      title: "Delete message?",
+      actions: [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete for me",
+          style: "default",
+          onPress: () => store.deleteMessage(id, message.id, "me"),
+        },
+        {
+          text: "Delete for everyone",
+          style: "destructive",
+          onPress: () => store.deleteMessage(id, message.id, "everyone"),
+        },
+      ],
+    });
   }, [id, reaction]);
 
   const onPickForwardTarget = useCallback(
@@ -347,6 +406,14 @@ function ThreadScreen({ id }: { id: string }) {
     [scrollToEnd, id, replyTo, person],
   );
 
+  const onSaveEdit = useCallback(
+    (messageId: string, text: string) => {
+      useFable.getState().editMessage(id, messageId, text);
+      setEditing(null);
+    },
+    [id],
+  );
+
   // Send Later: queue the text, preserving an armed reply. The flusher in
   // the fable layout sends it when its time comes, even from the inbox.
   const handleSchedule = useCallback(
@@ -421,13 +488,11 @@ function ThreadScreen({ id }: { id: string }) {
     scrollToEnd();
   }, [id, replyTo, scrollToEnd]);
 
-  /** File attachments need expo-document-picker plus a fresh dev-client
-   *  build — parked until Tariq approves the native package. */
+  /** File attachments are parked until the next build is approved. */
   const onAttachFile = useCallback(() => {
     useFable.getState().showAlert({
       title: "Files",
-      message:
-        "File attachments need the document picker package and a fresh dev build. Approve it in chat and I'll wire it up.",
+      message: "File attachments will be enabled in the next build.",
       actions: [{ text: "OK", style: "default" }],
     });
   }, []);
@@ -664,27 +729,31 @@ function ThreadScreen({ id }: { id: string }) {
                   {gapLabel}
                 </Text>
               )}
-              <Bubble
-                message={msg}
-                person={person}
-                first={first}
-                last={last}
-                animate={animate}
-                onReact={onReact}
-                reacting={reaction?.message.id === msg.id}
-                onReply={setReplyTo}
-                onOpenPhoto={onOpenPhoto}
-                highlight={q || undefined}
-                highlightActive={msg.id === activeMatchId}
-                senderAvatar={
-                  msg.from !== "me" ? senderAvatar(msg) : undefined
-                }
-                mentions={
-                  group
-                    ? { names: mentionNames, self: selfFirst }
-                    : undefined
-                }
-              />
+              {msg.deletedForEveryone ? (
+                <DeletedTombstone message={msg} first={first} />
+              ) : (
+                <Bubble
+                  message={msg}
+                  person={person}
+                  first={first}
+                  last={last}
+                  animate={animate}
+                  onReact={onReact}
+                  reacting={reaction?.message.id === msg.id}
+                  onReply={setReplyTo}
+                  onOpenPhoto={onOpenPhoto}
+                  highlight={q || undefined}
+                  highlightActive={msg.id === activeMatchId}
+                  senderAvatar={
+                    msg.from !== "me" ? senderAvatar(msg) : undefined
+                  }
+                  mentions={
+                    group
+                      ? { names: mentionNames, self: selfFirst }
+                      : undefined
+                  }
+                />
+              )}
             </View>
           ))}
           {typing && (group ? typingPerson : person) && (
@@ -712,6 +781,7 @@ function ThreadScreen({ id }: { id: string }) {
       </View>
 
       <Composer
+        key={editing ? `edit-${editing.messageId}` : "compose"}
         threadId={id}
         insetBottom={insets.bottom}
         onSend={onSend}
@@ -721,6 +791,10 @@ function ThreadScreen({ id }: { id: string }) {
         replyPreview={replyPreview}
         onCancelReply={() => setReplyTo(null)}
         onSchedule={handleSchedule}
+        editPreview={editing}
+        initialText={editing?.text}
+        onSaveEdit={onSaveEdit}
+        onCancelEdit={() => setEditing(null)}
       />
 
       {searchOpen && (
@@ -742,57 +816,133 @@ function ThreadScreen({ id }: { id: string }) {
           selected={reaction.message.reactions ?? []}
           onPick={onPickReaction}
           onClose={() => setReaction(null)}
-          actions={
-            <MenuCard style={styles.actionMenu}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Reply to message"
-                onPress={onReplyMessage}
-                style={styles.actionRow}
-              >
-                <SFIcon
-                  name="arrowshape.turn.up.left"
-                  size={18}
-                  color={theme.label}
+          actions={(() => {
+            const msg = reaction.message;
+            const tombstoned = !!msg.deletedForEveryone;
+            const canCopy =
+              !tombstoned && (msg.text.trim().length > 0 || !!msg.document);
+            const canEdit =
+              !tombstoned &&
+              msg.from === "me" &&
+              !msg.photo &&
+              !msg.document &&
+              msg.text.trim().length > 0;
+            return (
+              <MenuCard style={styles.actionMenu}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Reply to message"
+                  onPress={onReplyMessage}
+                  style={styles.actionRow}
+                >
+                  <SFIcon
+                    name="arrowshape.turn.up.left"
+                    size={18}
+                    color={theme.label}
+                  />
+                  <Text style={[styles.actionLabel, { color: theme.label }]}>
+                    Reply
+                  </Text>
+                </Pressable>
+                {canCopy && (
+                  <>
+                    <View
+                      style={[
+                        styles.actionDivider,
+                        { backgroundColor: theme.hairline },
+                      ]}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Copy message"
+                      onPress={onCopyMessage}
+                      style={styles.actionRow}
+                    >
+                      <SFIcon
+                        name="doc.on.doc"
+                        size={18}
+                        color={theme.label}
+                      />
+                      <Text
+                        style={[styles.actionLabel, { color: theme.label }]}
+                      >
+                        Copy
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+                {canEdit && (
+                  <>
+                    <View
+                      style={[
+                        styles.actionDivider,
+                        { backgroundColor: theme.hairline },
+                      ]}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Edit message"
+                      onPress={onEditMessage}
+                      style={styles.actionRow}
+                    >
+                      <SFIcon
+                        name="pencil"
+                        size={18}
+                        color={theme.label}
+                      />
+                      <Text
+                        style={[styles.actionLabel, { color: theme.label }]}
+                      >
+                        Edit
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+                <View
+                  style={[
+                    styles.actionDivider,
+                    { backgroundColor: theme.hairline },
+                  ]}
                 />
-                <Text style={[styles.actionLabel, { color: theme.label }]}>
-                  Reply
-                </Text>
-              </Pressable>
-              <View
-                style={[styles.actionDivider, { backgroundColor: theme.hairline }]}
-              />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Forward message"
-                onPress={onForwardMessage}
-                style={styles.actionRow}
-              >
-                <SFIcon
-                  name="arrowshape.turn.up.right"
-                  size={18}
-                  color={theme.label}
-                />
-                <Text style={[styles.actionLabel, { color: theme.label }]}>
-                  Forward
-                </Text>
-              </Pressable>
-              <View
-                style={[styles.actionDivider, { backgroundColor: theme.hairline }]}
-              />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Delete message"
-                onPress={onDeleteMessage}
-                style={styles.actionRow}
-              >
-                <SFIcon name="trash" size={18} color="#E5484D" />
-                <Text style={[styles.actionLabel, { color: "#E5484D" }]}>
-                  Delete
-                </Text>
-              </Pressable>
-            </MenuCard>
-          }
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Forward message"
+                  onPress={onForwardMessage}
+                  style={styles.actionRow}
+                >
+                  <SFIcon
+                    name="arrowshape.turn.up.right"
+                    size={18}
+                    color={theme.label}
+                  />
+                  <Text style={[styles.actionLabel, { color: theme.label }]}>
+                    Forward
+                  </Text>
+                </Pressable>
+                {!tombstoned && (
+                  <>
+                    <View
+                      style={[
+                        styles.actionDivider,
+                        { backgroundColor: theme.hairline },
+                      ]}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Delete message"
+                      onPress={onDeleteMessage}
+                      style={styles.actionRow}
+                    >
+                      <SFIcon name="trash" size={18} color="#E5484D" />
+                      <Text style={[styles.actionLabel, { color: "#E5484D" }]}>
+                        Delete
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+              </MenuCard>
+            );
+          })()}
         />
       )}
 

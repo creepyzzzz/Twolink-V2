@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createMMKV } from "react-native-mmkv";
-import { messagesFor, olderMessagesFor, type DocumentAttachment, type Message, type ReplyQuote } from "./messages";
+import { messagesFor, olderMessagesFor, type DocumentAttachment, type Message, type MessageStatus, type ReplyQuote } from "./messages";
 import type { ScheduledMessage } from "./scheduled";
 import { PEOPLE_BY_ID, type AvatarFace } from "./people";
 import { CHATS } from "./chats";
@@ -26,6 +26,8 @@ export type Group = {
   id: string;
   name: string;
   memberIds: string[];
+  /** Person ids that may rename the group, manage members, and add people. */
+  adminIds: string[];
   createdAt: number;
 };
 /** Prototype-safe group lookup (ids like "constructor" must not match). */
@@ -36,6 +38,25 @@ export function getGroup(
   return Object.prototype.hasOwnProperty.call(groups, id)
     ? groups[id]
     : undefined;
+}
+/**
+ * Chat-row/header title for a group: the set name wins; when no name is set
+ * it falls back to the members' first names (WhatsApp-style).
+ */
+export function groupDisplayName(group: Group): string {
+  if (group.name.trim()) return group.name;
+  const names = group.memberIds
+    .map((id) => (id === "me" ? "You" : PEOPLE_BY_ID[id]?.first))
+    .filter((n): n is string => !!n);
+  return names.length > 0 ? names.join(", ") : "Group";
+}
+/** Groups created before admins existed treat the owner as sole admin. */
+export function groupAdminIds(group: Group): string[] {
+  const ids = group.adminIds ?? [];
+  return ids.length > 0 ? ids : ["me"];
+}
+export function isGroupAdmin(group: Group, personId: string): boolean {
+  return groupAdminIds(group).includes(personId);
 }
 /** Per-thread chat wallpaper: photo-library URI plus edit adjustments. */
 export type Wallpaper = {
@@ -99,6 +120,12 @@ type State = {
   createGroup: (name: string, memberIds: string[]) => string;
   /** Add people to an existing group (deduped). */
   addGroupMembers: (groupId: string, memberIds: string[]) => void;
+  /** Rename a group. No-op unless the caller is an admin. */
+  setGroupName: (groupId: string, name: string) => void;
+  /** Remove a member (and their admin flag). Admins only; never the last admin. */
+  removeGroupMember: (groupId: string, memberId: string) => void;
+  /** Promote/demote a member. Admins only; never demotes the last admin. */
+  setGroupAdmin: (groupId: string, memberId: string, admin: boolean) => void;
   /** How many older-history pages have been prepended per thread. */
   historyPage: Record<string, number>;
   theme: "system" | "light" | "dark";
@@ -137,7 +164,11 @@ type State = {
   /** Sends every due scheduled message into its thread as an outgoing message. */
   flushScheduled: () => void;
   /** Removes a single message from a thread (context-menu delete). */
-  deleteMessage: (id: string, messageId: string) => void;
+  deleteMessage: (id: string, messageId: string, scope: "me" | "everyone") => void;
+  /** Edits an outgoing text message in place; marks it edited. */
+  editMessage: (id: string, messageId: string, text: string) => void;
+  /** Advances an outgoing message's delivery ticks. */
+  setMessageStatus: (id: string, messageId: string, status: MessageStatus) => void;
   /** Removes every message from a thread. */
   clearThread: (id: string) => void;
   /** Per-thread chat wallpaper photo-library URIs. */
@@ -268,15 +299,72 @@ export const useFable = create<State>()(
         set((state) => ({
           groups: {
             ...state.groups,
-            [id]: { id, name, memberIds, createdAt: Date.now() },
+            [id]: {
+              id,
+              name,
+              memberIds,
+              adminIds: ["me"],
+              createdAt: Date.now(),
+            },
           },
         }));
         return id;
       },
+      setGroupName: (groupId, name) =>
+        set((state) => {
+          const group = getGroup(state.groups, groupId);
+          if (!group || !isGroupAdmin(group, "me")) return state;
+          return {
+            groups: {
+              ...state.groups,
+              [groupId]: { ...group, name: name.trim() },
+            },
+          };
+        }),
+      removeGroupMember: (groupId, memberId) =>
+        set((state) => {
+          const group = getGroup(state.groups, groupId);
+          if (!group || !isGroupAdmin(group, "me")) return state;
+          // The last admin can't be removed — a group always keeps one.
+          const admins = groupAdminIds(group);
+          if (admins.includes(memberId) && admins.length === 1) return state;
+          return {
+            groups: {
+              ...state.groups,
+              [groupId]: {
+                ...group,
+                memberIds: group.memberIds.filter((m) => m !== memberId),
+                adminIds: admins.filter((m) => m !== memberId),
+              },
+            },
+          };
+        }),
+      setGroupAdmin: (groupId, memberId, admin) =>
+        set((state) => {
+          const group = getGroup(state.groups, groupId);
+          if (!group || !isGroupAdmin(group, "me")) return state;
+          if (!group.memberIds.includes(memberId)) return state;
+          const admins = groupAdminIds(group);
+          if (admin && admins.includes(memberId)) return state;
+          // Demoting the last admin is a no-op.
+          if (!admin && admins.length === 1 && admins[0] === memberId)
+            return state;
+          return {
+            groups: {
+              ...state.groups,
+              [groupId]: {
+                ...group,
+                adminIds: admin
+                  ? [...admins, memberId]
+                  : admins.filter((m) => m !== memberId),
+              },
+            },
+          };
+        }),
       addGroupMembers: (groupId, memberIds) =>
         set((state) => {
           const group = state.groups[groupId];
-          if (!group) return state;
+          if (!group || !isGroupAdmin(group, "me")) return state;
           const merged = [
             ...group.memberIds,
             ...memberIds.filter((m) => !group.memberIds.includes(m)),
@@ -322,6 +410,8 @@ export const useFable = create<State>()(
           ...(opts?.senderId ? { senderId: opts.senderId } : {}),
           ...(opts?.document ? { document: opts.document } : {}),
           ...(lifetime > 0 ? { expiresAt: Date.now() + lifetime } : {}),
+          // Outgoing messages start at one tick; delivery progresses below.
+          ...(from === "me" ? { status: "sent" as const } : {}),
         };
         set((state) => ({
           threads: {
@@ -337,6 +427,27 @@ export const useFable = create<State>()(
             ? { lastRead: { ...state.lastRead, [id]: message.id } }
             : {}),
         }));
+        // Simulated network: delivered shortly after sending, read once the
+        // other side "sees" it. With read receipts off it caps at delivered.
+        if (from === "me") {
+          const messageId = message.id;
+          const later = (ms: number, fn: () => void) => {
+            const t = setTimeout(fn, ms) as unknown as {
+              unref?: () => void;
+            };
+            // Node (tests): simulated ticks must not hold the process open.
+            // Hermes has no unref — the call is a no-op there.
+            t.unref?.();
+          };
+          later(2000, () => get().setMessageStatus(id, messageId, "delivered"));
+          later(9000, () =>
+            get().setMessageStatus(
+              id,
+              messageId,
+              get().settings.readReceipts ? "read" : "delivered",
+            ),
+          );
+        }
       },
       loadEarlier: (id) => {
         const person = PEOPLE_BY_ID[id];
@@ -402,7 +513,7 @@ export const useFable = create<State>()(
         }));
       },
       setTheme: (theme) => set({ theme }),
-      deleteMessage: (id, messageId) =>
+      deleteMessage: (id, messageId, scope) =>
         set((state) => {
           const current =
             state.threads[id] ??
@@ -410,7 +521,60 @@ export const useFable = create<State>()(
           return {
             threads: {
               ...state.threads,
-              [id]: current.filter((m) => m.id !== messageId),
+              [id]:
+                scope === "everyone"
+                  ? current.map((m) =>
+                      m.id === messageId
+                        ? {
+                            ...m,
+                            text: "",
+                            photo: false,
+                            photoUri: undefined,
+                            document: undefined,
+                            reactions: undefined,
+                            replyTo: undefined,
+                            deletedForEveryone: true,
+                          }
+                        : m,
+                    )
+                  : current.filter((m) => m.id !== messageId),
+            },
+          };
+        }),
+      editMessage: (id, messageId, text) =>
+        set((state) => {
+          const trimmed = text.trim();
+          if (!trimmed) return state;
+          const current =
+            state.threads[id] ??
+            messagesFor(id, PEOPLE_BY_ID[id]?.first ?? "");
+          return {
+            threads: {
+              ...state.threads,
+              [id]: current.map((m) =>
+                m.id === messageId &&
+                m.from === "me" &&
+                !m.photo &&
+                !m.document &&
+                !m.deletedForEveryone
+                  ? { ...m, text: trimmed, edited: true }
+                  : m,
+              ),
+            },
+          };
+        }),
+      setMessageStatus: (id, messageId, status) =>
+        set((state) => {
+          const current = state.threads[id];
+          if (!current) return state;
+          return {
+            threads: {
+              ...state.threads,
+              [id]: current.map((m) =>
+                m.id === messageId && m.from === "me"
+                  ? { ...m, status }
+                  : m,
+              ),
             },
           };
         }),
