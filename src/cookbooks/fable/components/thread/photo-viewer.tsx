@@ -1,6 +1,7 @@
 import { Image, type ImageProps } from "expo-image";
+import * as MediaLibrary from "expo-media-library";
 import { StatusBar } from "expo-status-bar";
-import { memo, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -13,6 +14,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SNAP } from "../../constants/motion";
+import { useFable } from "../../data/store";
 import { GlassButton } from "../ui/glass-button";
 
 const MIN_SCALE = 1;
@@ -49,6 +51,34 @@ export const PhotoViewer = memo(function PhotoViewer({
 
   const onCloseRef = { current: onClose };
   onCloseRef.current = onClose;
+
+  /** Save the photo to the device gallery (expo-media-library). */
+  const onSave = useCallback(async () => {
+    const uri =
+      typeof source === "object" && source !== null && "uri" in source
+        ? (source as { uri?: unknown }).uri
+        : undefined;
+    if (typeof uri !== "string" || !uri) return;
+    try {
+      const perm = await MediaLibrary.requestPermissionsAsync();
+      if (!perm.granted) {
+        useFable.getState().showAlert({
+          title: "Photos",
+          message: "Allow photo access to save pictures to your gallery.",
+          actions: [{ text: "OK", style: "default" }],
+        });
+        return;
+      }
+      await MediaLibrary.saveToLibraryAsync(uri);
+      useFable.getState().showAlert({
+        title: "Saved",
+        message: "Photo saved to your gallery.",
+        actions: [{ text: "OK", style: "default" }],
+      });
+    } catch {
+      // Native module missing on the pre-batch dev build.
+    }
+  }, [source]);
 
   const reset = () => {
     "worklet";
@@ -119,6 +149,21 @@ export const PhotoViewer = memo(function PhotoViewer({
       {closeReady && (
         <Animated.View
           entering={FadeIn.duration(180)}
+          style={[styles.save, { top: insets.top + 12 }]}
+        >
+          <GlassButton
+            symbol="square.and.arrow.down"
+            iconSize={15}
+            size={40}
+            tint="#FFFFFF"
+            accessibilityLabel="Save to gallery"
+            onPress={onSave}
+          />
+        </Animated.View>
+      )}
+      {closeReady && (
+        <Animated.View
+          entering={FadeIn.duration(180)}
           style={[styles.close, { top: insets.top + 12 }]}
         >
           <GlassButton
@@ -148,5 +193,9 @@ const styles = StyleSheet.create({
   close: {
     position: "absolute",
     right: 18,
+  },
+  save: {
+    position: "absolute",
+    left: 18,
   },
 });

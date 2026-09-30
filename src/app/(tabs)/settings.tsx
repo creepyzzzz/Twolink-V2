@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import * as Notifications from "expo-notifications";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -70,6 +71,31 @@ export default function SettingsScreen() {
   const appPin = useFable((s) => s.appPin);
   // Shrinks the tab bar to its compact pill while the settings scroll.
   const minimizeOnScroll = useMinimizeOnScrollHandler();
+
+  // Enabling notifications requests the OS permission first; a denial
+  // leaves the toggle off with an explanation instead of a dead switch.
+  const onToggleNotifications = (v: boolean) => {
+    if (!v) {
+      setSettings({ notifications: false });
+      return;
+    }
+    Notifications.requestPermissionsAsync()
+      .then(({ granted }) => {
+        if (!granted) {
+          useFable.getState().showAlert({
+            title: "Notifications",
+            message:
+              "Turn on notifications for Poffu in system settings to get message alerts.",
+            actions: [{ text: "OK", style: "default" }],
+          });
+          return;
+        }
+        setSettings({ notifications: true });
+      })
+      .catch(() => {
+        // Native module missing on the pre-batch dev build.
+      });
+  };
 
   return (
     <ScreenBackground>
@@ -143,7 +169,7 @@ export default function SettingsScreen() {
           <ToggleRow
             label="Message notifications"
             value={notifications}
-            onChange={(v) => setSettings({ notifications: v })}
+            onChange={onToggleNotifications}
             last
           />
         </Section>

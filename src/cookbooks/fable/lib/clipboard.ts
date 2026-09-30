@@ -1,7 +1,7 @@
 /**
- * Copy-to-clipboard without a static import: expo-clipboard lands with the
- * native package batch, and until then this resolves false so the UI can
- * explain instead of crashing.
+ * Copy-to-clipboard without a static import: the package is installed, but
+ * until the fresh dev-client build lands the native module is absent, so
+ * this resolves false and the UI explains instead of crashing.
  *
  * The module ID is built at runtime on purpose — Metro statically resolves
  * require("expo-clipboard") at bundle time and would fail while the package

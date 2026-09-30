@@ -1,5 +1,7 @@
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
+import * as Sharing from "expo-sharing";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import {
@@ -267,6 +269,19 @@ function ThreadScreen({ id }: { id: string }) {
     setReaction(null);
   }, [reaction]);
 
+  /** System share sheet for photos and files (expo-sharing). */
+  const onShareMessage = useCallback(async () => {
+    const message = reaction?.message;
+    setReaction(null);
+    const uri = message?.photoUri ?? message?.document?.uri;
+    if (!uri || message?.deletedForEveryone) return;
+    try {
+      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
+    } catch {
+      // Native module missing on the pre-batch dev build.
+    }
+  }, [reaction]);
+
   const onCopyMessage = useCallback(async () => {
     const message = reaction?.message;
     setReaction(null);
@@ -276,7 +291,7 @@ function ThreadScreen({ id }: { id: string }) {
     if (!ok)
       useFable.getState().showAlert({
         title: "Copy isn't ready yet",
-        message: "Copy will be enabled in the next build.",
+        message: "Copy needs the latest build — update and try again.",
         actions: [{ text: "OK", style: "default" }],
       });
   }, [reaction]);
@@ -511,6 +526,19 @@ function ThreadScreen({ id }: { id: string }) {
     }
     if (res.canceled || !res.assets || res.assets.length === 0) return;
     const asset = res.assets[0];
+    // Persist outside the picker's cache: Android may evict cache, which
+    // would rot the attachment link in old messages.
+    let uri = asset.uri;
+    try {
+      const dir = `${FileSystem.documentDirectory}attachments/`;
+      await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+      const safeName = `${Date.now()}-${asset.name ?? "file"}`;
+      const dest = `${dir}${safeName}`;
+      await FileSystem.copyAsync({ from: asset.uri, to: dest });
+      uri = dest;
+    } catch {
+      // Fall back to the picker's cached copy.
+    }
     const quote = replyTo
       ? {
           id: replyTo.id,
@@ -524,7 +552,7 @@ function ThreadScreen({ id }: { id: string }) {
         name: asset.name ?? "File",
         size: asset.size ?? 0,
         mimeType: asset.mimeType ?? "application/octet-stream",
-        uri: asset.uri,
+        uri,
       },
       replyTo: quote,
     });
@@ -856,6 +884,8 @@ function ThreadScreen({ id }: { id: string }) {
             const tombstoned = !!msg.deletedForEveryone;
             const canCopy =
               !tombstoned && (msg.text.trim().length > 0 || !!msg.document);
+            const canShare =
+              !tombstoned && (!!msg.photoUri || !!msg.document?.uri);
             const canEdit =
               !tombstoned &&
               msg.from === "me" &&
@@ -954,6 +984,33 @@ function ThreadScreen({ id }: { id: string }) {
                     Forward
                   </Text>
                 </Pressable>
+                {canShare && (
+                  <>
+                    <View
+                      style={[
+                        styles.actionDivider,
+                        { backgroundColor: theme.hairline },
+                      ]}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Share outside Poffu"
+                      onPress={onShareMessage}
+                      style={styles.actionRow}
+                    >
+                      <SFIcon
+                        name="square.and.arrow.up"
+                        size={18}
+                        color={theme.label}
+                      />
+                      <Text
+                        style={[styles.actionLabel, { color: theme.label }]}
+                      >
+                        Share
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
                 {!tombstoned && (
                   <>
                     <View

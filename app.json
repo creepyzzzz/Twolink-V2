@@ -52,7 +52,9 @@
         {
           "photosPermission": "Allow Poffu to access your photos so you can share them in chats."
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-sharing"
     ],
     "platforms": [
       "android",
