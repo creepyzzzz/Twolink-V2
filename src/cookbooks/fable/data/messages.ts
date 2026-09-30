@@ -87,6 +87,24 @@ const mara: Message[] = [
     text: "Sunday still works for the cabin? I found a place with a wood sauna and a lake you can jump into.",
     at: "9:41",
   },
+  {
+    id: "m9",
+    from: "me",
+    text: "Sunday works. I will sort the train times.",
+    at: "9:44",
+  },
+  {
+    id: "m10",
+    from: "them",
+    text: "Perfect. I will bring the sauna towels.",
+    at: "12:15",
+  },
+  {
+    id: "m11",
+    from: "me",
+    text: "And I will bring snacks. Non-negotiable.",
+    at: "12:18",
+  },
 ];
 
 const theo: Message[] = [
@@ -107,6 +125,18 @@ const theo: Message[] = [
     from: "them",
     text: "Sent you the mix. Track 4 is the one — tell me if the bass is too much.",
     at: "9:12",
+  },
+  {
+    id: "t4",
+    from: "me",
+    text: "Bass sounds massive on my end. Keep it exactly like that.",
+    at: "9:20",
+  },
+  {
+    id: "t5",
+    from: "them",
+    text: "Told you. Sending the final bounce tonight.",
+    at: "14:05",
   },
 ];
 
@@ -201,9 +231,9 @@ const MARA_HISTORY: OlderTuple[][] = [
   [
     ["them", "Work is eating me alive this week.", "18:44"],
     ["me", "Same. I forgot what daylight looks like.", "19:02"],
-    ["them", "We need to get out of the city soon. Seriously.", "19:03"],
-    ["me", "Say the word and I am packing a bag.", "19:15"],
-    ["them", "I am saying the word. Cabin. This month.", "19:16"],
+    ["them", "We need to get out of the city soon. Seriously.", "20:35"],
+    ["me", "Say the word and I am packing a bag.", "20:41"],
+    ["them", "I am saying the word. Cabin. This month.", "20:42"],
   ],
   [
     ["me", "Did Elena ever send those photos from the lake?", "12:20"],
