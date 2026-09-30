@@ -15,7 +15,13 @@ type State = {
     text: string,
     from?: Message["from"],
     photo?: boolean,
-    opts?: { photoUri?: string; replyTo?: ReplyQuote },
+    opts?: {
+      photoUri?: string;
+      replyTo?: ReplyQuote;
+      audioUri?: string;
+      durationSec?: number;
+      waveform?: number[];
+    },
   ) => void;
   markRead: (id: string) => void;
   setTheme: (theme: State["theme"]) => void;
@@ -30,7 +36,7 @@ export const useFable = create<State>()(
       theme: "system",
       append: (id, text, from = "me", photo = false, opts) => {
         const person = PEOPLE_BY_ID[id];
-        if (!person || (!photo && !text.trim())) return;
+        if (!person || (!photo && !opts?.audioUri && !text.trim())) return;
         set((state) => ({
           threads: {
             ...state.threads,
@@ -44,6 +50,14 @@ export const useFable = create<State>()(
                 photo,
                 ...(opts?.photoUri ? { photoUri: opts.photoUri } : {}),
                 ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
+                ...(opts?.audioUri
+                  ? {
+                      audio: true,
+                      audioUri: opts.audioUri,
+                      durationSec: opts.durationSec ?? 0,
+                      waveform: opts.waveform ?? [],
+                    }
+                  : {}),
               },
             ],
           },

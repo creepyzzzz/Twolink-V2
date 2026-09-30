@@ -30,6 +30,10 @@ const NAMES = [
   "paperplane",
   "circle",
   "arrowshape.turn.up.left",
+  "face.smiling",
+  "play.fill",
+  "pause.fill",
+  "trash",
 ];
 
 const bySource = {};

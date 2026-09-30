@@ -4,6 +4,7 @@ export type ReplyQuote = {
   from: "me" | "them";
   text: string;
   photo?: boolean;
+  voice?: boolean;
 };
 
 export type Message = {
@@ -18,6 +19,13 @@ export type Message = {
   replyTo?: ReplyQuote;
   /** Emoji tapbacks on this message (long-press to add/remove). */
   reactions?: string[];
+  /** A voice message: local recording URI, duration, and waveform bars. */
+  audio?: boolean;
+  audioUri?: string;
+  /** Bundled placeholder asset (seed content) instead of a recording. */
+  audioAsset?: number;
+  durationSec?: number;
+  waveform?: number[];
 };
 
 const mara: Message[] = [
@@ -63,6 +71,21 @@ const mara: Message[] = [
     from: "them",
     text: "Sunday still works for the cabin? I found a place with a wood sauna and a lake you can jump into.",
     at: "9:41",
+  },
+  {
+    id: "m9",
+    from: "them",
+    text: "",
+    at: "9:42",
+    audio: true,
+    // Placeholder tone so the incoming voice style is visible; replaced by
+    // real recordings once you send one.
+    audioAsset: require("../../../../assets/audio/incoming-voice.wav"),
+    durationSec: 3,
+    waveform: [
+      0.32, 0.74, 0.79, 0.79, 0.79, 0.79, 0.79, 0.79, 0.79, 0.79, 0.79, 0.79,
+      0.79, 0.79, 0.79, 0.79, 0.79, 0.79, 0.79, 0.79, 0.79, 0.69, 0.42, 0.16,
+    ],
   },
 ];
 

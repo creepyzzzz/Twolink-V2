@@ -208,5 +208,10 @@
     "path": "assets/fonts/SF-Pro-Text-Bold.otf",
     "bytes": 2275752,
     "sha256": "fef7eb65390a41bdd247b012a0e018750afd52143c29892b821a6a5796516aca"
+  },
+  {
+    "path": "assets/audio/incoming-voice.wav",
+    "bytes": 110294,
+    "sha256": "a45a5c84ef23fff342dc2333683632300661b2cdd579cb23c86bda16029a6281"
   }
 ]

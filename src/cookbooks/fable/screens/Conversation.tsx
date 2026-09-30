@@ -126,6 +126,7 @@ function ThreadScreen({ id }: { id: string }) {
             from: replyTo.from,
             text: replyTo.text,
             photo: replyTo.photo,
+            voice: replyTo.audio,
           }
         : undefined;
       useFable.getState().append(id, text, "me", false, { replyTo: quote });
@@ -181,6 +182,29 @@ function ThreadScreen({ id }: { id: string }) {
     scrollToEnd();
   }, [id, replyTo, scrollToEnd]);
 
+  const onSendVoice = useCallback(
+    (uri: string, durationSec: number, waveform: number[]) => {
+      const quote = replyTo
+        ? {
+            id: replyTo.id,
+            from: replyTo.from,
+            text: replyTo.text,
+            photo: replyTo.photo,
+            voice: replyTo.audio,
+          }
+        : undefined;
+      useFable.getState().append(id, "", "me", false, {
+        audioUri: uri,
+        durationSec,
+        waveform,
+        replyTo: quote,
+      });
+      setReplyTo(null);
+      scrollToEnd();
+    },
+    [id, replyTo, scrollToEnd],
+  );
+
   const onOpenPhoto = useCallback(
     (message: Message) =>
       setViewerSource(
@@ -194,6 +218,7 @@ function ThreadScreen({ id }: { id: string }) {
         name: replyTo.from === "me" ? "You" : person.first,
         text: replyTo.text,
         photo: !!replyTo.photo,
+        voice: !!replyTo.audio,
       }
     : null;
 
@@ -275,6 +300,7 @@ function ThreadScreen({ id }: { id: string }) {
       <Composer
         insetBottom={insets.bottom}
         onSend={onSend}
+        onSendVoice={onSendVoice}
         onAttach={onAttach}
         onLayoutHeight={setComposerHeight}
         replyPreview={replyPreview}

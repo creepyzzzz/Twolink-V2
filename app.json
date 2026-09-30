@@ -51,6 +51,12 @@
         {
           "photosPermission": "Allow TwoLink to access your photos so you can share them in chats."
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow TwoLink to use your microphone so you can send voice messages in chats."
+        }
       ]
     ],
     "platforms": [

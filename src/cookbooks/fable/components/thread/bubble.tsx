@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { VoiceBubble } from "./voice-bubble";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -147,7 +148,9 @@ export const Bubble = memo(function Bubble({
   const quoteText = message.replyTo
     ? message.replyTo.photo
       ? "Photo"
-      : message.replyTo.text
+      : message.replyTo.voice
+        ? "Voice message"
+        : message.replyTo.text
     : "";
   const quote = message.replyTo && (
     <View
@@ -215,7 +218,40 @@ export const Bubble = memo(function Bubble({
               />
             </View>
           </Animated.View>
-          {message.photo ? (
+          {message.audio ? (
+            <AnimatedPressable
+              ref={bubbleRef}
+              onLongPress={handleLongPress}
+              delayLongPress={350}
+              style={[
+                styles.bubble,
+                mine ? styles.mine : styles.theirs,
+                {
+                  backgroundColor: mine ? theme.outgoing : theme.surface,
+                  boxShadow:
+                    scheme === "dark"
+                      ? undefined
+                      : "0 4px 18px rgba(16, 16, 18, 0.05)",
+                },
+                depressStyle,
+              ]}
+            >
+              {quote}
+              {(message.audioUri || message.audioAsset != null) && (
+                <VoiceBubble
+                  source={
+                    message.audioAsset != null
+                      ? message.audioAsset
+                      : { uri: message.audioUri! }
+                  }
+                  durationSec={message.durationSec ?? 0}
+                  waveform={message.waveform ?? []}
+                  mine={mine}
+                />
+              )}
+              {badge}
+            </AnimatedPressable>
+          ) : message.photo ? (
             <Animated.View
               ref={bubbleRef}
               style={[styles.photoWrap, depressStyle]}
