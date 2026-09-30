@@ -266,7 +266,12 @@ export function StoryViewer({ person, open, onClose }: Props) {
         </View>
         <View style={styles.header}>
           <Orb source={person.avatar} size={36} shadow={false} />
-          <Text style={[Type.name, styles.name]}>{name}</Text>
+          <Text
+            numberOfLines={1}
+            style={[Type.name, styles.name, { flexShrink: 1 }]}
+          >
+            {name}
+          </Text>
           {!!ago && (
             <Text style={[Type.meta, styles.ago]}>{ago}</Text>
           )}

@@ -24,13 +24,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChatRow } from "../components/chats/chat-row";
 import { GroupRow } from "../components/chats/group-row";
+import { Glass } from "../components/ui/glass";
 import {
   NAV_H,
   STORIES_H,
   StoriesHeader,
 } from "../components/chats/stories-header";
 import { EASE_OUT } from "../constants/motion";
-import { Space } from "../constants/theme";
+import { Accent, Space } from "../constants/theme";
 import { CHATS } from "../data/chats";
 import { PEOPLE_BY_ID, STORIES, type Person } from "../data/people";
 import { openStory, pickAndPostStory } from "../data/story-state";
@@ -188,30 +189,39 @@ export default function ChatsScreen() {
   );
 
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"All" | "Unread" | "Groups">("All");
+  const read = useFable((state) => state.read);
+  const threads = useFable((state) => state.threads);
   const groupsRecord = useFable((state) => state.groups);
   const groups = useMemo(
     () =>
       Object.values(groupsRecord).sort((a, b) => b.createdAt - a.createdAt),
     [groupsRecord],
   );
+  const filteredGroups = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return groups.filter((group) => {
+      if (filter === "Unread") {
+        const last = threads[group.id]?.at(-1);
+        if (!last || last.from === "me" || read.includes(group.id))
+          return false;
+      }
+      return !q || group.name.toLowerCase().includes(q);
+    });
+  }, [groups, query, filter, threads, read]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return CHATS;
     return CHATS.filter((chat) => {
+      if (filter === "Groups") return false;
+      if (filter === "Unread" && !(chat.unread > 0 && !read.includes(chat.id)))
+        return false;
       const person = PEOPLE_BY_ID[chat.personId];
       const name = person ? person.name.toLowerCase() : "";
       return (
         name.includes(q) || chat.preview.toLowerCase().includes(q)
       );
     });
-  }, [query]);
-  const filteredGroups = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return groups;
-    return groups.filter((group) =>
-      group.name.toLowerCase().includes(q),
-    );
-  }, [groups, query]);
+  }, [query, filter, read]);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
@@ -237,9 +247,16 @@ export default function ChatsScreen() {
         <View style={{ height: STORIES_H }} />
         {/* Search sits at the top of the list flow, just under the title at
             rest — the iOS pattern. It scrolls with the list. */}
-        <View style={styles.searchWrap}>
-          <View
-            style={[styles.searchBox, { backgroundColor: theme.surface }]}
+        <View style={{ paddingHorizontal: 20 }}>
+          <Glass
+            style={{
+              height: 44,
+              borderRadius: 22,
+              paddingHorizontal: 16,
+              flexDirection: "row",
+              gap: 10,
+              alignItems: "center",
+            }}
           >
             <SFIcon name="magnifyingglass" size={17} color={theme.secondary} />
             <TextInput
@@ -250,7 +267,13 @@ export default function ChatsScreen() {
               onChangeText={setQuery}
               autoCorrect={false}
               returnKeyType="search"
-              style={[styles.searchInput, { color: theme.label }]}
+              style={{
+                flex: 1,
+                height: 44,
+                fontSize: 17,
+                fontFamily: "SFProText-Regular",
+                color: theme.label,
+              }}
             />
             {query.length > 0 ? (
               <Pressable
@@ -266,7 +289,55 @@ export default function ChatsScreen() {
                 />
               </Pressable>
             ) : null}
-          </View>
+          </Glass>
+        </View>
+
+        {/* Filter tabs */}
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 8,
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: 4,
+          }}
+        >
+          {(["All", "Unread", "Groups"] as const).map((tab) => {
+            const selected = tab === filter;
+            return (
+              <Pressable
+                key={tab}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                accessibilityLabel={`${tab} conversations`}
+                onPress={() => setFilter(tab)}
+                style={{ height: 34 }}
+              >
+                <Glass
+                  interactive
+                  effect={selected ? "regular" : "clear"}
+                  style={{
+                    paddingHorizontal: 16,
+                    height: 34,
+                    borderRadius: 17,
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontFamily: selected
+                        ? "SFProText-Semibold"
+                        : "SFProText-Medium",
+                      color: selected ? Accent : theme.secondary,
+                    }}
+                  >
+                    {tab}
+                  </Text>
+                </Glass>
+              </Pressable>
+            );
+          })}
         </View>
         {filteredGroups.map((group, i) => (
           <Animated.View
@@ -290,7 +361,13 @@ export default function ChatsScreen() {
         ))}
         {filtered.length + filteredGroups.length === 0 ? (
           <Text style={[styles.empty, { color: theme.secondary }]}>
-            No chats match “{query.trim()}”.
+            {query.trim()
+              ? `No chats match “${query.trim()}”.`
+              : filter === "Unread"
+                ? "You’re all caught up."
+                : filter === "Groups"
+                  ? "No groups yet. Create one from the compose button."
+                  : "No chats yet."}
           </Text>
         ) : null}
       </Animated.ScrollView>
@@ -314,24 +391,6 @@ export default function ChatsScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-  },
-  searchWrap: {
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-  },
-  searchBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
-    borderCurve: "continuous",
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    padding: 0,
   },
   empty: {
     textAlign: "center",
