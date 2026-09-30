@@ -22,14 +22,13 @@ export function LockScreen() {
     <View
       style={[
         styles.root,
-        { backgroundColor: theme.bg, paddingTop: insets.top + Space[8] },
+        { backgroundColor: theme.bg, paddingTop: insets.top },
       ]}
     >
-      <Text style={[styles.title, { color: theme.label }]}>TwoLink</Text>
-      <Text style={[Type.body, { color: theme.secondary, marginTop: 6 }]}>
+      <Text style={[Type.body, { color: theme.secondary }]}>
         {wrong ? "Wrong PIN — try again" : "Enter your PIN"}
       </Text>
-      <View style={{ marginTop: Space[8] }}>
+      <View style={{ marginTop: Space[6] }}>
         <PinPad
           shakeKey={shakeKey}
           onSubmit={(pin) => {
@@ -51,11 +50,7 @@ const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFill,
     alignItems: "center",
+    justifyContent: "center",
     zIndex: 100,
-  },
-  title: {
-    fontSize: 34,
-    fontFamily: "SFProText-Bold",
-    letterSpacing: -0.5,
   },
 });

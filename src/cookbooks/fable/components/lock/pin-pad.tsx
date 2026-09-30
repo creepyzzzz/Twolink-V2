@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -12,7 +12,7 @@ import { useTheme } from "../../hooks/use-theme";
 import { Glass } from "../ui/glass";
 
 const PIN_LENGTH = 4;
-const KEY_SIZE = 76;
+const KEY_SIZE = 68;
 
 type KeyProps = {
   label: string;
@@ -62,6 +62,8 @@ export function PinPad({
 }) {
   const theme = useTheme();
   const [pin, setPin] = useState("");
+  const busy = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shakeX = useSharedValue(0);
 
   useEffect(() => {
@@ -73,19 +75,30 @@ export function PinPad({
     );
   }, [shakeKey, shakeX]);
 
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+
   const dotsStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeX.value }],
   }));
 
   const press = (digit: string) => {
-    if (pin.length >= PIN_LENGTH) return;
+    if (busy.current || pin.length >= PIN_LENGTH) return;
     const next = pin + digit;
+    setPin(next);
     if (next.length === PIN_LENGTH) {
-      // Clear immediately; a rejection replays as a shake via shakeKey.
-      setPin("");
-      onSubmit(next);
-    } else {
-      setPin(next);
+      // Let the last dot paint before submitting, then clear.
+      busy.current = true;
+      timer.current = setTimeout(() => {
+        busy.current = false;
+        timer.current = null;
+        setPin("");
+        onSubmit(next);
+      }, 160);
     }
   };
 
@@ -126,24 +139,24 @@ export function PinPad({
 const styles = StyleSheet.create({
   root: {
     alignItems: "center",
-    gap: Space[6],
+    gap: Space[5],
   },
   dots: {
     flexDirection: "row",
-    gap: Space[4],
+    gap: Space[3],
   },
   dot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     borderWidth: 1.5,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    gap: Space[4],
-    width: KEY_SIZE * 3 + Space[4] * 2,
+    gap: Space[3],
+    width: KEY_SIZE * 3 + Space[3] * 2,
   },
   key: {
     width: KEY_SIZE,
@@ -156,7 +169,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   keyLabel: {
-    fontSize: 30,
+    fontSize: 26,
     fontFamily: "SFProText-Semibold",
   },
 });
