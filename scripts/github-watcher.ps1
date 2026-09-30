@@ -1,5 +1,5 @@
 param(
-    [int]$Interval = 30,
+    [int]$Interval = 5,
     [string]$Branch = "",
     [string]$RepoPath = (Join-Path $PSScriptRoot "..")
 )
