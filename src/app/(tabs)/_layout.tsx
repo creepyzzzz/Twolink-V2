@@ -4,7 +4,7 @@ import {
   MinimizeOnScrollProvider,
 } from "expo-android-glass-view";
 import { ScreenBackground } from "../../ui/ScreenBackground";
-import { FloatingTabButtons } from "../../ui/FloatingTabButtons";
+import { GlassTabBar } from "../../ui/GlassTabBar";
 
 /** Structural subset of the tab-bar props — avoids the vendored types. */
 type TabBarProps = {
@@ -20,8 +20,8 @@ export default function TabsLayout() {
       <MinimizeOnScrollProvider>
         <ScreenBackground>
           <Tabs
-            // Each tab is its own floating glass button — no pill container.
-            tabBar={(props: TabBarProps) => <FloatingTabButtons {...props} />}
+            // iOS-style floating pill — icons only, selection is icon color.
+            tabBar={(props: TabBarProps) => <GlassTabBar {...props} />}
             screenOptions={{
               headerShown: false,
               // Scenes are transparent — the shared ScreenBackground sits behind.
