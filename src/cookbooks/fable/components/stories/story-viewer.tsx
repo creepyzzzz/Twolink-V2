@@ -35,13 +35,25 @@ import { STORIES, type Person } from "../../data/people";
 import {
   closeStory,
   markStorySeen,
+  pickAndPostStory,
   useActiveStory,
   useStoryLiked,
   toggleStoryLike,
 } from "../../data/story-state";
+import { useFable } from "../../data/store";
 
 const DURATION = 6000;
 const ENTER_DELAY = 50;
+
+/** "5m", "2h", "3d" from a timestamp. */
+function agoString(at: number) {
+  const mins = Math.max(0, Math.round((Date.now() - at) / 60000));
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
+}
 
 /**
  * Mounted once in the root layout, above the navigator, so the viewer always sits on top.
@@ -193,6 +205,22 @@ export function StoryViewer({ person, open, onClose }: Props) {
 
   const isMe = person.id === "me";
   const name = isMe ? "Your story" : person.first;
+  // Your posted stories live in the fable store (newest first); the viewer
+  // shows the latest. Everyone else keeps their bundled story art.
+  const myStories = useFable((state) => state.myStories);
+  const myLatest = isMe && myStories.length > 0 ? myStories[0] : null;
+  const storyUri = myLatest
+    ? myLatest.uri
+    : RNImage.resolveAssetSource(person.story).uri;
+  const ago = myLatest ? agoString(myLatest.at) : person.storyAgo;
+
+  const deleteMyStory = useCallback(() => {
+    const stories = useFable.getState().myStories;
+    if (stories.length === 0) return;
+    useFable.getState().removeStory(stories[0].uri);
+    // Nothing left to show — leave the viewer with the usual animation.
+    if (stories.length === 1) leave();
+  }, [leave]);
 
   return (
     <View collapsable={false} style={StyleSheet.absoluteFill}>
@@ -207,7 +235,7 @@ export function StoryViewer({ person, open, onClose }: Props) {
         ]}
       >
         <Image
-          source={{ uri: RNImage.resolveAssetSource(person.story).uri }}
+          source={{ uri: storyUri }}
           cachePolicy="memory"
           style={StyleSheet.absoluteFill}
           contentFit="cover"
@@ -239,10 +267,30 @@ export function StoryViewer({ person, open, onClose }: Props) {
         <View style={styles.header}>
           <Orb source={person.avatar} size={36} shadow={false} />
           <Text style={[Type.name, styles.name]}>{name}</Text>
-          {!!person.storyAgo && (
-            <Text style={[Type.meta, styles.ago]}>{person.storyAgo}</Text>
+          {!!ago && (
+            <Text style={[Type.meta, styles.ago]}>{ago}</Text>
           )}
           <View style={styles.spacer} />
+          {isMe && (
+            <>
+              <GlassButton
+                symbol="trash"
+                iconSize={15}
+                size={40}
+                tint="#FFFFFF"
+                accessibilityLabel="Delete this story"
+                onPress={deleteMyStory}
+              />
+              <GlassButton
+                symbol="plus"
+                iconSize={15}
+                size={40}
+                tint="#FFFFFF"
+                accessibilityLabel="Add to your story"
+                onPress={() => pickAndPostStory()}
+              />
+            </>
+          )}
           <GlassButton
             symbol="xmark"
             iconSize={15}

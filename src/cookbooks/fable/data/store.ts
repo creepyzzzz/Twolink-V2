@@ -19,10 +19,15 @@ export type AppSettings = {
   notifications: boolean;
   glassIntensity: number;
 };
+export type MyStory = { uri: string; at: number };
 type State = {
   threads: Record<string, Message[]>;
   read: string[];
   muted: Record<string, boolean>;
+  /** Your posted stories, newest first (persisted photo-library URIs). */
+  myStories: MyStory[];
+  postStory: (uri: string) => void;
+  removeStory: (uri: string) => void;
   /** How many older-history pages have been prepended per thread. */
   historyPage: Record<string, number>;
   theme: "system" | "light" | "dark";
@@ -53,6 +58,15 @@ export const useFable = create<State>()(
       threads: {},
       read: [],
       muted: {},
+      myStories: [],
+      postStory: (uri) =>
+        set((state) => ({
+          myStories: [{ uri, at: Date.now() }, ...state.myStories],
+        })),
+      removeStory: (uri) =>
+        set((state) => ({
+          myStories: state.myStories.filter((s) => s.uri !== uri),
+        })),
       historyPage: {},
       theme: "system",
       profile: {

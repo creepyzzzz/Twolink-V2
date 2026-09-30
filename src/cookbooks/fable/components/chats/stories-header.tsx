@@ -14,6 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { GlassButton } from "../ui/glass-button";
+import { MyAvatar } from "../ui/my-avatar";
 import { Orb } from "../ui/orb";
 import { OrbButton } from "../ui/orb-button";
 import { Accent, Type } from "../../constants/theme";
@@ -308,8 +309,16 @@ function StoryItem({
   });
 
   const seenNow = useStorySeen(person.id);
-  const state =
-    seenNow && person.storyState !== "none" ? "seen" : person.storyState;
+  const myStories = useFable((state) => state.myStories);
+  const hasMyStories = isMe && myStories.length > 0;
+  // Your cell: unread ring once you've posted; the seen logic is for others.
+  const state = isMe
+    ? hasMyStories
+      ? "unread"
+      : "none"
+    : seenNow && person.storyState !== "none"
+      ? "seen"
+      : person.storyState;
   const ringColor =
     state === "unread"
       ? Accent
@@ -325,7 +334,13 @@ function StoryItem({
       onPress={onPress}
       disabled={!isOpen}
       accessibilityRole="button"
-      accessibilityLabel={isMe ? "Add to your story" : `${person.name}'s story`}
+      accessibilityLabel={
+        isMe
+          ? hasMyStories
+            ? "Your story"
+            : "Add to your story"
+          : `${person.name}'s story`
+      }
       style={[styles.item, { zIndex: inCluster ? 100 - index : 50 - index }]}
     >
       <Animated.View style={[styles.avatarBox, avatarStyle]}>
@@ -333,7 +348,7 @@ function StoryItem({
           pointerEvents="none"
           style={[styles.separator, separatorStyle, { borderColor: theme.bg }]}
         />
-        {isMe ? (
+        {isMe && !hasMyStories ? (
           <View
             style={[styles.add, { backgroundColor: theme.chip }]}
             accessibilityElementsHidden
@@ -351,7 +366,11 @@ function StoryItem({
               },
             ]}
           >
-            <Orb source={person.avatar} size={inner} />
+            {isMe ? (
+              <MyAvatar size={inner} />
+            ) : (
+              <Orb source={person.avatar} size={inner} />
+            )}
           </View>
         )}
       </Animated.View>

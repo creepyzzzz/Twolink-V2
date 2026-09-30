@@ -32,7 +32,8 @@ import { EASE_OUT } from "../constants/motion";
 import { Space } from "../constants/theme";
 import { CHATS } from "../data/chats";
 import { PEOPLE_BY_ID, STORIES, type Person } from "../data/people";
-import { openStory } from "../data/story-state";
+import { openStory, pickAndPostStory } from "../data/story-state";
+import { useFable } from "../data/store";
 import { useTheme } from "../hooks/use-theme";
 import { SFIcon } from "../../../ui/SFIcon";
 
@@ -169,7 +170,21 @@ export default function ChatsScreen() {
     );
   }, [listRef, lockedSV]);
 
-  const onPressStory = useCallback((person: Person) => openStory(person), []);
+  const onPressStory = useCallback(
+    (person: Person) => {
+      // Your cell: with no posted stories the + tile goes straight to the
+      // library; once you've posted, it opens the viewer like everyone else.
+      if (
+        person.id === "me" &&
+        useFable.getState().myStories.length === 0
+      ) {
+        pickAndPostStory();
+        return;
+      }
+      openStory(person);
+    },
+    [],
+  );
 
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => {
