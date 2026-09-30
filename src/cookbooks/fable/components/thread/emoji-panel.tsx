@@ -9,9 +9,10 @@ type Props = {
 };
 
 /**
- * The iOS-style emoji board, themed to Fable's light glass: white field,
- * blue active category, no search chrome — it behaves like the iOS emoji
- * keyboard that swaps in above the composer.
+ * The iOS-style emoji board, themed to Fable's light glass: solid
+ * light-grey field like the iOS keyboard, blue active category, no search
+ * chrome — it behaves like the iOS emoji keyboard that swaps in above
+ * the composer.
  */
 export function EmojiPanel({ onPick }: Props) {
   const theme = useTheme();
@@ -24,12 +25,12 @@ export function EmojiPanel({ onPick }: Props) {
         categoryPosition="bottom"
         emojiSize={30}
         theme={{
-          container: "transparent",
+          container: theme.bg,
           header: theme.secondary,
           category: {
             icon: theme.tertiary,
             iconActive: Accent,
-            container: "transparent",
+            container: theme.bg,
             containerActive: theme.chip,
           },
         }}
