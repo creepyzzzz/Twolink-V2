@@ -115,7 +115,9 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...FILL,
-    backgroundColor: "rgba(0, 0, 0, 0.35)",
+    // Transparent: the chat stays fully bright behind the dialog, like the
+    // ••• menu. Still catches taps outside the card to dismiss.
+    backgroundColor: "transparent",
   },
   center: {
     flex: 1,
