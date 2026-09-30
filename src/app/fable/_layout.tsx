@@ -27,6 +27,7 @@ export default function FableLayout() {
           options={{
             presentation: "transparentModal",
             animation: "none",
+            contentStyle: { backgroundColor: "transparent" },
           }}
         />
         <Stack.Screen
@@ -34,6 +35,7 @@ export default function FableLayout() {
           options={{
             presentation: "transparentModal",
             animation: "none",
+            contentStyle: { backgroundColor: "transparent" },
           }}
         />
         <Stack.Screen

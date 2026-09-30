@@ -1,46 +1,98 @@
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from "react";
 import {
   BackHandler,
   Keyboard,
   StyleSheet,
   View,
   useWindowDimensions,
+  type ScrollViewProps,
 } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  type GestureType,
+} from "react-native-gesture-handler";
 import Animated, {
   interpolate,
   runOnJS,
   useAnimatedProps,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
+  type SharedValue,
 } from "react-native-reanimated";
 
+import { EASE_OUT, SNAP } from "../../constants/motion";
 import { Radius } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
 
 const BLUR_MAX = 60;
-const SPRING = { damping: 34, stiffness: 300 } as const;
-
 const ABlurView = Animated.createAnimatedComponent(BlurView);
 
+const NativeGestureContext = createContext<GestureType | null>(null);
+const ScrollYContext = createContext<SharedValue<number> | null>(null);
+
+/**
+ * A ScrollView that cooperates with the Sheet: vertical drags scroll it,
+ * but a downward drag while it sits at the top moves the sheet instead,
+ * exactly like an iOS sheet.
+ */
+export function SheetScrollView({
+  children,
+  ...rest
+}: ScrollViewProps & { children: ReactNode }) {
+  const native = useContext(NativeGestureContext);
+  const scrollY = useContext(ScrollYContext);
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      // Shared values are designed to be written from worklets; the
+      // immutability rule can't see through context.
+      // eslint-disable-next-line react-hooks/immutability
+      if (scrollY) scrollY.value = e.contentOffset.y;
+    },
+  });
+  const body = (
+    <Animated.ScrollView
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+      overScrollMode="never"
+      {...rest}
+    >
+      {children}
+    </Animated.ScrollView>
+  );
+  return native ? (
+    <GestureDetector gesture={native}>{body}</GestureDetector>
+  ) : (
+    body
+  );
+}
+
 type Props = {
-  children: React.ReactNode;
+  children: ReactNode;
   /** Resting height of the sheet as a fraction of the screen. */
   detent?: number;
 };
 
 /**
- * A bottom sheet drawn by us instead of the system formSheet, so the sheet
- * itself has rounded top corners and the backdrop is a live blur that tracks
- * the sheet: 0% when closed, ramping to 60% at full expansion.
+ * A bottom sheet drawn by us instead of the system formSheet: rounded top
+ * corners, and a live blur backdrop (0% closed → 60% fully open) tracking
+ * the sheet instead of a dark scrim.
  *
- * Drag the grabber up to expand, down to settle back, fling or drag far down
- * to dismiss. The sheet also lifts above the keyboard.
+ * Drag anywhere on the sheet: up expands to full, down settles to the
+ * detent, fling or far-drag dismisses. The inner scroll view keeps working —
+ * a downward drag only grabs the sheet once the content is at its top.
  */
 export function Sheet({ children, detent = 0.85 }: Props) {
   const router = useRouter();
@@ -49,9 +101,13 @@ export function Sheet({ children, detent = 0.85 }: Props) {
 
   const restTy = H * (1 - detent);
   const ty = useSharedValue(H);
-  const startTy = useSharedValue(H);
+  const grabTy = useSharedValue(H);
+  const grabY = useSharedValue(0);
+  const draggingSheet = useSharedValue(false);
   const kb = useSharedValue(0);
   const dismissed = useSharedValue(false);
+  const scrollY = useSharedValue(0);
+  const native = useMemo(() => Gesture.Native(), []);
 
   const dismiss = () => {
     if (dismissed.value) return;
@@ -65,28 +121,44 @@ export function Sheet({ children, detent = 0.85 }: Props) {
   };
 
   const pan = Gesture.Pan()
-    .onBegin(() => {
-      startTy.value = ty.value;
-    })
+    .activeOffsetY([-12, 12])
+    .simultaneousWithExternalGesture(native)
     .onUpdate((e) => {
-      ty.value = Math.min(H, Math.max(0, startTy.value + e.translationY));
+      // Downward drags belong to the sheet only while the content is at its
+      // top; upward drags always belong to the scroll view.
+      if (e.translationY > 0 && scrollY.value <= 1) {
+        if (!draggingSheet.value) {
+          // Take over mid-gesture without a jump.
+          draggingSheet.value = true;
+          grabTy.value = ty.value;
+          grabY.value = e.translationY;
+        }
+        ty.value = Math.min(
+          H,
+          Math.max(0, grabTy.value + (e.translationY - grabY.value)),
+        );
+      }
     })
     .onEnd((e) => {
-      if (dismissed.value) return;
+      if (dismissed.value || !draggingSheet.value) return;
+      draggingSheet.value = false;
       const y = ty.value;
       const vy = e.velocityY;
       if ((vy > 700 && y > restTy + 20) || y > restTy + H * 0.14) {
         runOnJS(dismiss)();
       } else if (vy < -700 || y < restTy / 2) {
-        ty.value = withSpring(0, SPRING);
+        ty.value = withSpring(0, SNAP);
       } else {
-        ty.value = withSpring(restTy, SPRING);
+        ty.value = withSpring(restTy, SNAP);
       }
+    })
+    .onFinalize(() => {
+      draggingSheet.value = false;
     });
 
-  // Rise in on mount.
+  // Rise in on mount — a calm ease, no bounce.
   useEffect(() => {
-    ty.value = withSpring(restTy, SPRING);
+    ty.value = withTiming(restTy, { duration: 340, easing: EASE_OUT });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -131,28 +203,32 @@ export function Sheet({ children, detent = 0.85 }: Props) {
         animatedProps={blurProps}
         style={StyleSheet.absoluteFill}
       />
-      <Animated.View
-        style={[
-          styles.panel,
-          { backgroundColor: theme.surface },
-          panelStyle,
-        ]}
-      >
-        <LinearGradient
-          pointerEvents="none"
-          colors={[theme.surface, theme.panelEnd]}
-          locations={[0, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        <GestureDetector gesture={pan}>
-          <View style={styles.grabberZone}>
-            <View
-              style={[styles.grabber, { backgroundColor: theme.grabber }]}
-            />
-          </View>
-        </GestureDetector>
-        {children}
-      </Animated.View>
+      <NativeGestureContext.Provider value={native}>
+        <ScrollYContext.Provider value={scrollY}>
+          <GestureDetector gesture={pan}>
+            <Animated.View
+              style={[
+                styles.panel,
+                { backgroundColor: theme.surface },
+                panelStyle,
+              ]}
+            >
+              <LinearGradient
+                pointerEvents="none"
+                colors={[theme.surface, theme.panelEnd]}
+                locations={[0, 1]}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.grabberZone}>
+                <View
+                  style={[styles.grabber, { backgroundColor: theme.grabber }]}
+                />
+              </View>
+              {children}
+            </Animated.View>
+          </GestureDetector>
+        </ScrollYContext.Provider>
+      </NativeGestureContext.Provider>
     </View>
   );
 }

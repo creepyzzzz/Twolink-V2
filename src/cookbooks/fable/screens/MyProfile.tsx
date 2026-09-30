@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "../components/ui/avatar";
 import { Glass } from "../components/ui/glass";
-import { Sheet } from "../components/ui/sheet";
+import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
 import {
   AVATAR_FACES,
@@ -27,7 +27,7 @@ export default function MyProfile() {
 
   return (
     <Sheet detent={0.85}>
-      <ScrollView
+      <SheetScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.content,
@@ -115,7 +115,7 @@ export default function MyProfile() {
         <Text style={[Type.caption, { color: theme.tertiary, marginTop: 8 }]}>
           This is how you appear in chats.
         </Text>
-      </ScrollView>
+      </SheetScrollView>
     </Sheet>
   );
 }

@@ -4,7 +4,6 @@ import { AndroidGlassToggle } from "expo-android-glass-view";
 import { useMemo, useState } from "react";
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -15,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PhotoViewer } from "../components/thread/photo-viewer";
 import { Avatar } from "../components/ui/avatar";
 import { Glass } from "../components/ui/glass";
-import { Sheet } from "../components/ui/sheet";
+import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
 import { messagesFor } from "../data/messages";
 import { PEOPLE_BY_ID } from "../data/people";
@@ -55,7 +54,7 @@ function ProfileScreen({ id }: { id: string }) {
 
   return (
     <Sheet detent={0.75}>
-      <ScrollView
+      <SheetScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.content,
@@ -108,7 +107,7 @@ function ProfileScreen({ id }: { id: string }) {
             No shared photos yet.
           </Text>
         )}
-      </ScrollView>
+      </SheetScrollView>
 
       {viewerPhoto && (
         <PhotoViewer
