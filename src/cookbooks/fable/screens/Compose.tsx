@@ -276,6 +276,7 @@ export default function Compose() {
             right: 24,
             bottom: 32,
             flexDirection: "row",
+            alignItems: "center",
             gap: 12,
           }}
         >
@@ -295,6 +296,7 @@ export default function Compose() {
             onPress={create}
             style={{
               flex: 1,
+              height: 56,
               borderRadius: 28,
               borderCurve: "continuous",
               backgroundColor: selected.length === 0 ? theme.chip : Accent,
@@ -308,7 +310,6 @@ export default function Compose() {
                 color: "#FFFFFF",
                 fontSize: 17,
                 fontFamily: "SFProText-Semibold",
-                paddingVertical: 14,
               }}
             >
               Create group
