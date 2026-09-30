@@ -21,6 +21,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Glass } from "../ui/glass";
+import { MenuCard } from "../ui/menu-card";
 import { EASE_OUT } from "../../constants/motion";
 import { Accent, Radius, Space, Type } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
@@ -316,7 +317,7 @@ export function Composer({
             exiting={FadeOut.duration(120)}
             style={styles.menu}
           >
-            <Glass style={styles.menuCard}>
+            <MenuCard style={styles.menuCard}>
               {schedulePresets().map((preset) => (
                 <Pressable
                   key={preset.label}
@@ -342,7 +343,7 @@ export function Composer({
                   </Text>
                 </Pressable>
               ))}
-            </Glass>
+            </MenuCard>
           </Animated.View>
         )}
         {mentionQuery != null && suggestions.length > 0 && (
@@ -351,7 +352,7 @@ export function Composer({
             exiting={FadeOut.duration(120)}
             style={styles.menu}
           >
-            <Glass style={styles.menuCard}>
+            <MenuCard style={styles.menuCard}>
               {suggestions.map((person) => (
                 <Pressable
                   key={person.id}
@@ -369,7 +370,7 @@ export function Composer({
                   </Text>
                 </Pressable>
               ))}
-            </Glass>
+            </MenuCard>
           </Animated.View>
         )}
       </View>
