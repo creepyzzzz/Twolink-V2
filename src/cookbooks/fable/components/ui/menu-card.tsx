@@ -1,16 +1,15 @@
-import { BlurView } from "expo-blur";
 import type { ReactNode } from "react";
-import {
-  StyleSheet,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import { AdaptiveGlassView } from "../../../../ui/GlassView";
 
 /**
- * Frosted menu card. Unlike the whisper-light `Glass` used elsewhere, this
- * carries a real blur backdrop — the same frosted read as the native
- * long-press menu. Used for the Send Later and @mention popups.
+ * Frosted menu card with a real native-glass backdrop — the same frosted
+ * read as the native long-press inbox menu. Used for the Send Later and
+ * @mention popups, and the message long-press reaction bar + actions menu.
+ *
+ * Built on AdaptiveGlassView (expo-android-glass-view), NOT expo-blur:
+ * BlurView renders only its tint with no backdrop blur inside the
+ * composer's KeyboardStickyView on-device.
  */
 export function MenuCard({
   style,
@@ -20,14 +19,13 @@ export function MenuCard({
   children: ReactNode;
 }) {
   return (
-    <View style={[styles.card, style]}>
-      <BlurView
-        intensity={90}
-        tint="light"
-        style={StyleSheet.absoluteFill}
-      />
+    <AdaptiveGlassView
+      tintColor="rgba(255,255,255,0.55)"
+      blurRadius={14}
+      style={[styles.card, style]}
+    >
       {children}
-    </View>
+    </AdaptiveGlassView>
   );
 }
 

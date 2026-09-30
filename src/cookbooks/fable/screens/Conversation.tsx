@@ -37,7 +37,7 @@ import { SearchBar } from "../components/thread/search-bar";
 import { THREAD_NAV_H, ThreadHeader } from "../components/thread/thread-header";
 import { GroupHeader } from "../components/thread/group-header";
 import { TypingBubble } from "../components/thread/typing";
-import { Glass } from "../components/ui/glass";
+import { MenuCard } from "../components/ui/menu-card";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Avatar } from "../components/ui/avatar";
 import { SFIcon } from "../../../ui/SFIcon";
@@ -781,7 +781,7 @@ function ThreadScreen({ id }: { id: string }) {
           onPick={onPickReaction}
           onClose={() => setReaction(null)}
           actions={
-            <Glass style={styles.actionMenu}>
+            <MenuCard style={styles.actionMenu}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Reply to message"
@@ -829,7 +829,7 @@ function ThreadScreen({ id }: { id: string }) {
                   Delete
                 </Text>
               </Pressable>
-            </Glass>
+            </MenuCard>
           }
         />
       )}

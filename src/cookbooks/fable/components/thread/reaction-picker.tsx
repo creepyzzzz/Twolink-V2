@@ -3,7 +3,7 @@ import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, ZoomIn } from "react-native-reanimated";
 
 import { AdaptiveGlassView } from "../../../../ui/GlassView";
-import { Glass } from "../ui/glass";
+import { MenuCard } from "../ui/menu-card";
 import { Space } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
 
@@ -31,7 +31,7 @@ type Props = {
 };
 
 /**
- * Floating reaction bar in the same liquid glass as the chat input box.
+ * Floating reaction bar with the same frosted blur as the long-press menus.
  * Rendered at the conversation root (above the panel, which clips overflow)
  * and positioned from the bubble's window rect. Idle UI is untouched —
  * this only exists while a finger is choosing.
@@ -74,7 +74,7 @@ export const ReactionOverlay = memo(function ReactionOverlay({
         entering={ZoomIn.duration(160)}
         style={[styles.position, { top, left, boxShadow: theme.lift }]}
       >
-        <Glass style={styles.pill}>
+        <MenuCard style={styles.pill}>
           {REACTION_EMOJIS.map((emoji) => {
             const active = selected.includes(emoji);
             return (
@@ -92,7 +92,7 @@ export const ReactionOverlay = memo(function ReactionOverlay({
               </Pressable>
             );
           })}
-        </Glass>
+        </MenuCard>
       </Animated.View>
       {actions ? (
         <Animated.View
