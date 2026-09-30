@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   Alert,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -32,9 +33,13 @@ import {
 import { SearchBar } from "../components/thread/search-bar";
 import { THREAD_NAV_H, ThreadHeader } from "../components/thread/thread-header";
 import { TypingBubble } from "../components/thread/typing";
+import { Glass } from "../components/ui/glass";
+import { Sheet, SheetScrollView } from "../components/ui/sheet";
+import { Avatar } from "../components/ui/avatar";
+import { SFIcon } from "../../../ui/SFIcon";
 import { Radius, Space, Type } from "../constants/theme";
 import { REPLIES, messagesFor, olderMessagesFor, type Message } from "../data/messages";
-import { PEOPLE_BY_ID } from "../data/people";
+import { PEOPLE, PEOPLE_BY_ID } from "../data/people";
 import { useTheme } from "../hooks/use-theme";
 
 import { useFable } from "../data/store";
@@ -70,6 +75,8 @@ function ThreadScreen({ id }: { id: string }) {
     message: Message;
     target: ReactionTarget;
   } | null>(null);
+  // Forwarding: the message being sent to another thread (person picker).
+  const [forwarding, setForwarding] = useState<Message | null>(null);
   // Swipe-to-reply target: arms the composer's reply strip.
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   // In-conversation search.
@@ -183,6 +190,45 @@ function ThreadScreen({ id }: { id: string }) {
       setReaction(null);
     },
     [id, reaction],
+  );
+
+  // Context-menu actions under the reaction bar.
+  const onReplyMessage = useCallback(() => {
+    if (reaction) setReplyTo(reaction.message);
+    setReaction(null);
+  }, [reaction]);
+
+  const onForwardMessage = useCallback(() => {
+    if (reaction) setForwarding(reaction.message);
+    setReaction(null);
+  }, [reaction]);
+
+  const onDeleteMessage = useCallback(() => {
+    const message = reaction?.message;
+    setReaction(null);
+    if (!message) return;
+    Alert.alert("Delete message?", "This removes it from this conversation.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => useFable.getState().deleteMessage(id, message.id),
+      },
+    ]);
+  }, [id, reaction]);
+
+  const onPickForwardTarget = useCallback(
+    (personId: string) => {
+      const message = forwarding;
+      setForwarding(null);
+      if (!message || personId === id) return;
+      useFable
+        .getState()
+        .append(personId, message.text, "me", message.photo, {
+          photoUri: message.photoUri,
+        });
+    },
+    [forwarding, id],
   );
 
   const onSend = useCallback(
@@ -447,7 +493,82 @@ function ThreadScreen({ id }: { id: string }) {
           selected={reaction.message.reactions ?? []}
           onPick={onPickReaction}
           onClose={() => setReaction(null)}
+          actions={
+            <Glass style={styles.actionMenu}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Reply to message"
+                onPress={onReplyMessage}
+                style={styles.actionRow}
+              >
+                <SFIcon
+                  name="arrowshape.turn.up.left"
+                  size={18}
+                  color={theme.label}
+                />
+                <Text style={[styles.actionLabel, { color: theme.label }]}>
+                  Reply
+                </Text>
+              </Pressable>
+              <View
+                style={[styles.actionDivider, { backgroundColor: theme.hairline }]}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Forward message"
+                onPress={onForwardMessage}
+                style={styles.actionRow}
+              >
+                <SFIcon
+                  name="arrowshape.turn.up.right"
+                  size={18}
+                  color={theme.label}
+                />
+                <Text style={[styles.actionLabel, { color: theme.label }]}>
+                  Forward
+                </Text>
+              </Pressable>
+              <View
+                style={[styles.actionDivider, { backgroundColor: theme.hairline }]}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Delete message"
+                onPress={onDeleteMessage}
+                style={styles.actionRow}
+              >
+                <SFIcon name="trash" size={18} color="#E5484D" />
+                <Text style={[styles.actionLabel, { color: "#E5484D" }]}>
+                  Delete
+                </Text>
+              </Pressable>
+            </Glass>
+          }
         />
+      )}
+
+      {forwarding && (
+        <Sheet detent={0.6}>
+          <Text style={[styles.forwardTitle, { color: theme.label }]}>
+            Forward to
+          </Text>
+          <SheetScrollView showsVerticalScrollIndicator={false}>
+            {PEOPLE.filter((person) => person.id !== id).map((person) => (
+              <Pressable
+                key={person.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Forward to ${person.name}`}
+                onPress={() => onPickForwardTarget(person.id)}
+                style={styles.forwardRow}
+              >
+                <Avatar source={person.avatar} size={48} />
+                <Text style={[styles.forwardName, { color: theme.label }]}>
+                  {person.name}
+                </Text>
+              </Pressable>
+            ))}
+          </SheetScrollView>
+        </Sheet>
       )}
 
       {viewerSource && (
@@ -463,6 +584,40 @@ function ThreadScreen({ id }: { id: string }) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  actionMenu: {
+    borderRadius: 20,
+    borderCurve: "continuous",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 11,
+  },
+  actionLabel: {
+    fontSize: 16,
+  },
+  actionDivider: {
+    height: StyleSheet.hairlineWidth,
+  },
+  forwardTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  forwardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 10,
+  },
+  forwardName: {
+    fontSize: 16,
+    fontWeight: "500",
   },
   panel: {
     position: "absolute",

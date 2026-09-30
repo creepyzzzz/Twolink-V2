@@ -40,6 +40,8 @@ type State = {
   /** Prepends the next page of older history; no-op when exhausted. */
   loadEarlier: (id: string) => void;
   markRead: (id: string) => void;
+  /** Removes a single message from a thread (context-menu delete). */
+  deleteMessage: (id: string, messageId: string) => void;
   setTheme: (theme: State["theme"]) => void;
   toggleReaction: (id: string, messageId: string, emoji: string) => void;
   toggleMute: (id: string) => void;
@@ -131,6 +133,18 @@ export const useFable = create<State>()(
         }));
       },
       setTheme: (theme) => set({ theme }),
+      deleteMessage: (id, messageId) =>
+        set((state) => {
+          const current =
+            state.threads[id] ??
+            messagesFor(id, PEOPLE_BY_ID[id]?.first ?? "");
+          return {
+            threads: {
+              ...state.threads,
+              [id]: current.filter((m) => m.id !== messageId),
+            },
+          };
+        }),
       toggleMute: (id) =>
         set((state) => ({
           muted: { ...state.muted, [id]: !state.muted[id] },

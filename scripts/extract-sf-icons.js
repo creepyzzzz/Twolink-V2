@@ -31,6 +31,8 @@ const NAMES = [
   "paperplane",
   "circle",
   "arrowshape.turn.up.left",
+  "arrowshape.turn.up.right",
+  "trash",
 ];
 
 const bySource = {};

@@ -26,6 +26,8 @@ type Props = {
   selected: string[];
   onPick: (emoji: string) => void;
   onClose: () => void;
+  /** Optional context menu (reply/forward/delete) under the reaction bar. */
+  actions?: React.ReactNode;
 };
 
 /**
@@ -39,6 +41,7 @@ export const ReactionOverlay = memo(function ReactionOverlay({
   selected,
   onPick,
   onClose,
+  actions,
 }: Props) {
   const theme = useTheme();
   const screenW = Dimensions.get("window").width;
@@ -91,12 +94,24 @@ export const ReactionOverlay = memo(function ReactionOverlay({
           })}
         </Glass>
       </Animated.View>
+      {actions ? (
+        <Animated.View
+          entering={FadeIn.duration(160).delay(40)}
+          style={[styles.menuPosition, { top: top + PILL_H + 8, left }]}
+        >
+          {actions}
+        </Animated.View>
+      ) : null}
     </View>
   );
 });
 
 const styles = StyleSheet.create({
   position: {
+    position: "absolute",
+    width: PILL_W,
+  },
+  menuPosition: {
     position: "absolute",
     width: PILL_W,
   },
