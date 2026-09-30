@@ -532,11 +532,13 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     maxHeight: 138,
-    // Symmetric: 10.5 + 23 + 10.5 = 44 = minHeight, so the single-line
-    // text/placeholder is optically centered on every platform.
-    // (textAlignVertical below is Android-only; iOS centers by geometry.)
-    paddingTop: 10.5,
-    paddingBottom: 10.5,
+    // Optical centering for SF Pro on Android: the font's metrics place the
+    // visible ink of "Message" 1.6pt below the line-box center (measured from
+    // the OTF: hhea 1950/-494, ink 1443/-380 at 17pt/23pt line via RN's CSS
+    // inline-layout span). Shifting the line box up 1.5pt centers the ink.
+    // Total stays 44 = minHeight (9 + 23 + 12).
+    paddingTop: 9,
+    paddingBottom: 12,
     lineHeight: 23,
     textAlignVertical: "center",
   },
