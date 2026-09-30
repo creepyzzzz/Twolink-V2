@@ -52,3 +52,7 @@ npx expo-doctor
 ## Attribution
 
 UI cookbooks, motion specs, artwork, and docs are adapted from [Appllama/liquid-glass-chat-ui](https://github.com/Appllama/liquid-glass-chat-ui) (MIT License, see `LICENSE`). TwoLink-specific additions (glass abstraction, Supabase scaffold) are new work on top.
+
+### SF Symbols licensing
+
+Icons in `src/ui/sf-icons.ts` are Apple SF Symbols artwork (extracted via `@bradleyhodges/sfsymbols`). Apple's license restricts SF Symbols to Apple platforms — shipping them in this Android app is a known, accepted trade-off by the project owner. Revisit before any Play Store release.
