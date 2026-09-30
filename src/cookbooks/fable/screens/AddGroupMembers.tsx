@@ -1,15 +1,20 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { FlashList } from "@shopify/flash-list";
-import { Pressable, Text, TextInput, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SFIcon } from "../../../ui/SFIcon";
 import { Avatar } from "../components/ui/avatar";
-import { Glass } from "../components/ui/glass";
-import { GlassButton } from "../components/ui/glass-button";
+import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { PEOPLE } from "../data/people";
 import { getGroup, useFable } from "../data/store";
-import { Accent } from "../constants/theme";
+import { Accent, Radius, Space, Type } from "../constants/theme";
 import { useTheme } from "../hooks/use-theme";
 import { NotFound } from "../../NotFound";
 
@@ -23,13 +28,14 @@ export default function AddGroupMembersRoute() {
   );
 }
 
-/** Pick people who aren't in the group yet and add them. */
+/** Pick people who aren't in the group yet and add them — profile-sheet style. */
 function AddMembersScreen({ id }: { id: string }) {
   const group = useFable((state) => getGroup(state.groups, id));
   const addGroupMembers = useFable((state) => state.addGroupMembers);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   const candidates = useMemo(() => {
     const memberIds = group?.memberIds ?? [];
@@ -58,56 +64,36 @@ function AddMembersScreen({ id }: { id: string }) {
   };
 
   return (
-    <View style={{ flex: 1, paddingTop: 28 }}>
-      <View
-        style={{
-          flexDirection: "row",
-          paddingHorizontal: 24,
-          alignItems: "center",
-          gap: 16,
-        }}
+    <Sheet detent={0.85}>
+      <SheetScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 96 },
+        ]}
       >
-        <Text
-          style={{
-            flex: 1,
-            fontSize: 26,
-            fontFamily: "SFProText-Semibold",
-            color: theme.label,
-          }}
-        >
-          Add members
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: theme.label }]}>
+            Add members
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close add members"
+            onPress={() => router.back()}
+            style={[styles.close, { backgroundColor: theme.chip }]}
+          >
+            <SFIcon name="xmark" size={17} color={theme.label} />
+          </Pressable>
+        </View>
+
+        <Text style={[Type.caption, { color: theme.secondary }]}>
+          {selected.length === 0
+            ? `Adding to ${group.name}`
+            : `${selected.length} member${selected.length === 1 ? "" : "s"} selected`}
         </Text>
-        <GlassButton
-          symbol="xmark"
-          accessibilityLabel="Close add members"
-          onPress={() => router.back()}
-        />
-      </View>
 
-      <Text
-        style={{
-          color: theme.secondary,
-          fontSize: 13,
-          marginHorizontal: 28,
-          marginTop: 8,
-        }}
-      >
-        {selected.length === 0
-          ? `Adding to ${group.name}`
-          : `${selected.length} member${selected.length === 1 ? "" : "s"} selected`}
-      </Text>
-
-      <View style={{ marginHorizontal: 24, marginTop: 12, marginBottom: 8 }}>
-        <Glass
-          style={{
-            height: 44,
-            borderRadius: 22,
-            paddingHorizontal: 16,
-            flexDirection: "row",
-            gap: 10,
-            alignItems: "center",
-          }}
-        >
+        <View style={[styles.search, { backgroundColor: theme.surface }]}>
           <SFIcon name="magnifyingglass" size={17} color={theme.secondary} />
           <TextInput
             accessibilityLabel="Find a friend"
@@ -117,15 +103,7 @@ function AddMembersScreen({ id }: { id: string }) {
             onChangeText={setQuery}
             autoCorrect={false}
             returnKeyType="search"
-            style={{
-              flex: 1,
-              height: 44,
-              paddingVertical: 0,
-              textAlignVertical: "center",
-              fontSize: 17,
-              fontFamily: "SFProText-Regular",
-              color: theme.label,
-            }}
+            style={[styles.searchInput, { color: theme.label }]}
           />
           {query.length > 0 ? (
             <Pressable
@@ -134,46 +112,37 @@ function AddMembersScreen({ id }: { id: string }) {
               onPress={() => setQuery("")}
               hitSlop={8}
             >
-              <SFIcon name="xmark.circle.fill" size={17} color={theme.secondary} />
+              <SFIcon
+                name="xmark.circle.fill"
+                size={17}
+                color={theme.secondary}
+              />
             </Pressable>
           ) : null}
-        </Glass>
-      </View>
+        </View>
 
-      <FlashList
-        data={filtered}
-        keyExtractor={(person) => person.id}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
-        renderItem={({ item }) => {
-          const isSelected = selected.includes(item.id);
+        {filtered.map((person) => {
+          const isSelected = selected.includes(person.id);
           return (
             <Pressable
+              key={person.id}
               accessibilityRole="button"
-              accessibilityLabel={`${isSelected ? "Remove" : "Add"} ${item.name} ${isSelected ? "from" : "to"} the selection`}
-              onPress={() => toggle(item.id)}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 16,
-                paddingVertical: 12,
-              }}
+              accessibilityLabel={`${isSelected ? "Remove" : "Add"} ${person.name} ${isSelected ? "from" : "to"} the selection`}
+              onPress={() => toggle(person.id)}
+              style={styles.row}
             >
-              <Avatar source={item.avatar} size={52} />
-              <Text style={{ flex: 1, color: theme.label, fontSize: 17 }}>
-                {item.name}
+              <Avatar source={person.avatar} size={52} />
+              <Text style={[styles.rowName, { color: theme.label }]}>
+                {person.name}
               </Text>
               <View
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
-                  borderWidth: 1.5,
-                  borderColor: isSelected ? Accent : theme.tertiary,
-                  backgroundColor: isSelected ? Accent : "transparent",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                style={[
+                  styles.check,
+                  {
+                    borderColor: isSelected ? Accent : theme.tertiary,
+                    backgroundColor: isSelected ? Accent : "transparent",
+                  },
+                ]}
               >
                 {isSelected && (
                   <SFIcon name="checkmark" size={14} color="#FFFFFF" />
@@ -181,58 +150,120 @@ function AddMembersScreen({ id }: { id: string }) {
               </View>
             </Pressable>
           );
-        }}
-        ListEmptyComponent={
+        })}
+        {filtered.length === 0 && (
           <Text
-            style={{
-              color: theme.secondary,
-              paddingVertical: 32,
-              textAlign: "center",
-            }}
+            style={[styles.empty, { color: theme.secondary }]}
           >
             {candidates.length === 0
               ? "Everyone's already in this group."
               : "No friends with that name."}
           </Text>
-        }
-      />
+        )}
+      </SheetScrollView>
 
-      <View
-        style={{
-          position: "absolute",
-          left: 24,
-          right: 24,
-          bottom: 32,
-        }}
-      >
+      <View style={[styles.footer, { bottom: insets.bottom + Space[4] }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Add members to group"
           disabled={selected.length === 0}
           onPress={add}
-          style={{
-            height: 56,
-            borderRadius: 28,
-            borderCurve: "continuous",
-            backgroundColor: selected.length === 0 ? theme.chip : Accent,
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: selected.length === 0 ? 0.5 : 1,
-          }}
+          style={[
+            styles.addButton,
+            {
+              backgroundColor: selected.length === 0 ? theme.chip : Accent,
+              opacity: selected.length === 0 ? 0.5 : 1,
+            },
+          ]}
         >
-          <Text
-            style={{
-              color: "#FFFFFF",
-              fontSize: 17,
-              fontFamily: "SFProText-Semibold",
-            }}
-          >
+          <Text style={styles.addLabel}>
             {selected.length === 0
               ? "Add members"
               : `Add ${selected.length} member${selected.length === 1 ? "" : "s"}`}
           </Text>
         </Pressable>
       </View>
-    </View>
+    </Sheet>
   );
 }
+
+const styles = StyleSheet.create({
+  content: {
+    paddingHorizontal: Space[4],
+    paddingTop: Space[2],
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Space[1],
+  },
+  title: {
+    fontSize: 26,
+    fontFamily: "SFProText-Semibold" as const,
+  },
+  close: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  search: {
+    height: 44,
+    borderRadius: Radius.card,
+    borderCurve: "continuous",
+    paddingHorizontal: Space[4],
+    flexDirection: "row",
+    gap: Space[2],
+    alignItems: "center",
+    marginTop: Space[3],
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    paddingVertical: 0,
+    textAlignVertical: "center",
+    fontSize: 17,
+    fontFamily: "SFProText-Regular" as const,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space[4],
+    paddingVertical: Space[3],
+  },
+  rowName: {
+    flex: 1,
+    fontSize: 17,
+  },
+  check: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  empty: {
+    paddingVertical: Space[8],
+    textAlign: "center",
+  },
+  footer: {
+    position: "absolute",
+    left: Space[4],
+    right: Space[4],
+  },
+  addButton: {
+    height: 56,
+    borderRadius: 28,
+    borderCurve: "continuous",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addLabel: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontFamily: "SFProText-Semibold" as const,
+  },
+});
