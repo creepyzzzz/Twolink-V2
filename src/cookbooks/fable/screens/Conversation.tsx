@@ -468,7 +468,12 @@ function ThreadScreen({ id }: { id: string }) {
               pointerEvents="none"
               style={[
                 StyleSheet.absoluteFill,
-                { backgroundColor: "rgba(242, 242, 244, 0.55)" },
+                {
+                  backgroundColor: `rgba(242, 242, 244, ${(
+                    0.5 *
+                    (1 - wallpaper.opacity)
+                  ).toFixed(3)})`,
+                },
               ]}
             />
           </>

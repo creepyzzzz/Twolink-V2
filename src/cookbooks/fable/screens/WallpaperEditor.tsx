@@ -14,18 +14,25 @@ import { Accent, Type } from "../constants/theme";
 import { normalizeWallpaper, useFable } from "../data/store";
 import { useTheme } from "../hooks/use-theme";
 
-/** Must match the scrim used in Conversation so the preview is WYSIWYG. */
-const SCRIM = "rgba(242, 242, 244, 0.55)";
+/** Must match the scrim logic in Conversation so the preview is WYSIWYG. */
 const MAX_BLUR_RADIUS = 25;
+/**
+ * Readability veil that gets out of the way: full-strength at 0% opacity,
+ * completely gone at 100% so the photo shows untouched.
+ */
+const scrimFor = (opacity: number) =>
+  `rgba(242, 242, 244, ${(0.5 * (1 - opacity)).toFixed(3)})`;
 
 function SliderRow({
   label,
   value,
   onChange,
+  onSlidingComplete,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
+  onSlidingComplete?: (v: number) => void;
 }) {
   const theme = useTheme();
   return (
@@ -41,6 +48,7 @@ function SliderRow({
         minimumValue={0}
         maximumValue={1}
         onValueChange={onChange}
+        onSlidingComplete={onSlidingComplete}
         accentColor={Accent}
       />
     </View>
@@ -62,7 +70,10 @@ export default function WallpaperEditor() {
   const existing = normalizeWallpaper(existingRaw);
 
   const [opacity, setOpacity] = useState(() => existing?.opacity ?? 1);
+  // Blur is expensive to recompute on Android: the % label follows the drag
+  // live, but the image only re-blurs once the thumb is released.
   const [blur, setBlur] = useState(() => existing?.blur ?? 0);
+  const [appliedBlur, setAppliedBlur] = useState(() => existing?.blur ?? 0);
 
   useEffect(() => {
     if (!pending) router.back();
@@ -124,12 +135,12 @@ export default function WallpaperEditor() {
           <Image
             source={{ uri: pending.uri }}
             resizeMode="cover"
-            blurRadius={blur * MAX_BLUR_RADIUS}
+            blurRadius={appliedBlur * MAX_BLUR_RADIUS}
             style={[StyleSheet.absoluteFill, { opacity }]}
           />
           <View
             pointerEvents="none"
-            style={[StyleSheet.absoluteFill, { backgroundColor: SCRIM }]}
+            style={[StyleSheet.absoluteFill, { backgroundColor: scrimFor(opacity) }]}
           />
           <View style={styles.sampleBubbles} pointerEvents="none">
             <View
@@ -166,7 +177,12 @@ export default function WallpaperEditor() {
         ]}
       >
         <SliderRow label="Opacity" value={opacity} onChange={setOpacity} />
-        <SliderRow label="Blur" value={blur} onChange={setBlur} />
+        <SliderRow
+          label="Blur"
+          value={blur}
+          onChange={setBlur}
+          onSlidingComplete={setAppliedBlur}
+        />
       </View>
     </View>
   );
