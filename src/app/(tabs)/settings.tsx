@@ -69,6 +69,7 @@ export default function SettingsScreen() {
   const { readReceipts, typingIndicators, notifications, glassIntensity } =
     settings;
   const profileName = useFable((s) => s.profile.name);
+  const appPin = useFable((s) => s.appPin);
   // Shrinks the tab bar to its compact pill while the settings scroll.
   const minimizeOnScroll = useMinimizeOnScrollHandler();
 
@@ -109,6 +110,23 @@ export default function SettingsScreen() {
         </Pressable>
 
         <Section title="Privacy">
+          <Pressable
+            style={[styles.row, styles.rowDivider]}
+            accessibilityRole="button"
+            accessibilityLabel="App lock settings"
+            onPress={() => router.push("/fable/app-lock")}
+          >
+            <View style={styles.rowText}>
+              <Text style={styles.rowLabel}>App Lock</Text>
+              <Text style={styles.rowHint}>
+                Require a PIN to open TwoLink
+              </Text>
+            </View>
+            <View style={styles.linkRight}>
+              <Text style={styles.rowValue}>{appPin ? "On" : "Off"}</Text>
+              <SFIcon name="chevron.right" size={20} color={INK_FAINT} />
+            </View>
+          </Pressable>
           <ToggleRow
             label="Read receipts"
             hint="Let others see when you've read their messages"
@@ -233,6 +251,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(23,25,27,0.08)",
   },
   rowText: { flex: 1, paddingRight: 12 },
+  linkRight: { flexDirection: "row", alignItems: "center", gap: 6 },
   rowLabel: { fontSize: 16, fontFamily: "SFProText-Semibold", color: INK },
   rowHint: {
     fontSize: 13,
