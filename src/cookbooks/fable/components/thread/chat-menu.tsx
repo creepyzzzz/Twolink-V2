@@ -26,6 +26,7 @@ export function ChatMenu({
   const anchorRef = useRef<View>(null);
   const [open, setOpen] = useState(false);
   const showAlert = useFable((s) => s.showAlert);
+  const hasWallpaper = useFable((s) => !!s.wallpapers[threadId]);
 
   const pickWallpaper = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -48,8 +49,8 @@ export function ChatMenu({
     router.push("/fable/wallpaper");
   };
 
-  // Tapping Wallpaper always means picking a new one — the editor that
-  // opens next already offers "Remove wallpaper" when one is set.
+  // Tapping Wallpaper with none set goes straight to the picker. With one
+  // set, the menu grows a nested submenu (Change / Remove) instead.
   const onWallpaper = () => {
     void pickWallpaper();
   };
@@ -99,6 +100,35 @@ export function ChatMenu({
             id: "wallpaper",
             title: "Wallpaper",
             icon: <SFIcon name="photo" size={19} color={theme.label} />,
+            children: hasWallpaper
+              ? [
+                  {
+                    id: "wallpaper-change",
+                    title: "Change wallpaper",
+                    compact: true,
+                    icon: (
+                      <SFIcon
+                        name="photo"
+                        size={19}
+                        color={theme.label}
+                      />
+                    ),
+                  },
+                  {
+                    id: "wallpaper-remove",
+                    title: "Remove wallpaper",
+                    compact: true,
+                    destructive: true,
+                    icon: (
+                      <SFIcon
+                        name="trash"
+                        size={19}
+                        color={DESTRUCTIVE_RED}
+                      />
+                    ),
+                  },
+                ]
+              : undefined,
           },
           {
             id: "clear",
@@ -113,6 +143,9 @@ export function ChatMenu({
         onSelect={(id) => {
           if (id === "search") onSearch();
           else if (id === "wallpaper") onWallpaper();
+          else if (id === "wallpaper-change") void pickWallpaper();
+          else if (id === "wallpaper-remove")
+            useFable.getState().setWallpaper(threadId, null);
           else if (id === "clear") onClear();
         }}
         onDismiss={() => setOpen(false)}
