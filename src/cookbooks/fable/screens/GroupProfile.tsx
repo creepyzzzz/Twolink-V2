@@ -83,7 +83,7 @@ function ProfileScreen({ id }: { id: string }) {
           onPress: () => store.setGroupAdmin(id, memberId, !admin),
         },
         {
-          text: "Remove from group",
+          text: "Remove",
           style: "destructive",
           onPress: () => store.removeGroupMember(id, memberId),
         },

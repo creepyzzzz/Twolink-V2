@@ -49,6 +49,12 @@ const NAMES = [
   "chart.bar",
   "clock",
   "folder",
+  "clipboard",
+  "list.clipboard",
+  "pencil",
+  "square.and.pencil",
+  "pencil.line",
+  "pencil.circle",
 ];
 
 const bySource = {};
