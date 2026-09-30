@@ -40,9 +40,9 @@ function GlassTabBar({ state, navigation }: TabBarProps) {
       }}
       theme="light"
       accentColor={ACCENT}
-      // Light glass brightens the backdrop to near-white, which vanishes
-      // over the light inbox — a translucent veil keeps the capsule frosted.
-      containerColor="rgba(255,255,255,0.78)"
+      // Pure floating glass: no fill color, no drop shadow — only the
+      // native refraction, blur and rim highlight define the capsule.
+      shadow={false}
       blurRadius={30}
       refractionHeight={9}
       refractionAmount={16}
