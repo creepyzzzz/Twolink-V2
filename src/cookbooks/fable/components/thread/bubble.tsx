@@ -11,7 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Orb } from "../ui/orb";
-import { EASE_OUT, SOFT } from "../../constants/motion";
+import { EASE_OUT, SNAP, SOFT } from "../../constants/motion";
 import { Ink, Radius, Space, Type } from "../../constants/theme";
 import type { Message } from "../../data/messages";
 import type { Person } from "../../data/people";
@@ -78,7 +78,7 @@ export const Bubble = memo(function Bubble({
     transform: [{ scale: depress.value }],
   }));
   useEffect(() => {
-    depress.value = withSpring(reacting ? 0.93 : 1, SOFT);
+    depress.value = withSpring(reacting ? 0.93 : 1, SNAP);
   }, [reacting, depress]);
 
   // Long-press anywhere on the bubble (text, photo, or badge) lifts the

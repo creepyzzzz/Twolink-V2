@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { ZoomIn } from "react-native-reanimated";
+import Animated, { FadeIn, ZoomIn } from "react-native-reanimated";
 
 import { AdaptiveGlassView } from "../../../../ui/GlassView";
 import { Glass } from "../ui/glass";
@@ -51,20 +51,22 @@ export const ReactionOverlay = memo(function ReactionOverlay({
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Dismiss reactions"
-        onPress={onClose}
-        style={StyleSheet.absoluteFill}
-      >
-        {/* Real native refraction on Android (same engine as the composer
-            card) tinted dark blue — a frosted backdrop, not a flat dim. */}
-        <AdaptiveGlassView
-          tintColor="rgba(52, 68, 122, 0.36)"
-          blurRadius={16}
+      <Animated.View entering={FadeIn.duration(180)} style={StyleSheet.absoluteFill}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss reactions"
+          onPress={onClose}
           style={StyleSheet.absoluteFill}
-        />
-      </Pressable>
+        >
+          {/* Real native refraction on Android (same engine as the composer
+              card) tinted dark blue — a frosted backdrop, not a flat dim. */}
+          <AdaptiveGlassView
+            tintColor="rgba(105, 118, 155, 0.22)"
+            blurRadius={16}
+            style={StyleSheet.absoluteFill}
+          />
+        </Pressable>
+      </Animated.View>
       <Animated.View
         entering={ZoomIn.duration(160)}
         style={[styles.position, { top, left, boxShadow: theme.lift }]}
