@@ -2,6 +2,7 @@ import { Asset } from "expo-asset";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import * as Sentry from "@sentry/react-native";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -17,6 +18,14 @@ import { useFable } from "../cookbooks/fable/data/store";
 import { ME, FABLE_TEAM, PEOPLE } from "../cookbooks/fable/data/people";
 
 void SplashScreen.preventAutoHideAsync();
+
+/**
+ * Crash reporting. No-op until a DSN is configured — add
+ * EXPO_PUBLIC_SENTRY_DSN to .env when the Sentry project exists.
+ */
+if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.EXPO_PUBLIC_SENTRY_DSN });
+}
 
 export const unstable_settings = { initialRouteName: "index" };
 

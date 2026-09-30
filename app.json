@@ -54,7 +54,9 @@
         }
       ],
       "expo-secure-store",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-video",
+      "@sentry/react-native"
     ],
     "platforms": [
       "android",

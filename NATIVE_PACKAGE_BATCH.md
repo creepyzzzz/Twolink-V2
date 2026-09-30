@@ -22,6 +22,21 @@ build" notice instead of crashing.
 | `expo-media-library` | ~57.0.5 | Photo viewer gained a save-to-gallery button (top-left, `square.and.arrow.down`). |
 | `expo-sharing` | ~57.0.22 | Message action menu gained a Share row (after Forward) for photos/files → system share sheet. |
 
+## Installed Sep 30, 2026 — batch 3 (all approved by Tariq)
+
+| Package | Version | What it unlocked |
+|---|---|---|
+| `expo-video` | ~57.0.5 | Inline video playback — parked until video messages get built (gallery is images-only today). |
+| `expo-image-manipulator` | ~57.0.20 | Photo compression/thumbnails — reserved for a future optimization pass. |
+| `expo-auth-session` | ~57.0.13 | OAuth flow helper — reserved for social login when Supabase auth lands. |
+| `@sentry/react-native` | ~7.11.0 | Crash reporting. Guarded init in `src/app/_layout.tsx` — no-op until `EXPO_PUBLIC_SENTRY_DSN` is set (add it to `.env` when the Sentry project exists). |
+
+## Still excluded (Tariq's vetoes)
+
+- `expo-camera` — no camera capture.
+- `expo-haptics` — haptics removed from the app entirely.
+- `expo-audio` — no voice messages.
+
 ## Skipped deliberately
 
 ## Do NOT add
