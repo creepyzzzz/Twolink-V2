@@ -131,7 +131,7 @@ export const GroupRow = memo(function GroupRow({
           </View>
           <View style={styles.meta}>
             {pinned && (
-              <SFIcon name="pin.fill" size={13} color={theme.tertiary} />
+              <SFIcon name="pin.fill" size={13} color={theme.tertiary} rotation={45} />
             )}
             {unread && <View style={styles.dot} accessibilityLabel="Unread" />}
             {muted && (

@@ -540,6 +540,7 @@ function PinPill({
       label: pinned ? "Unpin chat" : "Pin chat",
       icon: pinned ? "pin.slash" : "pin.fill",
       color: theme.label,
+      rotation: pinned ? 0 : 45,
       onPress: onTogglePin,
     },
     {
@@ -591,6 +592,7 @@ function PinPill({
                 name={action.icon}
                 size={19}
                 color={action.color}
+                rotation={"rotation" in action ? action.rotation : 0}
               />
             </Pressable>
           </Fragment>

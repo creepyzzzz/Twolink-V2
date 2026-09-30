@@ -1,4 +1,5 @@
 import React from "react";
+import { View } from "react-native";
 import { SvgXml } from "react-native-svg";
 import { SF_ICONS, type SFSymbolName } from "./sf-icons";
 
@@ -15,10 +16,13 @@ export function SFIcon({
   name,
   size = 21,
   color = "#111",
+  rotation = 0,
 }: {
   name: SFSymbolName | string;
   size?: number;
   color?: string;
+  /** Clockwise degrees, e.g. 45 for a diagonal pushpin. */
+  rotation?: number;
 }) {
   const icon =
     SF_ICONS[name as SFSymbolName] ?? SF_ICONS["circle"];
@@ -33,5 +37,11 @@ export function SFIcon({
   const xml =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${icon.viewBox}" ` +
     `fill="${color}" preserveAspectRatio="xMidYMid meet">${paths}</svg>`;
-  return <SvgXml xml={xml} width={size} height={size} />;
+  const svg = <SvgXml xml={xml} width={size} height={size} />;
+  // A rotated SVG would clip inside its own viewBox, so the rotation is
+  // applied to the wrapping view instead — no clipping, same layout box.
+  if (!rotation) return svg;
+  return (
+    <View style={{ transform: [{ rotate: `${rotation}deg` }] }}>{svg}</View>
+  );
 }

@@ -89,7 +89,7 @@ export const ChatRow = memo(function ChatRow({
           </View>
           <View style={styles.meta}>
             {pinned && (
-              <SFIcon name="pin.fill" size={13} color={theme.tertiary} />
+              <SFIcon name="pin.fill" size={13} color={theme.tertiary} rotation={45} />
             )}
             {unread && <View style={styles.dot} accessibilityLabel="Unread" />}
             {muted && (
