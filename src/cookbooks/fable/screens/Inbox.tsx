@@ -56,7 +56,7 @@ const LOCK_BELOW = STORIES_H + 40;
 export default function ChatsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const listRef = useAnimatedRef<Animated.ScrollView>();
   const [isOpen, setIsOpen] = useState(false);
   const positioned = useRef(false);
@@ -190,6 +190,17 @@ export default function ChatsScreen() {
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"All" | "Unread" | "Groups">("All");
+  /** Tiny floating pin button shown on long-press — positioned at the finger. */
+  const [pinFab, setPinFab] = useState<{
+    id: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const togglePin = useFable((state) => state.togglePin);
+  const onPinPress = useCallback(
+    (id: string, x: number, y: number) => setPinFab({ id, x, y }),
+    [],
+  );
   const read = useFable((state) => state.read);
   const groupsRecord = useFable((state) => state.groups);
   const groups = useMemo(
@@ -236,6 +247,7 @@ export default function ChatsScreen() {
       <Animated.ScrollView
         ref={listRef}
         onScroll={onScroll}
+        onScrollBeginDrag={() => setPinFab(null)}
         scrollEventThrottle={16}
         animatedProps={lockProps}
         contentInsetAdjustmentBehavior="never"
@@ -358,7 +370,7 @@ export default function ChatsScreen() {
               .duration(300)
               .easing(EASE_OUT.factory())}
           >
-            <GroupRow group={group} />
+            <GroupRow group={group} onPinPress={onPinPress} />
           </Animated.View>
         ))}
         {filtered.map((chat, i) => (
@@ -368,7 +380,7 @@ export default function ChatsScreen() {
               .duration(300)
               .easing(EASE_OUT.factory())}
           >
-            <ChatRow chat={chat} />
+            <ChatRow chat={chat} onPinPress={onPinPress} />
           </Animated.View>
         ))}
         {filtered.length + filteredGroups.length === 0 ? (
@@ -396,6 +408,19 @@ export default function ChatsScreen() {
         onPressCompose={() => router.push("/fable/compose")}
         onPressMe={() => router.push("/me")}
       />
+
+      {pinFab && (
+        <PinFab
+          x={Math.min(Math.max(pinFab.x - 23, 16), width - 62)}
+          y={Math.min(Math.max(pinFab.y - 78, 110), height - 220)}
+          pinned={pinned.includes(pinFab.id)}
+          onDismiss={() => setPinFab(null)}
+          onToggle={() => {
+            togglePin(pinFab.id);
+            setPinFab(null);
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -410,4 +435,60 @@ const styles = StyleSheet.create({
     marginTop: 32,
     paddingHorizontal: 40,
   },
+  pinFab: {
+    position: "absolute",
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
+
+/**
+ * The tiny long-press pin button: a 46pt solid circle floating at the
+ * finger, tap to pin/unpin, tap anywhere else (or scroll) to dismiss.
+ */
+function PinFab({
+  x,
+  y,
+  pinned,
+  onDismiss,
+  onToggle,
+}: {
+  x: number;
+  y: number;
+  pinned: boolean;
+  onDismiss: () => void;
+  onToggle: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityLabel="Dismiss"
+      onPress={onDismiss}
+      style={StyleSheet.absoluteFill}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={pinned ? "Unpin chat" : "Pin chat"}
+        onPress={onToggle}
+        style={[
+          styles.pinFab,
+          {
+            left: x,
+            top: y,
+            backgroundColor: theme.surface,
+            boxShadow: theme.lift,
+          },
+        ]}
+      >
+        <SFIcon
+          name={pinned ? "pin.slash" : "pin.fill"}
+          size={18}
+          color={theme.label}
+        />
+      </Pressable>
+    </Pressable>
+  );
+}

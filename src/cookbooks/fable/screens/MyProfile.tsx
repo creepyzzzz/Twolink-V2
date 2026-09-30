@@ -4,7 +4,6 @@ import * as ImagePicker from "expo-image-picker";
 
 import { Avatar } from "../components/ui/avatar";
 import { MyAvatar } from "../components/ui/my-avatar";
-import { Glass } from "../components/ui/glass";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
 import {
@@ -57,36 +56,40 @@ export default function MyProfile() {
           { paddingBottom: insets.bottom + Space[8] },
         ]}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Change your profile photo"
-          onPress={pickPhoto}
+        <View
+          style={[styles.identityCard, { backgroundColor: theme.surface }]}
         >
-          <MyAvatar size={96} />
-        </Pressable>
-        {profile.photoUri ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Remove profile photo"
-            onPress={() => setProfile({ photoUri: undefined })}
-            style={styles.removePhoto}
+            accessibilityLabel="Change your profile photo"
+            onPress={pickPhoto}
           >
-            <Text style={[Type.caption, { color: Accent }]}>Remove photo</Text>
+            <MyAvatar size={96} />
           </Pressable>
-        ) : null}
-        <Text style={[styles.name, { color: theme.label }]}>
-          {profile.name || "Your name"}
-        </Text>
-        <Text
-          style={[
-            Type.caption,
-            { color: theme.secondary, marginTop: 4, textAlign: "center" },
-          ]}
-        >
-          {profile.about || "Add a status"}
-        </Text>
+          {profile.photoUri ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Remove profile photo"
+              onPress={() => setProfile({ photoUri: undefined })}
+              style={styles.removePhoto}
+            >
+              <Text style={[Type.caption, { color: Accent }]}>Remove photo</Text>
+            </Pressable>
+          ) : null}
+          <Text style={[styles.name, { color: theme.label }]}>
+            {profile.name || "Your name"}
+          </Text>
+          <Text
+            style={[
+              Type.caption,
+              { color: theme.secondary, marginTop: 4, textAlign: "center" },
+            ]}
+          >
+            {profile.about || "Add a status"}
+          </Text>
+        </View>
 
-        <Glass style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
           <View style={styles.row}>
             <Text style={[Type.body, { color: theme.secondary }]}>Name</Text>
             <TextInput
@@ -116,7 +119,7 @@ export default function MyProfile() {
               style={[Type.body, styles.field, { color: theme.label }]}
             />
           </View>
-        </Glass>
+        </View>
 
         <Text
           style={[Type.caption, styles.section, { color: theme.secondary }]}
@@ -164,6 +167,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Space[4],
     paddingTop: Space[2],
     alignItems: "center",
+  },
+  identityCard: {
+    alignSelf: "stretch",
+    alignItems: "center",
+    borderRadius: Radius.card,
+    borderCurve: "continuous",
+    paddingVertical: Space[5],
+    paddingHorizontal: Space[4],
+    marginTop: Space[2],
   },
   name: {
     fontSize: 24,

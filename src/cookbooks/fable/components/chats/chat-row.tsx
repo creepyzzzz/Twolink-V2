@@ -1,7 +1,12 @@
-import { AndroidGlassMenu } from "expo-android-glass-view";
 import { router } from "expo-router";
-import { memo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { memo } from "react";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type GestureResponderEvent,
+} from "react-native";
 
 import { SFIcon } from "../../../../ui/SFIcon";
 import { Avatar } from "../ui/avatar";
@@ -13,17 +18,20 @@ import { useTheme } from "../../hooks/use-theme";
 
 export const ROW_AVATAR = 60;
 
-/** Avatar, name, preview, and an unread indicator. Long-press pins the chat. */
-export const ChatRow = memo(function ChatRow({ chat }: { chat: Chat }) {
+/** Avatar, name, preview, and an unread indicator. Long-press offers pinning. */
+export const ChatRow = memo(function ChatRow({
+  chat,
+  onPinPress,
+}: {
+  chat: Chat;
+  onPinPress: (id: string, x: number, y: number) => void;
+}) {
   const theme = useTheme();
   const person = PEOPLE_BY_ID[chat.personId];
   const read = useFable((state) => state.read.includes(chat.id));
   const last = useFable((state) => state.threads[chat.id]?.at(-1));
   const muted = useFable((state) => !!state.muted[chat.id]);
   const pinned = useFable((state) => state.pinned.includes(chat.id));
-  const togglePin = useFable((state) => state.togglePin);
-  const anchorRef = useRef<View>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const unread = chat.unread > 0 && !read;
   const draftText = (useFable((state) => state.drafts[chat.id]) ?? "").trim();
   const preview = last
@@ -34,9 +42,8 @@ export const ChatRow = memo(function ChatRow({ chat }: { chat: Chat }) {
   const fromMe = last ? last.from === "me" : chat.fromMe;
 
   return (
-    <>
-      <View ref={anchorRef} collapsable={false}>
-        <Pressable
+    <View>
+      <Pressable
           testID={`fable-chat-${chat.id}`}
           accessibilityRole="button"
           accessibilityLabel={`${person.name}${unread ? ", unread" : ""}${muted ? ", muted" : ""}${pinned ? ", pinned" : ""}. ${preview}`}
@@ -46,7 +53,9 @@ export const ChatRow = memo(function ChatRow({ chat }: { chat: Chat }) {
               params: { id: chat.id },
             })
           }
-          onLongPress={() => setMenuOpen(true)}
+          onLongPress={(e: GestureResponderEvent) =>
+            onPinPress(chat.id, e.nativeEvent.pageX, e.nativeEvent.pageY)
+          }
           unstable_pressDelay={90}
           style={({ pressed }) => [
             styles.row,
@@ -91,30 +100,7 @@ export const ChatRow = memo(function ChatRow({ chat }: { chat: Chat }) {
             </Text>
           </View>
         </Pressable>
-      </View>
-      <AndroidGlassMenu
-        visible={menuOpen}
-        anchorRef={anchorRef}
-        placement="below"
-        items={[
-          {
-            id: "pin",
-            title: pinned ? "Unpin chat" : "Pin chat",
-            icon: (
-              <SFIcon
-                name={pinned ? "pin.slash" : "pin"}
-                size={19}
-                color={theme.label}
-              />
-            ),
-          },
-        ]}
-        onSelect={(id) => {
-          if (id === "pin") togglePin(chat.id);
-        }}
-        onDismiss={() => setMenuOpen(false)}
-      />
-    </>
+    </View>
   );
 });
 

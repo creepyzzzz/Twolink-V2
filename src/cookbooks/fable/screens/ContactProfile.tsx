@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PhotoViewer } from "../components/thread/photo-viewer";
 import { Avatar } from "../components/ui/avatar";
-import { Glass } from "../components/ui/glass";
 import { SharedLinks } from "../components/ui/shared-links";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
@@ -60,15 +59,19 @@ function ProfileScreen({ id }: { id: string }) {
           { paddingBottom: insets.bottom + Space[8] },
         ]}
       >
-        <Avatar source={person.avatar} size={96} />
-        <Text style={[styles.name, { color: theme.label }]}>
-          {person.name}
-        </Text>
-        <Text style={[Type.caption, { color: theme.secondary, marginTop: 4 }]}>
-          {person.storyState === "none" ? "No recent story" : `Story ${person.storyAgo} ago`}
-        </Text>
+        <View
+          style={[styles.identityCard, { backgroundColor: theme.surface }]}
+        >
+          <Avatar source={person.avatar} size={96} />
+          <Text style={[styles.name, { color: theme.label }]}>
+            {person.name}
+          </Text>
+          <Text style={[Type.caption, { color: theme.secondary, marginTop: 4 }]}>
+            {person.storyState === "none" ? "No recent story" : `Story ${person.storyAgo} ago`}
+          </Text>
+        </View>
 
-        <Glass style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
           <View style={styles.row}>
             <Text style={[Type.body, { color: theme.label }]}>Mute</Text>
             <AndroidGlassToggle
@@ -78,7 +81,7 @@ function ProfileScreen({ id }: { id: string }) {
               accentColor={Accent}
             />
           </View>
-        </Glass>
+        </View>
 
         <Text style={[Type.caption, styles.section, { color: theme.secondary }]}>
           Shared Photos
@@ -127,6 +130,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Space[4],
     paddingTop: Space[2],
     alignItems: "center",
+  },
+  identityCard: {
+    alignSelf: "stretch",
+    alignItems: "center",
+    borderRadius: Radius.card,
+    borderCurve: "continuous",
+    paddingVertical: Space[5],
+    paddingHorizontal: Space[4],
+    marginTop: Space[2],
   },
   name: {
     fontSize: 24,

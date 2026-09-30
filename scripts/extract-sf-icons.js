@@ -37,6 +37,9 @@ const NAMES = [
   "link",
   "trash",
   "ellipsis",
+  "pin",
+  "pin.fill",
+  "pin.slash",
 ];
 
 const bySource = {};

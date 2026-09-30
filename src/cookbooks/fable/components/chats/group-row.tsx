@@ -1,7 +1,12 @@
-import { AndroidGlassMenu } from "expo-android-glass-view";
 import { router } from "expo-router";
-import { memo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { memo } from "react";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type GestureResponderEvent,
+} from "react-native";
 
 import { SFIcon } from "../../../../ui/SFIcon";
 import { Avatar } from "../ui/avatar";
@@ -57,15 +62,18 @@ export function GroupAvatar({
 }
 
 /** Avatar cluster, name, preview, and an unread indicator — mirrors ChatRow. */
-export const GroupRow = memo(function GroupRow({ group }: { group: Group }) {
+export const GroupRow = memo(function GroupRow({
+  group,
+  onPinPress,
+}: {
+  group: Group;
+  onPinPress: (id: string, x: number, y: number) => void;
+}) {
   const theme = useTheme();
   const read = useFable((state) => state.read.includes(group.id));
   const last = useFable((state) => state.threads[group.id]?.at(-1));
   const muted = useFable((state) => !!state.muted[group.id]);
   const pinned = useFable((state) => state.pinned.includes(group.id));
-  const togglePin = useFable((state) => state.togglePin);
-  const anchorRef = useRef<View>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const unread = !!last && last.from !== "me" && !read;
   const draftText = (useFable((state) => state.drafts[group.id]) ?? "").trim();
   const senderName =
@@ -79,9 +87,8 @@ export const GroupRow = memo(function GroupRow({ group }: { group: Group }) {
     : `${group.memberIds.length} members`;
 
   return (
-    <>
-      <View ref={anchorRef} collapsable={false}>
-        <Pressable
+    <View>
+      <Pressable
           testID={`fable-group-${group.id}`}
           accessibilityRole="button"
           accessibilityLabel={`${group.name}${unread ? ", unread" : ""}${muted ? ", muted" : ""}${pinned ? ", pinned" : ""}. ${preview}`}
@@ -91,7 +98,9 @@ export const GroupRow = memo(function GroupRow({ group }: { group: Group }) {
               params: { id: group.id },
             })
           }
-          onLongPress={() => setMenuOpen(true)}
+          onLongPress={(e: GestureResponderEvent) =>
+            onPinPress(group.id, e.nativeEvent.pageX, e.nativeEvent.pageY)
+          }
           unstable_pressDelay={90}
           style={({ pressed }) => [
             styles.row,
@@ -133,30 +142,7 @@ export const GroupRow = memo(function GroupRow({ group }: { group: Group }) {
             </Text>
           </View>
         </Pressable>
-      </View>
-      <AndroidGlassMenu
-        visible={menuOpen}
-        anchorRef={anchorRef}
-        placement="below"
-        items={[
-          {
-            id: "pin",
-            title: pinned ? "Unpin chat" : "Pin chat",
-            icon: (
-              <SFIcon
-                name={pinned ? "pin.slash" : "pin"}
-                size={19}
-                color={theme.label}
-              />
-            ),
-          },
-        ]}
-        onSelect={(id) => {
-          if (id === "pin") togglePin(group.id);
-        }}
-        onDismiss={() => setMenuOpen(false)}
-      />
-    </>
+    </View>
   );
 });
 
