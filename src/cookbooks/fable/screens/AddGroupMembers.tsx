@@ -11,10 +11,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SFIcon } from "../../../ui/SFIcon";
 import { Avatar } from "../components/ui/avatar";
+import { Glass } from "../components/ui/glass";
+import { GlassButton } from "../components/ui/glass-button";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { PEOPLE } from "../data/people";
 import { getGroup, useFable } from "../data/store";
-import { Accent, Radius, Space, Type } from "../constants/theme";
+import { Accent, Space, Type } from "../constants/theme";
 import { useTheme } from "../hooks/use-theme";
 import { NotFound } from "../../NotFound";
 
@@ -77,14 +79,14 @@ function AddMembersScreen({ id }: { id: string }) {
           <Text style={[styles.title, { color: theme.label }]}>
             Add members
           </Text>
-          <Pressable
-            accessibilityRole="button"
+          <GlassButton
+            symbol="xmark"
+            iconSize={15}
+            size={40}
+            tint="#FFFFFF"
             accessibilityLabel="Close add members"
             onPress={() => router.back()}
-            style={[styles.close, { backgroundColor: theme.chip }]}
-          >
-            <SFIcon name="xmark" size={17} color={theme.label} />
-          </Pressable>
+          />
         </View>
 
         <Text style={[Type.caption, { color: theme.secondary }]}>
@@ -93,7 +95,17 @@ function AddMembersScreen({ id }: { id: string }) {
             : `${selected.length} member${selected.length === 1 ? "" : "s"} selected`}
         </Text>
 
-        <View style={[styles.search, { backgroundColor: theme.surface }]}>
+        <Glass
+          style={{
+            height: 44,
+            borderRadius: 22,
+            paddingHorizontal: 16,
+            flexDirection: "row",
+            gap: 10,
+            alignItems: "center",
+            marginTop: Space[3],
+          }}
+        >
           <SFIcon name="magnifyingglass" size={17} color={theme.secondary} />
           <TextInput
             accessibilityLabel="Find a friend"
@@ -119,7 +131,7 @@ function AddMembersScreen({ id }: { id: string }) {
               />
             </Pressable>
           ) : null}
-        </View>
+        </Glass>
 
         {filtered.map((person) => {
           const isSelected = selected.includes(person.id);
@@ -201,23 +213,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontFamily: "SFProText-Semibold" as const,
-  },
-  close: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  search: {
-    height: 44,
-    borderRadius: Radius.card,
-    borderCurve: "continuous",
-    paddingHorizontal: Space[4],
-    flexDirection: "row",
-    gap: Space[2],
-    alignItems: "center",
-    marginTop: Space[3],
   },
   searchInput: {
     flex: 1,
