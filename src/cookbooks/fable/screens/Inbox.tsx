@@ -1,7 +1,14 @@
 import { router } from "expo-router";
 import { useMinimizeOnScrollHandler } from "expo-android-glass-view";
-import { useCallback, useRef, useState } from "react";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import Animated, {
   FadeInDown,
   runOnJS,
@@ -24,9 +31,10 @@ import {
 import { EASE_OUT } from "../constants/motion";
 import { Space } from "../constants/theme";
 import { CHATS } from "../data/chats";
-import { STORIES, type Person } from "../data/people";
+import { PEOPLE_BY_ID, STORIES, type Person } from "../data/people";
 import { openStory } from "../data/story-state";
 import { useTheme } from "../hooks/use-theme";
+import { SFIcon } from "../../../ui/SFIcon";
 
 /** A drag that begins this far below the closed title locks the rail zone out. */
 const LOCK_BELOW = STORIES_H + 40;
@@ -163,6 +171,19 @@ export default function ChatsScreen() {
 
   const onPressStory = useCallback((person: Person) => openStory(person), []);
 
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return CHATS;
+    return CHATS.filter((chat) => {
+      const person = PEOPLE_BY_ID[chat.personId];
+      const name = person ? person.name.toLowerCase() : "";
+      return (
+        name.includes(q) || chat.preview.toLowerCase().includes(q)
+      );
+    });
+  }, [query]);
+
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
       <Animated.ScrollView
@@ -185,7 +206,40 @@ export default function ChatsScreen() {
         }}
       >
         <View style={{ height: STORIES_H }} />
-        {CHATS.map((chat, i) => (
+        {/* Search sits at the top of the list flow, just under the title at
+            rest — the iOS pattern. It scrolls with the list. */}
+        <View style={styles.searchWrap}>
+          <View
+            style={[styles.searchBox, { backgroundColor: theme.surface }]}
+          >
+            <SFIcon name="magnifyingglass" size={17} color={theme.secondary} />
+            <TextInput
+              accessibilityLabel="Search chats"
+              placeholder="Search"
+              placeholderTextColor={theme.secondary}
+              value={query}
+              onChangeText={setQuery}
+              autoCorrect={false}
+              returnKeyType="search"
+              style={[styles.searchInput, { color: theme.label }]}
+            />
+            {query.length > 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+                onPress={() => setQuery("")}
+                hitSlop={8}
+              >
+                <SFIcon
+                  name="xmark.circle.fill"
+                  size={17}
+                  color={theme.secondary}
+                />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+        {filtered.map((chat, i) => (
           <Animated.View
             key={chat.id}
             entering={FadeInDown.delay(Math.min(i, 8) * 34)
@@ -195,6 +249,11 @@ export default function ChatsScreen() {
             <ChatRow chat={chat} />
           </Animated.View>
         ))}
+        {filtered.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.secondary }]}>
+            No chats match “{query.trim()}”.
+          </Text>
+        ) : null}
       </Animated.ScrollView>
 
       <StoriesHeader
@@ -216,5 +275,29 @@ export default function ChatsScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  searchWrap: {
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
+    borderCurve: "continuous",
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 0,
+  },
+  empty: {
+    textAlign: "center",
+    fontSize: 15,
+    marginTop: 32,
+    paddingHorizontal: 40,
   },
 });
