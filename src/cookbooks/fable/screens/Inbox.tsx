@@ -270,6 +270,8 @@ export default function ChatsScreen() {
               style={{
                 flex: 1,
                 height: 44,
+                paddingVertical: 0,
+                textAlignVertical: "center",
                 fontSize: 17,
                 fontFamily: "SFProText-Regular",
                 color: theme.label,
