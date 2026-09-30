@@ -101,7 +101,6 @@ export default function SettingsScreen() {
             <MyAvatar size={56} />
             <View style={styles.profileText}>
               <Text style={styles.profileName}>{profileName}</Text>
-              <Text style={styles.profileSub}>Poffu private build</Text>
             </View>
             <SFIcon name="chevron.right" size={20} color={INK_FAINT} />
           </AdaptiveGlassView>
@@ -197,7 +196,6 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 24, fontFamily: "SFProText-Bold", color: ACCENT },
   profileText: { flex: 1, marginLeft: 14 },
   profileName: { fontSize: 19, fontFamily: "SFProText-Bold", color: INK },
-  profileSub: { fontSize: 13, color: INK_SOFT, marginTop: 2 },
   section: { marginTop: 22 },
   sectionTitle: {
     fontSize: 13,
