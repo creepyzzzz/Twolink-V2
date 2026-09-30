@@ -75,7 +75,7 @@ export function SearchBar({
             returnKeyType="search"
             selectionColor={Accent}
             textAlignVertical="center"
-            style={[Type.body, styles.input, { color: theme.label }]}
+            style={[styles.input, { color: theme.label }]}
           />
           {query.length > 0 && (
             <Pressable
@@ -84,7 +84,7 @@ export function SearchBar({
               hitSlop={8}
               onPress={() => onQuery("")}
             >
-              <SFIcon name="xmark.circle.fill" size={17} color={theme.tertiary} />
+              <SFIcon name="xmark.circle.fill" size={19} color={theme.tertiary} />
             </Pressable>
           )}
         </Glass>
@@ -155,7 +155,15 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    // Fill the field so textAlignVertical centers the glyphs in the full
+    // height; without this the input collapses to its line box and the text
+    // rides off-center. No explicit lineHeight — the font's natural metrics
+    // center best on Android.
+    alignSelf: "stretch",
     paddingVertical: 0,
+    fontSize: Type.body.fontSize,
+    fontFamily: Type.body.fontFamily,
+    letterSpacing: Type.body.letterSpacing,
   },
   navRow: {
     flexDirection: "row",
