@@ -1,4 +1,3 @@
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
@@ -33,20 +32,21 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 
+import { AdaptiveGlassView } from "../../../../ui/GlassView";
 import { EASE_OUT, SNAP } from "../../constants/motion";
 import { Radius } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
 
-const BLUR_MAX = 60;
-const ABlurView = Animated.createAnimatedComponent(BlurView);
-
 const NativeGestureContext = createContext<GestureType | null>(null);
 const ScrollYContext = createContext<SharedValue<number> | null>(null);
+const ScrollLockContext = createContext<SharedValue<boolean> | null>(null);
 
 /**
- * A ScrollView that cooperates with the Sheet: vertical drags scroll it,
- * but a downward drag while it sits at the top moves the sheet instead,
- * exactly like an iOS sheet.
+ * A ScrollView that cooperates with the Sheet, iOS-style:
+ * - downward drags scroll it back to its top, then hand the gesture to
+ *   the sheet;
+ * - upward drags scroll it, unless the sheet isn't fully open yet — then
+ *   the sheet expands and the content is locked in place.
  */
 export function SheetScrollView({
   children,
@@ -54,7 +54,8 @@ export function SheetScrollView({
 }: ScrollViewProps & { children: ReactNode }) {
   const native = useContext(NativeGestureContext);
   const scrollY = useContext(ScrollYContext);
-  const onScroll = useAnimatedScrollHandler({
+  const scrollLock = useContext(ScrollLockContext);
+  const trackScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       // Shared values are designed to be written from worklets; the
       // immutability rule can't see through context.
@@ -62,11 +63,17 @@ export function SheetScrollView({
       if (scrollY) scrollY.value = e.contentOffset.y;
     },
   });
+  // Driven on the UI thread so the content freezes the instant the sheet
+  // takes an upward drag — no JS round-trip, no double motion.
+  const lockProps = useAnimatedProps(() => ({
+    scrollEnabled: scrollLock ? !scrollLock.value : true,
+  }));
   const body = (
     <Animated.ScrollView
-      onScroll={onScroll}
+      onScroll={trackScroll}
       scrollEventThrottle={16}
       overScrollMode="never"
+      animatedProps={lockProps}
       {...rest}
     >
       {children}
@@ -87,12 +94,17 @@ type Props = {
 
 /**
  * A bottom sheet drawn by us instead of the system formSheet: rounded top
- * corners, and a live blur backdrop (0% closed → 60% fully open) tracking
- * the sheet instead of a dark scrim.
+ * corners, and a live native-glass backdrop that crossfades 0 → full with
+ * the sheet's opening progress (same engine as the reaction modal).
  *
- * Drag anywhere on the sheet: up expands to full, down settles to the
- * detent, fling or far-drag dismisses. The inner scroll view keeps working —
- * a downward drag only grabs the sheet once the content is at its top.
+ * Gesture rules (iOS):
+ * - grab anywhere: up expands to full, down settles to the detent,
+ *   fling or far-drag dismisses;
+ * - the inner scroll view keeps working — a downward drag only takes the
+ *   sheet once the content rests at its top; an upward drag takes the
+ *   sheet until it is fully open, then the content scrolls;
+ * - reversing direction mid-drag re-grabs without a jump; a cancelled
+ *   gesture always settles to the nearest detent, never mid-air.
  */
 export function Sheet({ children, detent = 0.85 }: Props) {
   const router = useRouter();
@@ -103,49 +115,76 @@ export function Sheet({ children, detent = 0.85 }: Props) {
   const ty = useSharedValue(H);
   const grabTy = useSharedValue(H);
   const grabY = useSharedValue(0);
-  const draggingSheet = useSharedValue(false);
+  const grabActive = useSharedValue(false);
+  const movedByGesture = useSharedValue(false);
   const kb = useSharedValue(0);
   const dismissed = useSharedValue(false);
   const scrollY = useSharedValue(0);
+  const scrollLock = useSharedValue(false);
   const native = useMemo(() => Gesture.Native(), []);
 
+  const goBack = () => {
+    router.back();
+  };
+
+  // Back button / system back. The gesture path sets `dismissed`
+  // synchronously on the UI thread first, so a back-press racing a
+  // fling-dismiss can't pop two routes.
   const dismiss = () => {
     if (dismissed.value) return;
     dismissed.value = true;
     Keyboard.dismiss();
-    ty.value = withTiming(
-      H,
-      { duration: 260 },
-      (done) => done && runOnJS(router.back)(),
-    );
+    ty.value = withTiming(H, { duration: 260 }, (fin) => {
+      if (fin) goBack();
+    });
+  };
+
+  const exitUI = () => {
+    "worklet";
+    if (dismissed.value) return;
+    dismissed.value = true;
+    runOnJS(Keyboard.dismiss)();
+    ty.value = withTiming(H, { duration: 260 }, (fin) => {
+      if (fin) runOnJS(goBack)();
+    });
   };
 
   const pan = Gesture.Pan()
     .activeOffsetY([-12, 12])
     .simultaneousWithExternalGesture(native)
     .onUpdate((e) => {
-      // Downward drags belong to the sheet only while the content is at its
-      // top; upward drags always belong to the scroll view.
-      if (e.translationY > 0 && scrollY.value <= 1) {
-        if (!draggingSheet.value) {
-          // Take over mid-gesture without a jump.
-          draggingSheet.value = true;
+      if (dismissed.value) return;
+      const dy = e.translationY;
+      const atTop = scrollY.value <= 1;
+      const full = ty.value <= 1;
+      const grab = (dy > 0 && atTop) || (dy < 0 && !full);
+      if (grab) {
+        if (!grabActive.value) {
+          // (Re-)grab here so reversing direction mid-drag never jumps.
+          grabActive.value = true;
           grabTy.value = ty.value;
-          grabY.value = e.translationY;
+          grabY.value = dy;
+          if (dy < 0) scrollLock.value = true;
         }
         ty.value = Math.min(
           H,
-          Math.max(0, grabTy.value + (e.translationY - grabY.value)),
+          Math.max(0, grabTy.value + (dy - grabY.value)),
         );
+        movedByGesture.value = true;
+      } else {
+        grabActive.value = false;
+        scrollLock.value = false;
       }
     })
     .onEnd((e) => {
-      if (dismissed.value || !draggingSheet.value) return;
-      draggingSheet.value = false;
+      grabActive.value = false;
+      scrollLock.value = false;
+      if (dismissed.value || !movedByGesture.value) return;
+      movedByGesture.value = false;
       const y = ty.value;
       const vy = e.velocityY;
-      if ((vy > 700 && y > restTy + 20) || y > restTy + H * 0.14) {
-        runOnJS(dismiss)();
+      if (vy > 800 || y > restTy + H * 0.14) {
+        exitUI();
       } else if (vy < -700 || y < restTy / 2) {
         ty.value = withSpring(0, SNAP);
       } else {
@@ -153,7 +192,11 @@ export function Sheet({ children, detent = 0.85 }: Props) {
       }
     })
     .onFinalize(() => {
-      draggingSheet.value = false;
+      grabActive.value = false;
+      scrollLock.value = false;
+      if (dismissed.value || !movedByGesture.value) return;
+      movedByGesture.value = false;
+      ty.value = withSpring(ty.value < restTy / 2 ? 0 : restTy, SNAP);
     });
 
   // Rise in on mount — a calm ease, no bounce.
@@ -165,7 +208,7 @@ export function Sheet({ children, detent = 0.85 }: Props) {
   // System back runs the same exit animation.
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      runOnJS(dismiss)();
+      dismiss();
       return true;
     });
     return () => sub.remove();
@@ -191,42 +234,52 @@ export function Sheet({ children, detent = 0.85 }: Props) {
     transform: [{ translateY: ty.value - kb.value }],
   }));
 
-  const blurProps = useAnimatedProps(() => ({
-    intensity: interpolate(ty.value, [H, 0], [0, BLUR_MAX], "clamp"),
+  // The native glass can't animate its own blur radius per-frame, so the
+  // 0→full blur follows the sheet as a crossfade — exactly like the
+  // reaction modal's backdrop. Opacity lives on the wrapper: the glass
+  // view itself never sees opacity 0 (that silently disables it).
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(ty.value, [H, 0], [0, 1], "clamp"),
   }));
 
   return (
     <View style={styles.root}>
-      <ABlurView
-        tint="light"
-        intensity={0}
-        animatedProps={blurProps}
-        style={StyleSheet.absoluteFill}
-      />
+      <Animated.View
+        style={[StyleSheet.absoluteFill, backdropStyle]}
+        pointerEvents="none"
+      >
+        <AdaptiveGlassView
+          blurRadius={22}
+          tintColor="rgba(255, 255, 255, 0.10)"
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
       <NativeGestureContext.Provider value={native}>
         <ScrollYContext.Provider value={scrollY}>
-          <GestureDetector gesture={pan}>
-            <Animated.View
-              style={[
-                styles.panel,
-                { backgroundColor: theme.surface },
-                panelStyle,
-              ]}
-            >
-              <LinearGradient
-                pointerEvents="none"
-                colors={[theme.surface, theme.panelEnd]}
-                locations={[0, 1]}
-                style={StyleSheet.absoluteFill}
-              />
-              <View style={styles.grabberZone}>
-                <View
-                  style={[styles.grabber, { backgroundColor: theme.grabber }]}
+          <ScrollLockContext.Provider value={scrollLock}>
+            <GestureDetector gesture={pan}>
+              <Animated.View
+                style={[
+                  styles.panel,
+                  { backgroundColor: theme.surface },
+                  panelStyle,
+                ]}
+              >
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={[theme.surface, theme.panelEnd]}
+                  locations={[0, 1]}
+                  style={StyleSheet.absoluteFill}
                 />
-              </View>
-              {children}
-            </Animated.View>
-          </GestureDetector>
+                <View style={styles.grabberZone}>
+                  <View
+                    style={[styles.grabber, { backgroundColor: theme.grabber }]}
+                  />
+                </View>
+                {children}
+              </Animated.View>
+            </GestureDetector>
+          </ScrollLockContext.Provider>
         </ScrollYContext.Provider>
       </NativeGestureContext.Provider>
     </View>
