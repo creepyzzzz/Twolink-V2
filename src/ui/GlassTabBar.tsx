@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
+  Easing,
   useAnimatedStyle,
-  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMinimizeOnScroll } from "expo-android-glass-view";
@@ -23,9 +24,15 @@ const ACCENT = "#3D92E9";
 const ICON_IDLE = "rgba(60,60,67,0.55)";
 
 const PAD_H = 14;
-const PAD_V = 10;
+const PAD_V = 16;
 const SLOT_W = 60;
 const SLOT_GAP = 4;
+
+// Timing (not spring): a spring overshoots and the pill visibly bounces
+// every time the minimize state flips while scrolling. Ease-out timing
+// can never oscillate.
+const TUCK_MS = 220;
+const TUCK_EASING = Easing.out(Easing.cubic);
 
 /**
  * iOS-style floating pill tab bar: compact, centered, icons-only liquid
@@ -41,16 +48,20 @@ export function GlassTabBar({ state, navigation }: TabBarProps) {
   const { minimized } = useMinimizeOnScroll();
 
   // Tuck the pill while scrolling down: shrink slightly and drop, then
-  // spring back when scrolling up or reaching the top.
+  // glide back when scrolling up or reaching the top. Timing-based so it
+  // never bounces/oscillates as the scroll direction changes.
   const tuckStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        scale: withSpring(minimized ? 0.9 : 1, { damping: 20, stiffness: 260 }),
+        scale: withTiming(minimized ? 0.9 : 1, {
+          duration: TUCK_MS,
+          easing: TUCK_EASING,
+        }),
       },
       {
-        translateY: withSpring(minimized ? 6 : 0, {
-          damping: 20,
-          stiffness: 260,
+        translateY: withTiming(minimized ? 6 : 0, {
+          duration: TUCK_MS,
+          easing: TUCK_EASING,
         }),
       },
     ],
