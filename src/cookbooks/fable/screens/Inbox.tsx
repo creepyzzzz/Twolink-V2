@@ -191,7 +191,6 @@ export default function ChatsScreen() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"All" | "Unread" | "Groups">("All");
   const read = useFable((state) => state.read);
-  const threads = useFable((state) => state.threads);
   const groupsRecord = useFable((state) => state.groups);
   const groups = useMemo(
     () =>
@@ -199,16 +198,12 @@ export default function ChatsScreen() {
     [groupsRecord],
   );
   const filteredGroups = useMemo(() => {
+    if (filter !== "Groups") return [];
     const q = query.trim().toLowerCase();
-    return groups.filter((group) => {
-      if (filter === "Unread") {
-        const last = threads[group.id]?.at(-1);
-        if (!last || last.from === "me" || read.includes(group.id))
-          return false;
-      }
-      return !q || group.name.toLowerCase().includes(q);
-    });
-  }, [groups, query, filter, threads, read]);
+    return groups.filter(
+      (group) => !q || group.name.toLowerCase().includes(q),
+    );
+  }, [groups, query, filter]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return CHATS.filter((chat) => {

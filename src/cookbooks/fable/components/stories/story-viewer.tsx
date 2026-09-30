@@ -305,34 +305,36 @@ export function StoryViewer({ person, open, onClose }: Props) {
             onPress={() => leave()}
           />
         </View>
-        <View pointerEvents="box-none" style={styles.footer}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Reply to ${name}`}
-            onPress={() => {
-              leave();
-              router.push({
-                pathname: "/fable/chat/[id]",
-                params: { id: isMe ? "fable" : person.id },
-              });
-            }}
-            style={{ flex: 1 }}
-          >
-            <Glass effect="clear" style={styles.reply}>
-              <Text style={[Type.body, styles.replyText]}>
-                Reply to {isMe ? "yourself" : person.first}
-              </Text>
-            </Glass>
-          </Pressable>
-          <GlassButton
-            symbol={liked ? "heart.fill" : "heart"}
-            iconSize={19}
-            size={48}
-            tint="#FFFFFF"
-            accessibilityLabel={liked ? "Unlike story" : "Like story"}
-            onPress={() => toggleStoryLike(person.id)}
-          />
-        </View>
+        {!isMe && (
+          <View pointerEvents="box-none" style={styles.footer}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Reply to ${name}`}
+              onPress={() => {
+                leave();
+                router.push({
+                  pathname: "/fable/chat/[id]",
+                  params: { id: person.id },
+                });
+              }}
+              style={{ flex: 1 }}
+            >
+              <Glass effect="clear" style={styles.reply}>
+                <Text style={[Type.body, styles.replyText]}>
+                  Reply to {person.first}
+                </Text>
+              </Glass>
+            </Pressable>
+            <GlassButton
+              symbol={liked ? "heart.fill" : "heart"}
+              iconSize={19}
+              size={48}
+              tint="#FFFFFF"
+              accessibilityLabel={liked ? "Unlike story" : "Like story"}
+              onPress={() => toggleStoryLike(person.id)}
+            />
+          </View>
+        )}
       </Animated.View>
     </View>
   );
