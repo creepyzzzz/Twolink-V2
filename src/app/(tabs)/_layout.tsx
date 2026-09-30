@@ -47,6 +47,9 @@ function GlassTabBar({ state, navigation }: TabBarProps) {
       }}
       theme={dark ? "dark" : "light"}
       accentColor={ACCENT}
+      // Light glass brightens the backdrop to near-white, which vanishes
+      // over the light inbox — a translucent veil keeps the capsule visible.
+      containerColor={dark ? undefined : "rgba(255,255,255,0.55)"}
       blurRadius={22}
       refractionHeight={9}
       refractionAmount={16}
