@@ -142,6 +142,8 @@ export default function Inbox() {
         >
           <Text
             maxFontSizeMultiplier={1.1}
+            numberOfLines={1}
+            adjustsFontSizeToFit
             style={{
               fontSize: 27,
               fontWeight: "700",
