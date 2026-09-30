@@ -15,6 +15,7 @@ import { PhotoViewer } from "../components/thread/photo-viewer";
 import { DisappearingRow } from "../components/profile/disappearing-row";
 import { GroupAvatar } from "../components/chats/group-row";
 import { Avatar } from "../components/ui/avatar";
+import { SFIcon } from "../../../ui/SFIcon";
 import { SharedLinks } from "../components/ui/shared-links";
 import { SharedDocuments } from "../components/ui/shared-documents";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
@@ -123,6 +124,22 @@ function ProfileScreen({ id }: { id: string }) {
               </Pressable>
             );
           })}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add members to group"
+            onPress={() =>
+              router.push({
+                pathname: "/fable/group/add-members/[id]",
+                params: { id },
+              })
+            }
+            style={styles.memberRow}
+          >
+            <View style={[styles.addCircle, { borderColor: Accent }]}>
+              <SFIcon name="plus" size={20} color={Accent} />
+            </View>
+            <Text style={[Type.body, { color: Accent }]}>Add Members</Text>
+          </Pressable>
         </View>
 
         <Text style={[Type.caption, styles.section, { color: theme.secondary }]}>
@@ -196,6 +213,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Space[3],
     paddingVertical: Space[2],
+  },
+  addCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
   },
   section: {
     alignSelf: "flex-start",

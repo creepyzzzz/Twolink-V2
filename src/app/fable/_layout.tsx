@@ -67,6 +67,15 @@ export default function FableLayout() {
           }}
         />
         <Stack.Screen
+          name="group/add-members/[id]"
+          options={{
+            presentation: "formSheet",
+            sheetAllowedDetents: [0.75, 1],
+            sheetGrabberVisible: true,
+            contentStyle: { backgroundColor: "transparent" },
+          }}
+        />
+        <Stack.Screen
           name="compose"
           options={{
             presentation: "formSheet",

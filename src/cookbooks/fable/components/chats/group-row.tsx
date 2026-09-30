@@ -18,7 +18,7 @@ import { useTheme } from "../../hooks/use-theme";
 
 export const ROW_AVATAR = 60;
 
-/** Two overlapping member orbs, iMessage-style. */
+/** Up to three overlapping member orbs, iMessage-style. */
 export function GroupAvatar({
   memberIds,
   size,
@@ -27,8 +27,7 @@ export function GroupAvatar({
   size: number;
 }) {
   const theme = useTheme();
-  const shown = memberIds.slice(0, 2);
-  const orb = size * 0.66;
+  const shown = memberIds.slice(0, 3);
   if (shown.length === 0)
     return (
       <View
@@ -40,6 +39,21 @@ export function GroupAvatar({
         <SFIcon name="person.2" size={size * 0.44} color={theme.secondary} />
       </View>
     );
+  const orb =
+    shown.length === 1 ? size * 0.72 : shown.length === 2 ? size * 0.66 : size * 0.58;
+  const spots =
+    shown.length === 1
+      ? [{ left: (size - orb) / 2, top: (size - orb) / 2 }]
+      : shown.length === 2
+        ? [
+            { left: 0, top: 0 },
+            { left: size - orb, top: size - orb },
+          ]
+        : [
+            { left: 0, top: 0 },
+            { left: size - orb, top: 0 },
+            { left: (size - orb) / 2, top: size - orb },
+          ];
   return (
     <View style={{ width: size, height: size }}>
       {shown.map((id, index) => {
@@ -50,8 +64,8 @@ export function GroupAvatar({
             key={id}
             style={{
               position: "absolute",
-              left: index === 0 ? 0 : size - orb,
-              top: index === 0 ? 0 : size - orb,
+              left: spots[index].left,
+              top: spots[index].top,
             }}
           >
             <Avatar source={person.avatar} size={orb} />

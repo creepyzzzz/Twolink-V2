@@ -97,6 +97,8 @@ type State = {
   postStory: (uri: string) => void;
   removeStory: (uri: string) => void;
   createGroup: (name: string, memberIds: string[]) => string;
+  /** Add people to an existing group (deduped). */
+  addGroupMembers: (groupId: string, memberIds: string[]) => void;
   /** How many older-history pages have been prepended per thread. */
   historyPage: Record<string, number>;
   theme: "system" | "light" | "dark";
@@ -280,6 +282,21 @@ export const useFable = create<State>()(
         }));
         return id;
       },
+      addGroupMembers: (groupId, memberIds) =>
+        set((state) => {
+          const group = state.groups[groupId];
+          if (!group) return state;
+          const merged = [
+            ...group.memberIds,
+            ...memberIds.filter((m) => !group.memberIds.includes(m)),
+          ];
+          return {
+            groups: {
+              ...state.groups,
+              [groupId]: { ...group, memberIds: merged },
+            },
+          };
+        }),
       historyPage: {},
       theme: "system",
       profile: {
