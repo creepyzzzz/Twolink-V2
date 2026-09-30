@@ -9,14 +9,14 @@
     "icon": "./assets/images/icon.png",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.twolink.chat",
+      "bundleIdentifier": "com.poffu.chat",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CADisableMinimumFrameDurationOnPhone": true
       }
     },
     "android": {
-      "package": "com.twolink.chat",
+      "package": "com.poffu.chat",
       "adaptiveIcon": {
         "backgroundColor": "#171819"
       }
