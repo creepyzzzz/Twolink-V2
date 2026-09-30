@@ -1,6 +1,9 @@
 import { router } from "expo-router";
-import { useMinimizeOnScrollHandler } from "expo-android-glass-view";
-import { Fragment, useCallback, useMemo, useRef, useState } from "react";
+import {
+  AndroidGlassMenu,
+  useMinimizeOnScrollHandler,
+} from "expo-android-glass-view";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -56,7 +59,7 @@ const LOCK_BELOW = STORIES_H + 40;
 export default function ChatsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const listRef = useAnimatedRef<Animated.ScrollView>();
   const [isOpen, setIsOpen] = useState(false);
   const positioned = useRef(false);
@@ -190,12 +193,11 @@ export default function ChatsScreen() {
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"All" | "Unread" | "Groups">("All");
-  /** Long-press context pill shown at the finger: pin + delete. */
-  const [menu, setMenu] = useState<{
-    id: string;
-    x: number;
-    y: number;
-  } | null>(null);
+  /** Long-press context menu on a row: the same native glass menu as the
+      chat ••• button — vertical icon + label rows, same opening animation. */
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const menuAnchorRef = useRef<View | null>(null);
+  const rowViews = useRef(new Map<string, View | null>());
   const deleted = useFable((state) => state.deleted);
   const togglePin = useFable((state) => state.togglePin);
   const toggleMute = useFable((state) => state.toggleMute);
@@ -203,13 +205,13 @@ export default function ChatsScreen() {
   const muted = useFable((state) => state.muted);
   const deleteThread = useFable((state) => state.deleteThread);
   const showAlert = useFable((state) => state.showAlert);
-  const onPinPress = useCallback(
-    (id: string, x: number, y: number) => setMenu({ id, x, y }),
-    [setMenu],
-  );
+  const openMenu = useCallback((id: string) => {
+    menuAnchorRef.current = rowViews.current.get(id) ?? null;
+    setMenuId(id);
+  }, []);
   const onDeletePress = useCallback(
     (id: string, name: string) => {
-      setMenu(null);
+      setMenuId(null);
       showAlert({
         title: `Delete chat with ${name}?`,
         message: "This removes the conversation from your inbox.",
@@ -223,7 +225,7 @@ export default function ChatsScreen() {
         ],
       });
     },
-    [deleteThread, showAlert, setMenu],
+    [deleteThread, showAlert],
   );
   const read = useFable((state) => state.read);
   const groupsRecord = useFable((state) => state.groups);
@@ -271,12 +273,81 @@ export default function ChatsScreen() {
     );
   }, [query, filter, read, pinSort, deleted]);
 
+  // The long-press menu mirrors the chat ••• menu: vertical icon + label
+  // rows on the same native glass surface, with the same opening animation.
+  const menuPinned = menuId != null && pinned.includes(menuId);
+  const menuMuted = menuId != null && !!muted[menuId];
+  const menuMarkedRead = menuId != null && read.includes(menuId);
+  const menuItems =
+    menuId == null
+      ? []
+      : [
+          {
+            id: "pin",
+            title: menuPinned ? "Unpin" : "Pin",
+            icon: (
+              <SFIcon
+                name={menuPinned ? "pin.slash" : "pin.fill"}
+                size={19}
+                color={theme.label}
+                rotation={menuPinned ? 0 : 45}
+              />
+            ),
+          },
+          {
+            id: "mute",
+            title: menuMuted ? "Unmute" : "Mute",
+            icon: (
+              <SFIcon
+                name={menuMuted ? "speaker.slash.fill" : "speaker.fill"}
+                size={19}
+                color={theme.label}
+              />
+            ),
+          },
+          {
+            id: "read",
+            title: menuMarkedRead ? "Mark as unread" : "Mark as read",
+            icon: (
+              <SFIcon
+                name={
+                  menuMarkedRead ? "envelope.badge.fill" : "envelope.open.fill"
+                }
+                size={19}
+                color={theme.label}
+              />
+            ),
+          },
+          {
+            id: "delete",
+            title: "Delete",
+            separator: true,
+            destructive: true,
+            icon: <SFIcon name="trash" size={19} color="#FF545B" />,
+          },
+        ];
+  const onMenuSelect = (actionId: string) => {
+    if (menuId == null) return;
+    if (actionId === "pin") togglePin(menuId);
+    else if (actionId === "mute") toggleMute(menuId);
+    else if (actionId === "read") toggleRead(menuId);
+    else if (actionId === "delete") {
+      const group = groups.find((g) => g.id === menuId);
+      const chat = group ? undefined : CHATS.find((c) => c.id === menuId);
+      const person = chat ? PEOPLE_BY_ID[chat.personId] : undefined;
+      onDeletePress(
+        menuId,
+        group?.name ?? person?.first ?? person?.name ?? "this chat",
+      );
+    }
+  };
+
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
       <Animated.ScrollView
         ref={listRef}
         onScroll={onScroll}
-        onScrollBeginDrag={() => setMenu(null)}
+        onScrollBeginDrag={() => setMenuId(null)}
         scrollEventThrottle={16}
         animatedProps={lockProps}
         contentInsetAdjustmentBehavior="never"
@@ -399,7 +470,15 @@ export default function ChatsScreen() {
               .duration(300)
               .easing(EASE_OUT.factory())}
           >
-            <GroupRow group={group} onPinPress={onPinPress} />
+            <View
+              ref={(v) => {
+                if (v) rowViews.current.set(group.id, v);
+                else rowViews.current.delete(group.id);
+              }}
+              collapsable={false}
+            >
+              <GroupRow group={group} onLongPressRow={openMenu} />
+            </View>
           </Animated.View>
         ))}
         {filtered.map((chat, i) => (
@@ -409,7 +488,15 @@ export default function ChatsScreen() {
               .duration(300)
               .easing(EASE_OUT.factory())}
           >
-            <ChatRow chat={chat} onPinPress={onPinPress} />
+            <View
+              ref={(v) => {
+                if (v) rowViews.current.set(chat.id, v);
+                else rowViews.current.delete(chat.id);
+              }}
+              collapsable={false}
+            >
+              <ChatRow chat={chat} onLongPressRow={openMenu} />
+            </View>
           </Animated.View>
         ))}
         {filtered.length + filteredGroups.length === 0 ? (
@@ -438,39 +525,14 @@ export default function ChatsScreen() {
         onPressMe={() => router.push("/me")}
       />
 
-      {menu && (
-        <PinPill
-          x={Math.min(Math.max(menu.x - 104, 12), width - 220)}
-          y={Math.min(Math.max(menu.y - 128, 110), height - 260)}
-          pinned={pinned.includes(menu.id)}
-          muted={!!muted[menu.id]}
-          markedRead={read.includes(menu.id)}
-          onDismiss={() => setMenu(null)}
-          onTogglePin={() => {
-            togglePin(menu.id);
-            setMenu(null);
-          }}
-          onToggleMute={() => {
-            toggleMute(menu.id);
-            setMenu(null);
-          }}
-          onToggleRead={() => {
-            toggleRead(menu.id);
-            setMenu(null);
-          }}
-          onDelete={() => {
-            const group = groups.find((g) => g.id === menu.id);
-            const chat = group
-              ? undefined
-              : CHATS.find((c) => c.id === menu.id);
-            const person = chat ? PEOPLE_BY_ID[chat.personId] : undefined;
-            onDeletePress(
-              menu.id,
-              group?.name ?? person?.first ?? person?.name ?? "this chat",
-            );
-          }}
-        />
-      )}
+      <AndroidGlassMenu
+        visible={menuId != null}
+        anchorRef={menuAnchorRef}
+        placement="below"
+        items={menuItems}
+        onSelect={onMenuSelect}
+        onDismiss={() => setMenuId(null)}
+      />
     </View>
   );
 }
@@ -485,119 +547,4 @@ const styles = StyleSheet.create({
     marginTop: 32,
     paddingHorizontal: 40,
   },
-  pinPill: {
-    position: "absolute",
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  pinAction: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: 44,
-    height: 40,
-  },
-  pinDivider: {
-    width: 1,
-    height: 24,
-  },
 });
-
-/**
- * The long-press context pill: liquid glass, floating at the finger.
- * Icon toolbar: Pin/Unpin, Mute/Unmute, Mark read/unread, Delete.
- * Tap anywhere else (or scroll) to dismiss.
- */
-function PinPill({
-  x,
-  y,
-  pinned,
-  muted,
-  markedRead,
-  onDismiss,
-  onTogglePin,
-  onToggleMute,
-  onToggleRead,
-  onDelete,
-}: {
-  x: number;
-  y: number;
-  pinned: boolean;
-  muted: boolean;
-  markedRead: boolean;
-  onDismiss: () => void;
-  onTogglePin: () => void;
-  onToggleMute: () => void;
-  onToggleRead: () => void;
-  onDelete: () => void;
-}) {
-  const theme = useTheme();
-  const actions = [
-    {
-      key: "pin",
-      label: pinned ? "Unpin chat" : "Pin chat",
-      icon: pinned ? "pin.slash" : "pin.fill",
-      color: theme.label,
-      rotation: pinned ? 0 : 45,
-      onPress: onTogglePin,
-    },
-    {
-      key: "mute",
-      label: muted ? "Unmute chat" : "Mute chat",
-      icon: muted ? "speaker.slash.fill" : "speaker.fill",
-      color: theme.label,
-      onPress: onToggleMute,
-    },
-    {
-      key: "read",
-      label: markedRead ? "Mark as unread" : "Mark as read",
-      icon: markedRead ? "envelope.badge.fill" : "envelope.open.fill",
-      color: theme.label,
-      onPress: onToggleRead,
-    },
-    {
-      key: "delete",
-      label: "Delete chat",
-      icon: "trash",
-      color: "#FF3B30",
-      onPress: onDelete,
-    },
-  ] as const;
-  return (
-    <Pressable
-      accessibilityLabel="Dismiss"
-      onPress={onDismiss}
-      style={StyleSheet.absoluteFill}
-    >
-      <Glass style={[styles.pinPill, { left: x, top: y }]}>
-        {actions.map((action, i) => (
-          <Fragment key={action.key}>
-            {i > 0 ? (
-              <View
-                style={[
-                  styles.pinDivider,
-                  { backgroundColor: theme.hairline },
-                ]}
-              />
-            ) : null}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
-              onPress={action.onPress}
-              style={styles.pinAction}
-            >
-              <SFIcon
-                name={action.icon}
-                size={19}
-                color={action.color}
-                rotation={"rotation" in action ? action.rotation : 0}
-              />
-            </Pressable>
-          </Fragment>
-        ))}
-      </Glass>
-    </Pressable>
-  );
-}

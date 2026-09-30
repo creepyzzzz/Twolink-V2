@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Text,
   View,
-  type GestureResponderEvent,
 } from "react-native";
 
 import { SFIcon } from "../../../../ui/SFIcon";
@@ -64,10 +63,10 @@ export function GroupAvatar({
 /** Avatar cluster, name, preview, and an unread indicator — mirrors ChatRow. */
 export const GroupRow = memo(function GroupRow({
   group,
-  onPinPress,
+  onLongPressRow,
 }: {
   group: Group;
-  onPinPress: (id: string, x: number, y: number) => void;
+  onLongPressRow: (id: string) => void;
 }) {
   const theme = useTheme();
   const read = useFable((state) => state.read.includes(group.id));
@@ -98,9 +97,7 @@ export const GroupRow = memo(function GroupRow({
               params: { id: group.id },
             })
           }
-          onLongPress={(e: GestureResponderEvent) =>
-            onPinPress(group.id, e.nativeEvent.pageX, e.nativeEvent.pageY)
-          }
+          onLongPress={() => onLongPressRow(group.id)}
           unstable_pressDelay={90}
           style={({ pressed }) => [
             styles.row,

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Text,
   View,
-  type GestureResponderEvent,
 } from "react-native";
 
 import { SFIcon } from "../../../../ui/SFIcon";
@@ -21,10 +20,10 @@ export const ROW_AVATAR = 60;
 /** Avatar, name, preview, and an unread indicator. Long-press offers pinning. */
 export const ChatRow = memo(function ChatRow({
   chat,
-  onPinPress,
+  onLongPressRow,
 }: {
   chat: Chat;
-  onPinPress: (id: string, x: number, y: number) => void;
+  onLongPressRow: (id: string) => void;
 }) {
   const theme = useTheme();
   const person = PEOPLE_BY_ID[chat.personId];
@@ -53,9 +52,7 @@ export const ChatRow = memo(function ChatRow({
               params: { id: chat.id },
             })
           }
-          onLongPress={(e: GestureResponderEvent) =>
-            onPinPress(chat.id, e.nativeEvent.pageX, e.nativeEvent.pageY)
-          }
+          onLongPress={() => onLongPressRow(chat.id)}
           unstable_pressDelay={90}
           style={({ pressed }) => [
             styles.row,
