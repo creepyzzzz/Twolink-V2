@@ -50,8 +50,8 @@ export function GlassAlert({
           style={StyleSheet.absoluteFill}
         />
         <AndroidGlassView
-          tintColor="rgba(255, 255, 255, 0.35)"
-          blurRadius={30}
+          tintColor="rgba(255, 255, 255, 0.5)"
+          blurRadius={40}
           cornerRadius={28}
           style={styles.card}
         >
@@ -60,7 +60,7 @@ export function GlassAlert({
             </Text>
             {message ? (
               <Text
-                style={[Type.preview, styles.message, { color: theme.secondary }]}
+                style={[Type.meta, styles.message, { color: theme.secondary }]}
               >
                 {message}
               </Text>
@@ -102,22 +102,23 @@ const styles = StyleSheet.create({
   card: {
     width: "100%",
     paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 18,
+    paddingTop: 16,
+    paddingBottom: 14,
   },
   title: {
     textAlign: "center",
   },
   message: {
     textAlign: "center",
-    marginTop: 8,
+    marginTop: 6,
   },
   actions: {
-    marginTop: 20,
-    gap: 10,
+    marginTop: 14,
+    gap: 8,
   },
   action: {
     alignSelf: "stretch",
+    height: 44,
   },
   actionTitle: {
     fontFamily: "SFProText-Semibold",
