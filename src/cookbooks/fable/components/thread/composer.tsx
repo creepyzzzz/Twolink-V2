@@ -1,4 +1,5 @@
 import { SFIcon } from "../../../../ui/SFIcon";
+import { AndroidGlassMenu } from "expo-android-glass-view";
 import { useMemo, useRef, useState } from "react";
 import { getGroup, useFable } from "../../data/store";
 import { PEOPLE_BY_ID, type Person } from "../../data/people";
@@ -96,6 +97,8 @@ export function Composer({
   const [hasText, setHasText] = useState(initialDraft.trim().length > 0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  // Anchor for the native attachment menu (measured in window coordinates).
+  const menuAnchorRef = useRef<View>(null);
 
   const onChangeText = (t: string) => {
     draft.current = t;
@@ -157,7 +160,9 @@ export function Composer({
         onLayout={onLayout}
         style={[styles.root, { paddingBottom: insetBottom + Space[2] }]}
       >
-        {(menuOpen || scheduleOpen) && (
+        {/* The native attachment menu dismisses itself on outside press /
+            Android back, so only the Send Later popup needs this backdrop. */}
+        {scheduleOpen && (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Dismiss menu"
@@ -173,6 +178,14 @@ export function Composer({
             layout={LinearTransition.duration(220).easing(EASE_OUT.factory())}
             style={[styles.lift, { boxShadow: theme.lift, flex: 1 }]}
           >
+            {/* Anchor for the native attachment menu: the whole pill, so the
+                menu always lands just above it with a clear gap and never
+                overlaps — even when the pill grows to multiple lines. */}
+            <View
+              ref={menuAnchorRef}
+              collapsable={false}
+              style={styles.menuAnchor}
+            >
             <Glass style={styles.card}>
               {replyPreview && (
                 <Animated.View
@@ -245,7 +258,8 @@ export function Composer({
                   style={[Type.body, styles.input, { color: theme.label }]}
                 />
               </View>
-            </Glass>
+              </Glass>
+            </View>
           </Animated.View>
           <Pressable
             accessibilityRole="button"
@@ -274,55 +288,48 @@ export function Composer({
             />
           </Pressable>
         </View>
-        {menuOpen && (
-          <Animated.View
-            entering={FadeIn.duration(160).easing(EASE_OUT.factory())}
-            exiting={FadeOut.duration(120)}
-            style={styles.menu}
-          >
-            <Glass style={styles.menuCard}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Choose from photo library"
-                onPress={choosePhoto}
-                style={({ pressed }) => [
-                  styles.item,
-                  { backgroundColor: pressed ? theme.chip : "transparent" },
-                ]}
-              >
-                <View
-                  style={[styles.itemIcon, { backgroundColor: theme.chip }]}
-                >
-                  <SFIcon name="photo" size={18} color={theme.label} />
-                </View>
-                <Text style={[Type.body, { color: theme.label }]}>
-                  Photo Library
-                </Text>
-              </Pressable>
-              {isGroup && (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Create a poll"
-                  onPress={() => {
-                    setMenuOpen(false);
-                    onCreatePoll();
-                  }}
-                  style={({ pressed }) => [
-                    styles.item,
-                    { backgroundColor: pressed ? theme.chip : "transparent" },
-                  ]}
-                >
-                  <View
-                    style={[styles.itemIcon, { backgroundColor: theme.chip }]}
-                  >
-                    <SFIcon name="chart.bar" size={18} color={theme.label} />
-                  </View>
-                  <Text style={[Type.body, { color: theme.label }]}>Poll</Text>
-                </Pressable>
-              )}
-            </Glass>
-          </Animated.View>
-        )}
+        {/*
+          Attachment menu as the same native glass menu as the chat header's
+          •••: identical open animation and blur. Anchored to the whole pill
+          with placement="below" — the composer sits at the screen bottom, so
+          the native layout flips it above the pill with an 8px gap, never
+          overlapping the input.
+        */}
+        <AndroidGlassMenu
+          visible={menuOpen}
+          anchorRef={menuAnchorRef}
+          placement="below"
+          items={[
+            {
+              id: "photo",
+              title: "Photo Library",
+              icon: <SFIcon name="photo" size={19} color={theme.label} />,
+            },
+            ...(isGroup
+              ? [
+                  {
+                    id: "poll",
+                    title: "Poll",
+                    icon: (
+                      <SFIcon
+                        name="chart.bar"
+                        size={19}
+                        color={theme.label}
+                      />
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+          onSelect={(id) => {
+            if (id === "photo") choosePhoto();
+            else if (id === "poll") {
+              setMenuOpen(false);
+              onCreatePoll();
+            }
+          }}
+          onDismiss={() => setMenuOpen(false)}
+        />
         {scheduleOpen && (
           <Animated.View
             entering={FadeIn.duration(160).easing(EASE_OUT.factory())}
@@ -439,6 +446,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+  },
+  /** Fills the lift container so the menu anchor measures the whole pill. */
+  menuAnchor: {
+    flex: 1,
   },
   inputRow: {
     flexDirection: "row",
