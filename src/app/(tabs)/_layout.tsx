@@ -42,7 +42,10 @@ function GlassTabBar({ state, navigation }: TabBarProps) {
       accentColor={ACCENT}
       // Pure floating glass: no fill color, no drop shadow — only the
       // native refraction, blur and rim highlight define the capsule.
+      // fallbackColor transparent: on old Androids without RenderEffect the
+      // library would otherwise paint a flat 70%-white capsule.
       shadow={false}
+      fallbackColor="transparent"
       blurRadius={30}
       refractionHeight={9}
       refractionAmount={16}

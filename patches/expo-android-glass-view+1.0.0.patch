@@ -1,0 +1,14 @@
+diff --git a/node_modules/expo-android-glass-view/android/src/main/java/expo/modules/androidglassview/AndroidGlassBottomTabs.kt b/node_modules/expo-android-glass-view/android/src/main/java/expo/modules/androidglassview/AndroidGlassBottomTabs.kt
+index 89b7c2e..1aae789 100644
+--- a/node_modules/expo-android-glass-view/android/src/main/java/expo/modules/androidglassview/AndroidGlassBottomTabs.kt
++++ b/node_modules/expo-android-glass-view/android/src/main/java/expo/modules/androidglassview/AndroidGlassBottomTabs.kt
+@@ -28,7 +28,8 @@ import expo.modules.kotlin.viewevent.EventDispatcher
+ class AndroidGlassBottomTabs(context: Context, appContext: AppContext) : GlassHostView(context, appContext) {
+ 
+   override val drawsReactChildrenInCompose: Boolean = true
+-  internal val glassState = GlassState().apply { cornerRadius = 999f }
++  internal val glassState = GlassState().apply { cornerRadius = 999f; themed = false }
++  // TwoLink: pure-glass tab bar — no iOS material brightening wash. Matches AndroidGlassView.
+ 
+   override val claimsHorizontalDrags: Boolean = true
+ 
