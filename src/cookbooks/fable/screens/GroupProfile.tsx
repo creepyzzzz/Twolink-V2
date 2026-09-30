@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PhotoViewer } from "../components/thread/photo-viewer";
+import { DisappearingRow } from "../components/profile/disappearing-row";
 import { GroupAvatar } from "../components/chats/group-row";
 import { Avatar } from "../components/ui/avatar";
 import { Glass } from "../components/ui/glass";
@@ -83,6 +84,8 @@ function ProfileScreen({ id }: { id: string }) {
             />
           </View>
         </Glass>
+
+        <DisappearingRow threadId={id} />
 
         <Text style={[Type.caption, styles.section, { color: theme.secondary }]}>
           Members

@@ -10,12 +10,18 @@ import { useFable } from "../../cookbooks/fable/data/store";
 /**
  * Sends due scheduled messages wherever the user is in the app: once on
  * mount, then every 15 seconds. The queue itself is persisted, so messages
- * scheduled before a restart still send.
+ * scheduled before a restart still send. Expired disappearing messages are
+ * swept on the same tick.
  */
 function ScheduledFlusher() {
   useEffect(() => {
-    useFable.getState().flushScheduled();
-    const t = setInterval(() => useFable.getState().flushScheduled(), 15000);
+    const tick = () => {
+      const state = useFable.getState();
+      state.flushScheduled();
+      state.sweepExpired();
+    };
+    tick();
+    const t = setInterval(tick, 15000);
     return () => clearInterval(t);
   }, []);
   return null;

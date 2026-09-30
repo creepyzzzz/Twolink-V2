@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PhotoViewer } from "../components/thread/photo-viewer";
+import { DisappearingRow } from "../components/profile/disappearing-row";
 import { Avatar } from "../components/ui/avatar";
 import { SharedLinks } from "../components/ui/shared-links";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
@@ -82,6 +83,8 @@ function ProfileScreen({ id }: { id: string }) {
             />
           </View>
         </View>
+
+        <DisappearingRow threadId={id} />
 
         <Text style={[Type.caption, styles.section, { color: theme.secondary }]}>
           Shared Photos

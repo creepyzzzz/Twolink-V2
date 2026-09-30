@@ -318,3 +318,114 @@ test("scheduled: presets and labels", () => {
   assert.match(scheduledLabel(now + 3600_000), /Today/);
   assert.match(scheduledLabel(now + 86400_000), /Tomorrow/);
 });
+
+test("disappearing: WhatsApp-style presets and timer set/clear", () => {
+  const { DISAPPEARING_OPTIONS } = load(
+    path.join(root, "src/cookbooks/fable/data/store.ts"),
+  );
+  assert.deepEqual(
+    DISAPPEARING_OPTIONS.map((o) => o.label),
+    ["Off", "24 hours", "7 days", "90 days"],
+  );
+  const s = () => fable.getState();
+  s().reset();
+  s().setDisappearing("mara", 86_400_000);
+  assert.equal(s().disappearing["mara"], 86_400_000);
+  s().setDisappearing("mara", 0);
+  assert.equal(s().disappearing["mara"], undefined);
+  s().reset();
+});
+
+test("disappearing: new messages carry expiresAt only while the timer is on", () => {
+  const s = () => fable.getState();
+  s().reset();
+  const clock = Date.now;
+  try {
+    Date.now = () => 1_000_000;
+    s().append("mara", "kept forever");
+    assert.equal(s().threads["mara"].at(-1).expiresAt, undefined);
+    s().setDisappearing("mara", 86_400_000);
+    s().append("mara", "ephemeral hello");
+    const last = s().threads["mara"].at(-1);
+    assert.equal(last.expiresAt, 1_000_000 + 86_400_000);
+  } finally {
+    Date.now = clock;
+  }
+  s().reset();
+});
+
+test("disappearing: sweepExpired removes only expired messages", () => {
+  const s = () => fable.getState();
+  s().reset();
+  const clock = Date.now;
+  try {
+    Date.now = () => 1_000_000;
+    s().setDisappearing("mara", 86_400_000);
+    s().append("mara", "ephemeral hello");
+    const gone = s().threads["mara"].at(-1);
+    const seedCount = s().threads["mara"].length - 1;
+    // Before expiry the sweep keeps everything.
+    Date.now = () => 1_000_000 + 86_400_000 - 1;
+    s().sweepExpired();
+    assert.ok(s().threads["mara"].some((m) => m.id === gone.id));
+    // Past expiry the message is gone but the seed history survives.
+    Date.now = () => 1_000_000 + 86_400_000 + 1;
+    s().sweepExpired();
+    assert.ok(!s().threads["mara"].some((m) => m.id === gone.id));
+    assert.equal(s().threads["mara"].length, seedCount);
+  } finally {
+    Date.now = clock;
+  }
+  s().reset();
+});
+
+test("disappearing: sweepExpired repairs lastRead markers", () => {
+  const s = () => fable.getState();
+  s().reset();
+  const clock = Date.now;
+  try {
+    Date.now = () => 2_000_000;
+    s().setDisappearing("mara", 1000);
+    s().append("mara", "gone soon");
+    const goneId = s().threads["mara"].at(-1).id;
+    s().markRead("mara");
+    assert.equal(s().lastRead["mara"], goneId);
+    Date.now = () => 2_000_001;
+    s().sweepExpired();
+    const after = s().threads["mara"];
+    assert.ok(after.length > 0);
+    assert.equal(s().lastRead["mara"], after.at(-1).id);
+  } finally {
+    Date.now = clock;
+  }
+  s().reset();
+});
+
+test("disappearing: deleteThread and reset clear the timer", () => {
+  const s = () => fable.getState();
+  s().reset();
+  s().setDisappearing("mara", 86_400_000);
+  s().deleteThread("mara");
+  assert.equal(s().disappearing["mara"], undefined);
+  s().setDisappearing("mara", 86_400_000);
+  s().reset();
+  assert.deepEqual(s().disappearing, {});
+});
+
+test("app lock: PIN set/unlock round-trips in memory", () => {
+  const s = () => fable.getState();
+  s().reset();
+  assert.equal(s().appPin, null);
+  s().setAppPin("1234");
+  assert.equal(s().appPin, "1234");
+  assert.equal(s().appUnlocked, false);
+  s().setAppUnlocked(true);
+  assert.equal(s().appUnlocked, true);
+  // Backgrounding re-locks.
+  s().setAppUnlocked(false);
+  assert.equal(s().appUnlocked, false);
+  s().setAppPin(null);
+  assert.equal(s().appPin, null);
+  s().setAppUnlocked(true);
+  s().reset();
+});
