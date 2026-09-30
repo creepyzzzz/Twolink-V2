@@ -3,15 +3,15 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { createMMKV } from "react-native-mmkv";
 
 export const portraits = [
-  require("../../../assets/cookbooks/astra/portraits/0.png"),
-  require("../../../assets/cookbooks/astra/portraits/1.png"),
-  require("../../../assets/cookbooks/astra/portraits/2.png"),
-  require("../../../assets/cookbooks/astra/portraits/3.png"),
-  require("../../../assets/cookbooks/astra/portraits/4.png"),
-  require("../../../assets/cookbooks/astra/portraits/5.png"),
-  require("../../../assets/cookbooks/astra/portraits/6.png"),
-  require("../../../assets/cookbooks/astra/portraits/7.png"),
-  require("../../../assets/cookbooks/astra/portraits/8.png"),
+  require("../../../assets/cookbooks/astra/portraits/0.webp"),
+  require("../../../assets/cookbooks/astra/portraits/1.webp"),
+  require("../../../assets/cookbooks/astra/portraits/2.webp"),
+  require("../../../assets/cookbooks/astra/portraits/3.webp"),
+  require("../../../assets/cookbooks/astra/portraits/4.webp"),
+  require("../../../assets/cookbooks/astra/portraits/5.webp"),
+  require("../../../assets/cookbooks/astra/portraits/6.webp"),
+  require("../../../assets/cookbooks/astra/portraits/7.webp"),
+  require("../../../assets/cookbooks/astra/portraits/8.webp"),
 ];
 export const coast = require("../../../assets/cookbooks/astra/photos/coast.png");
 export type Person = {
