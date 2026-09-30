@@ -167,8 +167,30 @@ type State = {
   ) => void;
   deleteThread: (id: string) => void;
   setDraft: (id: string, text: string) => void;
+  /** Disappearing-message lifetime per thread, in ms (absent = off). */
+  disappearing: Record<string, number>;
+  setDisappearing: (id: string, ms: number) => void;
+  /** App lock PIN (null = not set). Persisted; the unlocked flag is not. */
+  appPin: string | null;
+  setAppPin: (pin: string | null) => void;
+  /** In-memory only: whether the app lock is currently unlocked. */
+  appUnlocked: boolean;
+  setAppUnlocked: (unlocked: boolean) => void;
+  /** Whether the welcome onboarding has been completed. */
+  onboarded: boolean;
+  setOnboarded: (done: boolean) => void;
+  /** Deletes messages whose expiry passed; repairs lastRead markers. */
+  sweepExpired: () => void;
   reset: () => void;
 };
+/** WhatsApp-style disappearing-message presets (label + lifetime ms). */
+export const DAY_MS = 86_400_000;
+export const DISAPPEARING_OPTIONS = [
+  { label: "Off", ms: 0 },
+  { label: "24 hours", ms: DAY_MS },
+  { label: "7 days", ms: 7 * DAY_MS },
+  { label: "90 days", ms: 90 * DAY_MS },
+] as const;
 /** Full message list for a thread: stored overrides, else the mock seed. */
 function threadMessages(
   state: Pick<State, "threads">,
@@ -207,6 +229,43 @@ export const useFable = create<State>()(
       deleted: [],
       myStories: [],
       groups: {},
+      disappearing: {},
+      setDisappearing: (id, ms) =>
+        set((state) => {
+          const disappearing = { ...state.disappearing };
+          if (ms > 0) disappearing[id] = ms;
+          else delete disappearing[id];
+          return { disappearing };
+        }),
+      appPin: null,
+      setAppPin: (pin) => set({ appPin: pin }),
+      appUnlocked: false,
+      setAppUnlocked: (unlocked) => set({ appUnlocked: unlocked }),
+      onboarded: false,
+      setOnboarded: (done) => set({ onboarded: done }),
+      sweepExpired: () => {
+        const now = Date.now();
+        set((state) => {
+          let changed = false;
+          const threads: Record<string, Message[]> = { ...state.threads };
+          const lastRead = { ...state.lastRead };
+          for (const id of Object.keys(threads)) {
+            const kept = threads[id].filter(
+              (m) => !(m.expiresAt != null && m.expiresAt <= now),
+            );
+            if (kept.length === threads[id].length) continue;
+            changed = true;
+            threads[id] = kept;
+            const marker = lastRead[id];
+            if (marker && !kept.some((m) => m.id === marker)) {
+              const fallback = kept.at(-1);
+              if (fallback) lastRead[id] = fallback.id;
+              else delete lastRead[id];
+            }
+          }
+          return changed ? { threads, lastRead } : state;
+        });
+      },
       postStory: (uri) =>
         set((state) => ({
           myStories: [{ uri, at: Date.now() }, ...state.myStories],
@@ -246,6 +305,7 @@ export const useFable = create<State>()(
         const person = PEOPLE_BY_ID[id];
         const group = getGroup(get().groups, id);
         if ((!person && !group) || (!photo && !text.trim())) return;
+        const lifetime = get().disappearing[id] ?? 0;
         const message: Message = {
           id: `local-${Date.now()}-${++sequence}`,
           from,
@@ -255,6 +315,7 @@ export const useFable = create<State>()(
           ...(opts?.photoUri ? { photoUri: opts.photoUri } : {}),
           ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
           ...(opts?.senderId ? { senderId: opts.senderId } : {}),
+          ...(lifetime > 0 ? { expiresAt: Date.now() + lifetime } : {}),
         };
         set((state) => ({
           threads: {
@@ -364,11 +425,13 @@ export const useFable = create<State>()(
           .slice(0, 5);
         if (clean.length < 2 || !question.trim()) return "";
         const messageId = `local-${Date.now()}-${++sequence}`;
+        const lifetime = get().disappearing[id] ?? 0;
         const message: Message = {
           id: messageId,
           from: "me",
           text: question.trim(),
           at: "now",
+          ...(lifetime > 0 ? { expiresAt: Date.now() + lifetime } : {}),
           poll: {
             question: question.trim(),
             options: clean.map((text, i) => ({
@@ -423,11 +486,14 @@ export const useFable = create<State>()(
           delete muted[id];
           const lastRead = { ...state.lastRead };
           delete lastRead[id];
+          const disappearing = { ...state.disappearing };
+          delete disappearing[id];
           return {
             threads,
             drafts,
             muted,
             lastRead,
+            disappearing,
             pinned: state.pinned.filter((p) => p !== id),
             scheduled: state.scheduled.filter((m) => m.threadId !== id),
             deleted: state.deleted.includes(id)
@@ -497,11 +563,13 @@ export const useFable = create<State>()(
             const person = PEOPLE_BY_ID[m.threadId];
             const group = getGroup(state.groups, m.threadId);
             if (!person && !group) continue;
+            const lifetime = state.disappearing[m.threadId] ?? 0;
             const message: Message = {
               id: `local-${Date.now()}-${++sequence}`,
               from: "me",
               text: m.text,
               at: "now",
+              ...(lifetime > 0 ? { expiresAt: Date.now() + lifetime } : {}),
               ...(m.replyTo ? { replyTo: m.replyTo } : {}),
             };
             threads[m.threadId] = [
@@ -531,6 +599,7 @@ export const useFable = create<State>()(
           pendingWallpaper: null,
           alert: null,
           scheduled: [],
+          disappearing: {},
         }),
     }),
     {
@@ -540,6 +609,12 @@ export const useFable = create<State>()(
         setItem: (key, value) => storage.set(key, value),
         removeItem: (key) => storage.remove(key),
       })),
+      // The app-lock unlocked flag is in-memory only: a fresh launch
+      // always starts locked when a PIN exists.
+      partialize: (state) => {
+        const { appUnlocked, ...persisted } = state;
+        return persisted;
+      },
     },
   ),
 );

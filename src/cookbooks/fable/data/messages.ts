@@ -36,6 +36,11 @@ export type Message = {
   reactions?: string[];
   /** Group poll attached to this message. */
   poll?: Poll;
+  /**
+   * Epoch ms when a disappearing message expires. Only set on messages
+   * sent after the thread's timer was enabled.
+   */
+  expiresAt?: number;
 };
 
 const mara: Message[] = [
