@@ -179,6 +179,7 @@ function ThreadScreen({ id }: { id: string }) {
           contentInsetAdjustmentBehavior="never"
           showsVerticalScrollIndicator={false}
           onContentSizeChange={positionInitially}
+          onScrollBeginDrag={() => setReaction(null)}
           contentContainerStyle={[
             styles.content,
             { paddingBottom: composerHeight + Space[2] },
@@ -200,6 +201,7 @@ function ThreadScreen({ id }: { id: string }) {
                 first={first}
                 animate={animate}
                 onReact={onReact}
+                reacting={reaction?.message.id === msg.id}
               />
             </View>
           ))}

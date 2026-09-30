@@ -1,9 +1,11 @@
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { memo, useCallback, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
@@ -47,7 +49,11 @@ type Props = {
   first: boolean; // first bubble of a run gets the wider gap
   animate: boolean; // only messages that arrive after mount animate in
   onReact: (message: Message, target: ReactionTarget) => void;
+  /** True while this message's reaction bar is open — the bubble stays pressed down. */
+  reacting: boolean;
 };
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const Bubble = memo(function Bubble({
   message,
@@ -56,6 +62,7 @@ export const Bubble = memo(function Bubble({
   first,
   animate,
   onReact,
+  reacting,
 }: Props) {
   const theme = useTheme();
   const scheme = useScheme();
@@ -63,6 +70,16 @@ export const Bubble = memo(function Bubble({
   const bubbleRef = useRef<View>(null);
   const onReactRef = useRef(onReact);
   onReactRef.current = onReact;
+
+  // iMessage-style press-down: the bubble depresses on a soft spring while
+  // the reaction bar is open, then settles back when it closes.
+  const depress = useSharedValue(1);
+  const depressStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: depress.value }],
+  }));
+  useEffect(() => {
+    depress.value = withSpring(reacting ? 0.93 : 1, SOFT);
+  }, [reacting, depress]);
 
   // Long-press anywhere on the bubble (text, photo, or badge) lifts the
   // iOS-style reaction bar. Text is not selectable so the gesture is reliable.
@@ -109,7 +126,7 @@ export const Bubble = memo(function Bubble({
         </View>
       )}
       {message.photo ? (
-        <View ref={bubbleRef} style={styles.photoWrap}>
+        <Animated.View ref={bubbleRef} style={[styles.photoWrap, depressStyle]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Open shared photo"
@@ -130,9 +147,9 @@ export const Bubble = memo(function Bubble({
             />
           </Pressable>
           {badge}
-        </View>
+        </Animated.View>
       ) : mine ? (
-        <Pressable
+        <AnimatedPressable
           ref={bubbleRef}
           onLongPress={handleLongPress}
           delayLongPress={350}
@@ -140,15 +157,16 @@ export const Bubble = memo(function Bubble({
             styles.bubble,
             styles.mine,
             { backgroundColor: theme.outgoing },
+            depressStyle,
           ]}
         >
           <Text style={[Type.body, { color: theme.outgoingText }]}>
             {message.text}
           </Text>
           {badge}
-        </Pressable>
+        </AnimatedPressable>
       ) : (
-        <Pressable
+        <AnimatedPressable
           ref={bubbleRef}
           onLongPress={handleLongPress}
           delayLongPress={350}
@@ -162,13 +180,14 @@ export const Bubble = memo(function Bubble({
                   ? undefined
                   : "0 4px 18px rgba(16, 16, 18, 0.05)",
             },
+            depressStyle,
           ]}
         >
           <Text style={[Type.body, { color: theme.incomingText }]}>
             {message.text}
           </Text>
           {badge}
-        </Pressable>
+        </AnimatedPressable>
       )}
     </Animated.View>
   );

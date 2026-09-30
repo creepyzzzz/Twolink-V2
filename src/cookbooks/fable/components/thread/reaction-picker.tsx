@@ -2,7 +2,8 @@ import { memo } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { ZoomIn } from "react-native-reanimated";
 
-import { Radius, Space } from "../../constants/theme";
+import { Glass } from "../ui/glass";
+import { Space } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
 
 /** iMessage-style quick tapbacks. */
@@ -27,9 +28,10 @@ type Props = {
 };
 
 /**
- * Floating reaction bar. Rendered at the conversation root (above the panel,
- * which clips overflow) and positioned from the bubble's window rect.
- * Idle UI is untouched — this only exists while a finger is choosing.
+ * Floating reaction bar in the same liquid glass as the chat input box.
+ * Rendered at the conversation root (above the panel, which clips overflow)
+ * and positioned from the bubble's window rect. Idle UI is untouched —
+ * this only exists while a finger is choosing.
  */
 export const ReactionOverlay = memo(function ReactionOverlay({
   target,
@@ -40,7 +42,10 @@ export const ReactionOverlay = memo(function ReactionOverlay({
   const theme = useTheme();
   const screenW = Dimensions.get("window").width;
   const centerX = target.x + target.width / 2;
-  const left = Math.min(Math.max(Space[3], centerX - PILL_W / 2), screenW - PILL_W - Space[3]);
+  const left = Math.min(
+    Math.max(Space[3], centerX - PILL_W / 2),
+    screenW - PILL_W - Space[3],
+  );
   const top = Math.max(Space[3], target.y - PILL_H - 10);
 
   return (
@@ -49,48 +54,47 @@ export const ReactionOverlay = memo(function ReactionOverlay({
         accessibilityRole="button"
         accessibilityLabel="Dismiss reactions"
         onPress={onClose}
-        style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(10,10,12,0.22)" }]}
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: "rgba(10,10,12,0.22)" },
+        ]}
       />
       <Animated.View
         entering={ZoomIn.duration(160)}
-        style={[
-          styles.pill,
-          {
-            top,
-            left,
-            width: PILL_W,
-            backgroundColor: theme.surface,
-            boxShadow: "0 10px 32px rgba(16, 16, 18, 0.18)",
-          },
-        ]}
+        style={[styles.position, { top, left, boxShadow: theme.lift }]}
       >
-        {REACTION_EMOJIS.map((emoji) => {
-          const active = selected.includes(emoji);
-          return (
-            <Pressable
-              key={emoji}
-              accessibilityRole="button"
-              accessibilityLabel={`React with ${emoji}`}
-              onPress={() => onPick(emoji)}
-              style={[
-                styles.emojiBtn,
-                active && { backgroundColor: theme.chip },
-              ]}
-            >
-              <Text style={styles.emoji}>{emoji}</Text>
-            </Pressable>
-          );
-        })}
+        <Glass style={styles.pill}>
+          {REACTION_EMOJIS.map((emoji) => {
+            const active = selected.includes(emoji);
+            return (
+              <Pressable
+                key={emoji}
+                accessibilityRole="button"
+                accessibilityLabel={`React with ${emoji}`}
+                onPress={() => onPick(emoji)}
+                style={[
+                  styles.emojiBtn,
+                  active && { backgroundColor: theme.chip },
+                ]}
+              >
+                <Text style={styles.emoji}>{emoji}</Text>
+              </Pressable>
+            );
+          })}
+        </Glass>
       </Animated.View>
     </View>
   );
 });
 
 const styles = StyleSheet.create({
-  pill: {
+  position: {
     position: "absolute",
+    width: PILL_W,
+  },
+  pill: {
     height: PILL_H,
-    borderRadius: Radius.bubble,
+    borderRadius: PILL_H / 2,
     borderCurve: "continuous",
     flexDirection: "row",
     alignItems: "center",
