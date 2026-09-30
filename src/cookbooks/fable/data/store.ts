@@ -18,6 +18,7 @@ type State = {
   ) => void;
   markRead: (id: string) => void;
   setTheme: (theme: State["theme"]) => void;
+  toggleReaction: (id: string, messageId: string, emoji: string) => void;
   reset: () => void;
 };
 export const useFable = create<State>()(
@@ -48,6 +49,26 @@ export const useFable = create<State>()(
       markRead: (id) => {
         if (!get().read.includes(id))
           set((state) => ({ read: [...state.read, id] }));
+      },
+      toggleReaction: (id, messageId, emoji) => {
+        const person = PEOPLE_BY_ID[id];
+        if (!person) return;
+        set((state) => ({
+          threads: {
+            ...state.threads,
+            [id]: (state.threads[id] ?? messagesFor(id, person.first)).map(
+              (m) =>
+                m.id === messageId
+                  ? {
+                      ...m,
+                      reactions: (m.reactions ?? []).includes(emoji)
+                        ? (m.reactions ?? []).filter((e) => e !== emoji)
+                        : [...(m.reactions ?? []), emoji],
+                    }
+                  : m,
+            ),
+          },
+        }));
       },
       setTheme: (theme) => set({ theme }),
       reset: () => set({ threads: {}, read: [] }),

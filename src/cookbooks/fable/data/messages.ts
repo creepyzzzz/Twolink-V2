@@ -4,6 +4,8 @@ export type Message = {
   text: string;
   at: string;
   photo?: boolean;
+  /** Emoji tapbacks on this message (long-press to add/remove). */
+  reactions?: string[];
 };
 
 const mara: Message[] = [

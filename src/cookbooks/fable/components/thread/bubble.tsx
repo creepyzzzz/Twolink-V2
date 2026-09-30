@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { memo } from "react";
+import { memo, useCallback, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeInDown,
@@ -14,6 +14,7 @@ import { Ink, Radius, Space, Type } from "../../constants/theme";
 import type { Message } from "../../data/messages";
 import type { Person } from "../../data/people";
 import { useScheme, useTheme } from "../../hooks/use-theme";
+import type { ReactionTarget } from "./reaction-picker";
 
 export const BUBBLE_AVATAR = 26;
 
@@ -45,6 +46,7 @@ type Props = {
   showAvatar: boolean; // last incoming bubble in a run carries the avatar, grouped by sender
   first: boolean; // first bubble of a run gets the wider gap
   animate: boolean; // only messages that arrive after mount animate in
+  onReact: (message: Message, target: ReactionTarget) => void;
 };
 
 export const Bubble = memo(function Bubble({
@@ -53,10 +55,38 @@ export const Bubble = memo(function Bubble({
   showAvatar,
   first,
   animate,
+  onReact,
 }: Props) {
   const theme = useTheme();
   const scheme = useScheme();
   const mine = message.from === "me";
+  const bubbleRef = useRef<View>(null);
+  const onReactRef = useRef(onReact);
+  onReactRef.current = onReact;
+
+  // Long-press anywhere on the bubble (text, photo, or badge) lifts the
+  // iOS-style reaction bar. Text is not selectable so the gesture is reliable.
+  const handleLongPress = useCallback(() => {
+    bubbleRef.current?.measureInWindow((x, y, width) => {
+      if (width > 0) onReactRef.current(message, { x, y, width });
+    });
+  }, [message]);
+
+  const reactions = message.reactions ?? [];
+  const badge = reactions.length > 0 && (
+    <View
+      style={[
+        styles.badge,
+        mine ? styles.badgeMine : styles.badgeTheirs,
+        {
+          backgroundColor: theme.surface,
+          boxShadow: "0 2px 10px rgba(16, 16, 18, 0.14)",
+        },
+      ]}
+    >
+      <Text style={styles.badgeText}>{reactions.join(" ")}</Text>
+    </View>
+  );
 
   return (
     <Animated.View
@@ -79,35 +109,49 @@ export const Bubble = memo(function Bubble({
         </View>
       )}
       {message.photo ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open shared photo"
-          onPress={() =>
-            router.push({ pathname: "/fable/photo", params: { id: person.id } })
-          }
-          style={{
-            width: "72%",
-            aspectRatio: 0.9,
-            borderRadius: 26,
-            overflow: "hidden",
-          }}
-        >
-          <Image source={person.story} style={{ flex: 1 }} contentFit="cover" />
-        </Pressable>
+        <View ref={bubbleRef} style={styles.photoWrap}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open shared photo"
+            onPress={() =>
+              router.push({
+                pathname: "/fable/photo",
+                params: { id: person.id },
+              })
+            }
+            onLongPress={handleLongPress}
+            delayLongPress={350}
+            style={styles.photo}
+          >
+            <Image
+              source={person.story}
+              style={{ flex: 1 }}
+              contentFit="cover"
+            />
+          </Pressable>
+          {badge}
+        </View>
       ) : mine ? (
-        <View
+        <Pressable
+          ref={bubbleRef}
+          onLongPress={handleLongPress}
+          delayLongPress={350}
           style={[
             styles.bubble,
             styles.mine,
             { backgroundColor: theme.outgoing },
           ]}
         >
-          <Text selectable style={[Type.body, { color: theme.outgoingText }]}>
+          <Text style={[Type.body, { color: theme.outgoingText }]}>
             {message.text}
           </Text>
-        </View>
+          {badge}
+        </Pressable>
       ) : (
-        <View
+        <Pressable
+          ref={bubbleRef}
+          onLongPress={handleLongPress}
+          delayLongPress={350}
           style={[
             styles.bubble,
             styles.theirs,
@@ -120,10 +164,11 @@ export const Bubble = memo(function Bubble({
             },
           ]}
         >
-          <Text selectable style={[Type.body, { color: theme.incomingText }]}>
+          <Text style={[Type.body, { color: theme.incomingText }]}>
             {message.text}
           </Text>
-        </View>
+          {badge}
+        </Pressable>
       )}
     </Animated.View>
   );
@@ -148,6 +193,15 @@ const styles = StyleSheet.create({
     width: BUBBLE_AVATAR,
     height: BUBBLE_AVATAR,
   },
+  photoWrap: {
+    width: "72%",
+    aspectRatio: 0.9,
+  },
+  photo: {
+    flex: 1,
+    borderRadius: 26,
+    overflow: "hidden",
+  },
   bubble: {
     maxWidth: "74%",
     borderRadius: Radius.bubble,
@@ -160,5 +214,23 @@ const styles = StyleSheet.create({
   theirs: {
     paddingHorizontal: 18,
     paddingVertical: 15,
+  },
+  badge: {
+    position: "absolute",
+    bottom: -13,
+    borderRadius: 14,
+    borderCurve: "continuous",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  badgeMine: {
+    right: 14,
+  },
+  badgeTheirs: {
+    left: 14,
+  },
+  badgeText: {
+    fontSize: 14,
+    lineHeight: 18,
   },
 });

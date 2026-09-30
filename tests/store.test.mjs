@@ -109,6 +109,23 @@ test("Astra: reacting twice restores a sample message without mutating the sampl
   assert.equal(astra.getState().threads.mira[0].heart, false);
   assert.equal(JSON.stringify(initialMessages("mira")), original);
 });
+test("Fable: toggling a reaction adds/removes it without mutating the sample", () => {
+  const { messagesFor } = load(
+    path.join(root, "src/cookbooks/fable/data/messages.ts"),
+  );
+  fable.getState().reset();
+  const original = JSON.stringify(messagesFor("mara", "Mara"));
+  const firstId = messagesFor("mara", "Mara")[0].id;
+  fable.getState().toggleReaction("mara", firstId, "❤️");
+  assert.deepEqual(fable.getState().threads.mara[0].reactions, ["❤️"]);
+  fable.getState().toggleReaction("mara", firstId, "👍");
+  assert.deepEqual(fable.getState().threads.mara[0].reactions, ["❤️", "👍"]);
+  fable.getState().toggleReaction("mara", firstId, "❤️");
+  assert.deepEqual(fable.getState().threads.mara[0].reactions, ["👍"]);
+  assert.equal(JSON.stringify(messagesFor("mara", "Mara")), original);
+  fable.getState().toggleReaction("missing", "x", "❤️");
+  assert.equal(fable.getState().threads.missing, undefined);
+});
 test("Astra: unknown initial messages are empty and mute toggles independently", () => {
   assert.deepEqual(initialMessages("missing"), []);
   astra.getState().toggleMute("mira");

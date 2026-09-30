@@ -15,10 +15,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Bubble } from "../components/thread/bubble";
 import { Composer } from "../components/thread/composer";
+import {
+  ReactionOverlay,
+  type ReactionTarget,
+} from "../components/thread/reaction-picker";
 import { THREAD_NAV_H, ThreadHeader } from "../components/thread/thread-header";
 import { TypingBubble } from "../components/thread/typing";
 import { Radius, Space, Type } from "../constants/theme";
-import { REPLIES, messagesFor } from "../data/messages";
+import { REPLIES, messagesFor, type Message } from "../data/messages";
 import { PEOPLE_BY_ID } from "../data/people";
 import { useTheme } from "../hooks/use-theme";
 
@@ -50,6 +54,11 @@ function ThreadScreen({ id }: { id: string }) {
   }, [id]);
   const [typing, setTyping] = useState(false);
   const [mountedCount] = useState(messages.length);
+  // Long-press reaction target: { message, bubble window rect }.
+  const [reaction, setReaction] = useState<{
+    message: Message;
+    target: ReactionTarget;
+  } | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const positioned = useRef(false);
   const initialFrame = useRef<number | null>(null);
@@ -85,6 +94,21 @@ function ThreadScreen({ id }: { id: string }) {
     );
     timers.current.push(t);
   }, [listRef]);
+
+  const onReact = useCallback(
+    (message: Message, target: ReactionTarget) =>
+      setReaction({ message, target }),
+    [],
+  );
+
+  const onPickReaction = useCallback(
+    (emoji: string) => {
+      if (reaction)
+        useFable.getState().toggleReaction(id, reaction.message.id, emoji);
+      setReaction(null);
+    },
+    [id, reaction],
+  );
 
   const onSend = useCallback(
     (text: string, photo = false) => {
@@ -175,6 +199,7 @@ function ThreadScreen({ id }: { id: string }) {
                 showAvatar={showAvatar}
                 first={first}
                 animate={animate}
+                onReact={onReact}
               />
             </View>
           ))}
@@ -188,6 +213,15 @@ function ThreadScreen({ id }: { id: string }) {
         onAttach={() => onSend("A moment worth sharing.", true)}
         onLayoutHeight={setComposerHeight}
       />
+
+      {reaction && (
+        <ReactionOverlay
+          target={reaction.target}
+          selected={reaction.message.reactions ?? []}
+          onPick={onPickReaction}
+          onClose={() => setReaction(null)}
+        />
+      )}
     </View>
   );
 }
