@@ -15,7 +15,6 @@ import { PhotoViewer } from "../components/thread/photo-viewer";
 import { DisappearingRow } from "../components/profile/disappearing-row";
 import { GroupAvatar } from "../components/chats/group-row";
 import { Avatar } from "../components/ui/avatar";
-import { Glass } from "../components/ui/glass";
 import { SharedLinks } from "../components/ui/shared-links";
 import { SharedDocuments } from "../components/ui/shared-documents";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
@@ -74,7 +73,7 @@ function ProfileScreen({ id }: { id: string }) {
           {group.memberIds.length === 1 ? "" : "s"}
         </Text>
 
-        <Glass style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
           <View style={styles.row}>
             <Text style={[Type.body, { color: theme.label }]}>Mute</Text>
             <AndroidGlassToggle
@@ -84,14 +83,23 @@ function ProfileScreen({ id }: { id: string }) {
               accentColor={Accent}
             />
           </View>
-        </Glass>
+        </View>
 
         <DisappearingRow threadId={id} />
 
         <Text style={[Type.caption, styles.section, { color: theme.secondary }]}>
           Members
         </Text>
-        <Glass style={[styles.card, { marginTop: 0, paddingVertical: Space[2] }]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: theme.surface,
+              marginTop: 0,
+              paddingVertical: Space[2],
+            },
+          ]}
+        >
           {group.memberIds.map((memberId) => {
             const person = PEOPLE_BY_ID[memberId];
             if (!person) return null;
@@ -115,7 +123,7 @@ function ProfileScreen({ id }: { id: string }) {
               </Pressable>
             );
           })}
-        </Glass>
+        </View>
 
         <Text style={[Type.caption, styles.section, { color: theme.secondary }]}>
           Shared Photos
