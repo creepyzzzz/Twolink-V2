@@ -3,10 +3,10 @@ import type { ReactNode } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
 /**
- * Shared TwoLink backdrop: a soft light gradient with pastel glows.
+ * Shared Poffu backdrop: a soft light gradient with pastel glows.
  * Glass surfaces need busy, luminous content behind them to refract — a
  * flat background makes even real refraction invisible, so every glass
- * screen sits on this. TwoLink is light-theme only.
+ * screen sits on this. Poffu is light-theme only.
  */
 export function ScreenBackground({
   children,

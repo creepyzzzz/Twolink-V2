@@ -284,7 +284,7 @@ export const useFable = create<State>()(
       theme: "system",
       profile: {
         name: "Tariq",
-        about: "Hey there! I'm using TwoLink.",
+        about: "Hey there! I'm using Poffu.",
         face: "me",
       },
       setProfile: (patch) =>

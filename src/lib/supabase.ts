@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Supabase client for TwoLink.
+ * Supabase client for Poffu.
  *
  * Reads EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY from the
  * environment (see .env.example). Nothing in the UI cookbooks imports this
@@ -15,7 +15,7 @@ const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!url || !anonKey) {
   throw new Error(
-    "[TwoLink] Supabase is not configured. Copy .env.example to .env and set " +
+    "[Poffu] Supabase is not configured. Copy .env.example to .env and set " +
       "EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY."
   );
 }

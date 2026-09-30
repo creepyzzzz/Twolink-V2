@@ -19,7 +19,7 @@ import {
 } from "react-native";
 
 /**
- * TwoLink glass abstraction.
+ * Poffu glass abstraction.
  *
  * - iOS 26+ with the liquid-glass APIs available: Apple's native material
  *   through expo-glass-effect (pixel-faithful with the upstream

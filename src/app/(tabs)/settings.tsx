@@ -101,7 +101,7 @@ export default function SettingsScreen() {
             <MyAvatar size={56} />
             <View style={styles.profileText}>
               <Text style={styles.profileName}>{profileName}</Text>
-              <Text style={styles.profileSub}>TwoLink private build</Text>
+              <Text style={styles.profileSub}>Poffu private build</Text>
             </View>
             <SFIcon name="chevron.right" size={20} color={INK_FAINT} />
           </AdaptiveGlassView>
@@ -117,7 +117,7 @@ export default function SettingsScreen() {
             <View style={styles.rowText}>
               <Text style={styles.rowLabel}>App Lock</Text>
               <Text style={styles.rowHint}>
-                Require a PIN to open TwoLink
+                Require a PIN to open Poffu
               </Text>
             </View>
             <View style={styles.linkRight}>

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "TwoLink",
+    "name": "Poffu",
     "slug": "twolink",
     "scheme": "twolink",
     "version": "1.0.0",
@@ -49,7 +49,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow TwoLink to access your photos so you can share them in chats."
+          "photosPermission": "Allow Poffu to access your photos so you can share them in chats."
         }
       ]
     ],

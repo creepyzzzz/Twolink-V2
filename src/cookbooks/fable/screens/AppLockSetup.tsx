@@ -90,7 +90,7 @@ export default function AppLockSetup() {
         {error
           ? "PINs didn't match — try again"
           : step === "create" && appPin
-            ? "You'll use this every time TwoLink opens"
+            ? "You'll use this every time Poffu opens"
             : `${PIN_LENGTH} digits`}
       </Text>
       <PinPad shakeKey={shakeKey} onSubmit={onSubmit} />

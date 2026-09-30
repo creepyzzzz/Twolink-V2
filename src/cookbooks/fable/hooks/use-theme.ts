@@ -1,6 +1,6 @@
 import { Palette, type Scheme, type Theme } from "../constants/theme";
 
-/** TwoLink is light-theme only — no dark variant anywhere in the app. */
+/** Poffu is light-theme only — no dark variant anywhere in the app. */
 export function useScheme(): Scheme {
   return "light";
 }

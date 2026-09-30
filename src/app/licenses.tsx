@@ -102,7 +102,7 @@ export default function LicensesScreen() {
           ))}
         </AdaptiveGlassView>
         <Text style={styles.footnote}>
-          TwoLink v2 is built on these open-source projects. Full license texts
+          Poffu is built on these open-source projects. Full license texts
           ship with their packages.
         </Text>
       </ScrollView>
