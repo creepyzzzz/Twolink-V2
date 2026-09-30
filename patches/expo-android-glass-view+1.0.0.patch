@@ -12,3 +12,43 @@ index 89b7c2e..1aae789 100644
  
    override val claimsHorizontalDrags: Boolean = true
  
+diff --git a/node_modules/expo-android-glass-view/android/src/main/java/expo/modules/androidglassview/components/LiquidBottomTabs.kt b/node_modules/expo-android-glass-view/android/src/main/java/expo/modules/androidglassview/components/LiquidBottomTabs.kt
+index 1ed3839..e2dbcf6 100644
+--- a/node_modules/expo-android-glass-view/android/src/main/java/expo/modules/androidglassview/components/LiquidBottomTabs.kt
++++ b/node_modules/expo-android-glass-view/android/src/main/java/expo/modules/androidglassview/components/LiquidBottomTabs.kt
+@@ -342,15 +342,18 @@ internal fun LiquidBottomTabs(
+                     effects = {
+                         val progress = dampedDragAnimation.pressProgress
+                         val sizeScale = geometry.sizeScale(minimizeAnimation.value)
++                        // TwoLink: the droplet is liquid glass even at rest — a gentle
++                        // resting refraction replaces the solid fill, so the selected
++                        // tab never sits in a solid container. Press deepens it.
+                         lens(
+-                            10f.dp.toPx() * progress * sizeScale,
+-                            14f.dp.toPx() * progress * sizeScale,
++                            (5f.dp.toPx() + 5f.dp.toPx() * progress) * sizeScale,
++                            (7f.dp.toPx() + 7f.dp.toPx() * progress) * sizeScale,
+                             chromaticAberration = true
+                         )
+                     },
+                     highlight = {
+                         val progress = dampedDragAnimation.pressProgress
+-                        Highlight.Default.copy(alpha = progress)
++                        Highlight.Default.copy(alpha = 0.65f + 0.35f * progress)
+                     },
+                     shadow = {
+                         val progress = dampedDragAnimation.pressProgress
+@@ -372,11 +375,8 @@ internal fun LiquidBottomTabs(
+                     },
+                     onDrawSurface = {
+                         val progress = dampedDragAnimation.pressProgress
+-                        drawRect(
+-                            if (isLightTheme) Color.Black.copy(0.1f)
+-                            else Color.White.copy(0.1f),
+-                            alpha = 1f - progress
+-                        )
++                        // TwoLink: no solid resting fill — the droplet stays a pure
++                        // glass capsule. Only the faint press darkening remains.
+                         drawRect(Color.Black.copy(alpha = 0.03f * progress))
+                     }
+                 )
