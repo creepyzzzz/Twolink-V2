@@ -11,8 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SFIcon } from "../../../ui/SFIcon";
 import { Avatar } from "../components/ui/avatar";
-import { Glass } from "../components/ui/glass";
-import { GlassButton } from "../components/ui/glass-button";
+import { MenuCard } from "../components/ui/menu-card";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { PEOPLE } from "../data/people";
 import { getGroup, useFable } from "../data/store";
@@ -79,14 +78,18 @@ function AddMembersScreen({ id }: { id: string }) {
           <Text style={[styles.title, { color: theme.label }]}>
             Add members
           </Text>
-          <GlassButton
-            symbol="xmark"
-            iconSize={15}
-            size={40}
-            tint="#FFFFFF"
+          <Pressable
+            accessibilityRole="button"
             accessibilityLabel="Close add members"
             onPress={() => router.back()}
-          />
+            hitSlop={6}
+          >
+            <MenuCard
+              style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" }}
+            >
+              <SFIcon name="xmark" size={15} color="#FFFFFF" />
+            </MenuCard>
+          </Pressable>
         </View>
 
         <Text style={[Type.caption, { color: theme.secondary }]}>
@@ -95,7 +98,7 @@ function AddMembersScreen({ id }: { id: string }) {
             : `${selected.length} member${selected.length === 1 ? "" : "s"} selected`}
         </Text>
 
-        <Glass
+        <MenuCard
           style={{
             height: 44,
             borderRadius: 22,
@@ -131,7 +134,7 @@ function AddMembersScreen({ id }: { id: string }) {
               />
             </Pressable>
           ) : null}
-        </Glass>
+        </MenuCard>
 
         {filtered.map((person) => {
           const isSelected = selected.includes(person.id);
