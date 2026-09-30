@@ -31,7 +31,7 @@ export const ChatRow = memo(function ChatRow({ chat }: { chat: Chat }) {
       accessibilityRole="button"
       accessibilityLabel={`${person.name}${unread ? ", unread" : ""}. ${preview}`}
       onPress={() =>
-        router.push({ pathname: "/chat/[id]", params: { id: chat.id } })
+        router.push({ pathname: "/fable/chat/[id]", params: { id: chat.id } })
       }
       unstable_pressDelay={90}
       style={({ pressed }) => [

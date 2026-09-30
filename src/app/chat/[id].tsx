@@ -41,11 +41,6 @@ import {
   type Person,
 } from "../../cookbooks/astra/data";
 import {
-  ME as FABLE_ME,
-  PEOPLE as FABLE_PEOPLE,
-} from "../../cookbooks/fable/data/people";
-import { messagesFor as fableMessagesFor } from "../../cookbooks/fable/data/messages";
-import {
   useFlight,
   usePortraitNavigation,
 } from "../../cookbooks/astra/flight";
@@ -65,34 +60,13 @@ const REPLIES = [
   "Deal. Saturday then?",
 ];
 
+const portraitUri = (person: Person) =>
+  RNImage.resolveAssetSource(portraits[person.avatar]).uri;
 const coastUri = RNImage.resolveAssetSource(coast).uri;
-
-/** The conversation screen speaks one person shape. Fable people resolve first
- *  (they own the tab flow now); astra people keep working for the legacy
- *  portrait-flight path. */
-type ResolvedPerson = { id: string; name: string; avatarUri: string };
-
-function resolvePerson(id: string): ResolvedPerson | undefined {
-  const fable = id === "me" ? FABLE_ME : FABLE_PEOPLE.find((p) => p.id === id);
-  if (fable) {
-    return {
-      id: fable.id,
-      name: fable.name,
-      avatarUri: RNImage.resolveAssetSource(fable.avatar).uri,
-    };
-  }
-  const cookbook = people.find((p) => p.id === id);
-  if (!cookbook) return undefined;
-  return {
-    id: cookbook.id,
-    name: cookbook.name,
-    avatarUri: RNImage.resolveAssetSource(portraits[cookbook.avatar]).uri,
-  };
-}
 
 function toIMessage(
   m: CookbookMessage,
-  person: ResolvedPerson,
+  person: Person,
   ageMinutes: number,
 ): IMessage {
   const mine = m.mine;
@@ -102,7 +76,7 @@ function toIMessage(
     createdAt: new Date(Date.now() - ageMinutes * 60000),
     user: mine
       ? { _id: ME_ID, name: "Tariq" }
-      : { _id: person.id, name: person.name, avatar: person.avatarUri },
+      : { _id: person.id, name: person.name, avatar: portraitUri(person) },
     image: m.kind === "photo" ? coastUri : undefined,
     sent: true,
     received: true,
@@ -183,25 +157,15 @@ const glassTheme = {
   },
 };
 
-function ConversationBody({ person }: { person: ResolvedPerson }) {
+function ConversationBody({ person }: { person: Person }) {
   const insets = useSafeAreaInsets();
   const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Portrait flight: the inbox portrait lands on this header avatar. Only the
-  // astra inbox ever starts a flight; fable people get a shape-compatible
-  // stand-in so back() still behaves.
-  const navPerson = useMemo(() => {
-    const cookbook = people.find((p) => p.id === person.id);
-    return (cookbook ?? {
-      id: person.id,
-      name: person.name,
-      avatar: 0,
-    }) as Person;
-  }, [person]);
+  // Portrait flight: the inbox portrait lands on this header avatar.
   const {
     ref: headerRef,
     land,
     back,
-  } = usePortraitNavigation(navPerson, "header");
+  } = usePortraitNavigation(person, "header");
   const flying = useFlight(
     (s) => !!s.active && s.active.person === person.id,
   );
@@ -211,33 +175,8 @@ function ConversationBody({ person }: { person: ResolvedPerson }) {
   }, [land]);
 
   const [messages, setMessages] = useState<IMessage[]>(() => {
-    // Fable people open their real threads; astra people keep the cookbook
-    // seed. Kesha renders newest-first.
-    if (
-      person.id === "me" ||
-      FABLE_PEOPLE.some((p) => p.id === person.id)
-    ) {
-      const thread = fableMessagesFor(person.id, person.name);
-      return thread
-        .map((m, i) => ({
-          _id: m.id,
-          text: m.text,
-          createdAt: new Date(Date.now() - (thread.length - i) * 3 * 60000),
-          user:
-            m.from === "me"
-              ? { _id: ME_ID, name: "Tariq" }
-              : {
-                  _id: person.id,
-                  name: person.name,
-                  avatar: person.avatarUri,
-                },
-          image: m.photo ? coastUri : undefined,
-          sent: true,
-          received: true,
-        }))
-        .reverse();
-    }
     const seed = initialMessages(person.id);
+    // Kesha renders newest-first.
     return seed
       .map((m, i) => toIMessage(m, person, (seed.length - i) * 3))
       .reverse();
@@ -270,7 +209,7 @@ function ConversationBody({ person }: { person: ResolvedPerson }) {
               user: {
                 _id: person.id,
                 name: person.name,
-                avatar: person.avatarUri,
+                avatar: portraitUri(person),
               },
               sent: true,
               received: true,
@@ -441,7 +380,7 @@ function ConversationBody({ person }: { person: ResolvedPerson }) {
     [insets.bottom, renderActions, renderSend],
   );
 
-  const avatarUri = person.avatarUri;
+  const avatarUri = portraitUri(person);
 
   return (
     <>
@@ -506,7 +445,7 @@ function ConversationBody({ person }: { person: ResolvedPerson }) {
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const person = useMemo(() => resolvePerson(id), [id]);
+  const person = useMemo(() => people.find((p) => p.id === id), [id]);
 
   if (!person) {
     return (

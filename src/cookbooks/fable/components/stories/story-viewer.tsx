@@ -259,7 +259,7 @@ export function StoryViewer({ person, open, onClose }: Props) {
             onPress={() => {
               leave();
               router.push({
-                pathname: "/chat/[id]",
+                pathname: "/fable/chat/[id]",
                 params: { id: isMe ? "fable" : person.id },
               });
             }}
