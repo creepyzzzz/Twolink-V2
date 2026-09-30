@@ -1,6 +1,6 @@
 import { AndroidGlassSlider } from "expo-android-glass-view";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Image,
   Pressable,
@@ -23,16 +23,17 @@ const MAX_BLUR_RADIUS = 25;
 const scrimFor = (opacity: number) =>
   `rgba(242, 242, 244, ${(0.5 * (1 - opacity)).toFixed(3)})`;
 
+/** Re-blurring a full photo every slider tick stutters on Android. */
+const BLUR_SETTLE_MS = 90;
+
 function SliderRow({
   label,
   value,
   onChange,
-  onSlidingComplete,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
-  onSlidingComplete?: (v: number) => void;
 }) {
   const theme = useTheme();
   return (
@@ -48,7 +49,6 @@ function SliderRow({
         minimumValue={0}
         maximumValue={1}
         onValueChange={onChange}
-        onSlidingComplete={onSlidingComplete}
         accentColor={Accent}
       />
     </View>
@@ -64,34 +64,49 @@ export default function WallpaperEditor() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const pending = useFable((s) => s.pendingWallpaper);
+  // Capture the editing session once at mount. Clearing pendingWallpaper on
+  // done/cancel/remove must not re-trigger navigation or blank the screen —
+  // that double router.back() is what used to drop back to the chat list.
+  const [session] = useState(() => pending);
   const existingRaw = useFable((s) =>
-    pending ? s.wallpapers[pending.threadId] : undefined,
+    session ? s.wallpapers[session.threadId] : undefined,
   );
   const existing = normalizeWallpaper(existingRaw);
 
   const [opacity, setOpacity] = useState(() => existing?.opacity ?? 1);
-  // Blur is expensive to recompute on Android: the % label follows the drag
-  // live, but the image only re-blurs once the thumb is released.
+  // The % label follows the drag live; the image re-blurs 90ms after the
+  // thumb settles so a fast drag doesn't hammer the native blur pass.
   const [blur, setBlur] = useState(() => existing?.blur ?? 0);
   const [appliedBlur, setAppliedBlur] = useState(() => existing?.blur ?? 0);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!pending) router.back();
-  }, [pending]);
+    if (!session) router.back();
+  }, [session]);
 
-  if (!pending) return null;
+  useEffect(
+    () => () => {
+      if (blurTimer.current) clearTimeout(blurTimer.current);
+    },
+    [],
+  );
 
-  const done = () => {
-    useFable
-      .getState()
-      .setWallpaper(pending.threadId, {
-        uri: pending.uri,
-        opacity,
-        blur,
-      });
+  if (!session) return null;
+
+  const onBlurChange = (v: number) => {
+    setBlur(v);
+    if (blurTimer.current) clearTimeout(blurTimer.current);
+    blurTimer.current = setTimeout(() => setAppliedBlur(v), BLUR_SETTLE_MS);
+  };
+
+  const finish = (wallpaper: { uri: string; opacity: number; blur: number } | null) => {
+    useFable.getState().setWallpaper(session.threadId, wallpaper);
     useFable.getState().setPendingWallpaper(null);
     router.back();
   };
+  const done = () =>
+    finish({ uri: session.uri, opacity, blur });
+  const remove = () => finish(null);
   const cancel = () => {
     useFable.getState().setPendingWallpaper(null);
     router.back();
@@ -133,7 +148,7 @@ export default function WallpaperEditor() {
       <View style={styles.previewWrap}>
         <View style={styles.preview}>
           <Image
-            source={{ uri: pending.uri }}
+            source={{ uri: session.uri }}
             resizeMode="cover"
             blurRadius={appliedBlur * MAX_BLUR_RADIUS}
             style={[StyleSheet.absoluteFill, { opacity }]}
@@ -177,12 +192,25 @@ export default function WallpaperEditor() {
         ]}
       >
         <SliderRow label="Opacity" value={opacity} onChange={setOpacity} />
-        <SliderRow
-          label="Blur"
-          value={blur}
-          onChange={setBlur}
-          onSlidingComplete={setAppliedBlur}
-        />
+        <SliderRow label="Blur" value={blur} onChange={onBlurChange} />
+        {existing ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Remove wallpaper"
+            onPress={remove}
+            hitSlop={12}
+            style={styles.removeRow}
+          >
+            <Text
+              style={[
+                Type.body,
+                { color: "#FF3B30", fontFamily: "SFProText-Semibold" },
+              ]}
+            >
+              Remove wallpaper
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -244,5 +272,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 4,
+  },
+  removeRow: {
+    alignItems: "center",
+    paddingVertical: 12,
   },
 });

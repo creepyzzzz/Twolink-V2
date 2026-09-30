@@ -33,7 +33,6 @@ export function ChatMenu({
   const anchorRef = useRef<View>(null);
   const [open, setOpen] = useState(false);
   const [alert, setAlert] = useState<AlertSpec | null>(null);
-  const wallpaper = useFable((s) => s.wallpapers[threadId]);
 
   const pickWallpaper = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -56,24 +55,10 @@ export function ChatMenu({
     router.push("/fable/wallpaper");
   };
 
+  // Tapping Wallpaper always means picking a new one — the editor that
+  // opens next already offers "Remove wallpaper" when one is set.
   const onWallpaper = () => {
-    if (wallpaper) {
-      setAlert({
-        title: "Wallpaper",
-        message: "Change or remove this chat's wallpaper?",
-        actions: [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Remove",
-            style: "destructive",
-            onPress: () => useFable.getState().setWallpaper(threadId, null),
-          },
-          { text: "Change", onPress: () => void pickWallpaper() },
-        ],
-      });
-    } else {
-      void pickWallpaper();
-    }
+    void pickWallpaper();
   };
 
   const onClear = () => {
