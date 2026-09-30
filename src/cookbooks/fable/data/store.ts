@@ -176,9 +176,6 @@ type State = {
   /** In-memory only: whether the app lock is currently unlocked. */
   appUnlocked: boolean;
   setAppUnlocked: (unlocked: boolean) => void;
-  /** Whether the welcome onboarding has been completed. */
-  onboarded: boolean;
-  setOnboarded: (done: boolean) => void;
   /** Deletes messages whose expiry passed; repairs lastRead markers. */
   sweepExpired: () => void;
   reset: () => void;
@@ -241,8 +238,6 @@ export const useFable = create<State>()(
       setAppPin: (pin) => set({ appPin: pin }),
       appUnlocked: false,
       setAppUnlocked: (unlocked) => set({ appUnlocked: unlocked }),
-      onboarded: false,
-      setOnboarded: (done) => set({ onboarded: done }),
       sweepExpired: () => {
         const now = Date.now();
         set((state) => {

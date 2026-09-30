@@ -13,7 +13,6 @@ import {
 import { preloadOrbImages } from "../cookbooks/fable/components/ui/orb-images";
 import { StoryHost } from "../cookbooks/fable/components/stories/story-viewer";
 import { LockScreen } from "../cookbooks/fable/components/lock/lock-screen";
-import { Welcome } from "../cookbooks/fable/components/onboarding/welcome";
 import { useFable } from "../cookbooks/fable/data/store";
 import { ME, FABLE_TEAM, PEOPLE } from "../cookbooks/fable/data/people";
 import { portraits, coast } from "../cookbooks/astra/data";
@@ -39,14 +38,6 @@ function AppLockGate() {
   }, []);
   if (appPin == null || appUnlocked) return null;
   return <LockScreen />;
-}
-
-/** First-run welcome. Shows once, above everything, until completed. */
-function WelcomeGate() {
-  const onboarded = useFable((s) => s.onboarded);
-  const setOnboarded = useFable((s) => s.setOnboarded);
-  if (onboarded) return null;
-  return <Welcome onDone={() => setOnboarded(true)} />;
 }
 
 export default function RootLayout() {
@@ -114,7 +105,6 @@ export default function RootLayout() {
           {/* Story viewer: mounted once, above the navigator, so it sits on
               top of every flow (tabs and fable stack alike). */}
           <StoryHost />
-          <WelcomeGate />
           <AppLockGate />
         </KeyboardProvider>
       </SafeAreaProvider>
