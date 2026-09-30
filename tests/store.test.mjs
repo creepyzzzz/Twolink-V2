@@ -301,7 +301,11 @@ test("scheduled: presets and labels", () => {
   assert.equal(presets.length, 3);
   assert.ok(presets.every((p) => p.at > now));
   assert.equal(presets[0].label, "In 1 hour");
-  assert.match(scheduledLabel(now + 3600_000), /Today/);
+  // Noon today is always "today" no matter when the suite runs (the old
+  // now+1h assertion flaked between 23:00 and midnight).
+  const noonToday = new Date();
+  noonToday.setHours(12, 0, 0, 0);
+  assert.match(scheduledLabel(noonToday.getTime()), /Today/);
   assert.match(scheduledLabel(now + 86400_000), /Tomorrow/);
 });
 
