@@ -247,3 +247,30 @@ test("Fable: group polls create and take single-choice votes", () => {
   assert.deepEqual(opts[0].votes, []);
   assert.deepEqual(opts[1].votes, ["mara", "me"]);
 });
+
+const { splitMentions, mentionedIds } = load(
+  path.join(root, "src/cookbooks/fable/data/mentions.ts"),
+);
+
+test("mentions: splits @tokens that match member names", () => {
+  const spans = splitMentions("hey @mara and @Theo, sup @unknown", [
+    "Mara",
+    "Theo",
+  ]);
+  assert.deepEqual(
+    spans.filter((s) => s.name).map((s) => s.text),
+    ["@mara", "@Theo"],
+  );
+  assert.deepEqual(
+    mentionedIds("yo @theo", [{ id: "theo", first: "Theo" }]),
+    ["theo"],
+  );
+  assert.deepEqual(
+    mentionedIds("no mentions here", [{ id: "theo", first: "Theo" }]),
+    [],
+  );
+  assert.deepEqual(
+    mentionedIds("@theodore hi", [{ id: "theo", first: "Theo" }]),
+    [],
+  );
+});

@@ -1,6 +1,8 @@
 import { SFIcon } from "../../../../ui/SFIcon";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { getGroup, useFable } from "../../data/store";
+import { PEOPLE_BY_ID, type Person } from "../../data/people";
+import { Avatar } from "../ui/avatar";
 import {
   Pressable,
   StyleSheet,
@@ -61,7 +63,25 @@ export function Composer({
   const theme = useTheme();
   const inputRef = useRef<TextInput>(null);
   const setDraft = useFable((state) => state.setDraft);
-  const isGroup = useFable((s) => getGroup(s.groups, threadId) != null);
+  const group = useFable((s) => getGroup(s.groups, threadId));
+  const isGroup = group != null;
+  const groupMembers = useMemo(
+    () =>
+      group
+        ? group.memberIds
+            .map((m) => PEOPLE_BY_ID[m])
+            .filter((m): m is Person => !!m)
+        : [],
+    [group],
+  );
+  // @mention autocomplete: trailing "@query" in a group thread.
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const suggestions = useMemo(() => {
+    if (mentionQuery == null || groupMembers.length === 0) return [];
+    return groupMembers
+      .filter((m) => m.first.toLowerCase().startsWith(mentionQuery))
+      .slice(0, 5);
+  }, [mentionQuery, groupMembers]);
   // Restored once on mount — the input is uncontrolled after that.
   const initialDraft = useFable.getState().drafts[threadId] ?? "";
   const draft = useRef(initialDraft);
@@ -70,6 +90,20 @@ export function Composer({
   const onChangeText = (t: string) => {
     draft.current = t;
     setDraft(threadId, t);
+    if (!isGroup) return;
+    const m = t.match(/@([\p{L}\p{N}_]*)$/u);
+    setMentionQuery(m ? m[1].toLowerCase() : null);
+  };
+
+  const pickMention = (person: Person) => {
+    const cur = draft.current;
+    const m = cur.match(/@([\p{L}\p{N}_]*)$/u);
+    if (!m) return;
+    const next = `${cur.slice(0, cur.length - m[0].length)}@${person.first} `;
+    draft.current = next;
+    inputRef.current?.setNativeProps({ text: next });
+    setDraft(threadId, next);
+    setMentionQuery(null);
   };
 
   const submit = () => {
@@ -167,7 +201,10 @@ export function Composer({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Attachments"
-                onPress={() => setMenuOpen((v) => !v)}
+                onPress={() => {
+                  setMentionQuery(null);
+                  setMenuOpen((v) => !v);
+                }}
                 hitSlop={6}
                 style={[
                   styles.round,
@@ -241,6 +278,33 @@ export function Composer({
                   <Text style={[Type.body, { color: theme.label }]}>Poll</Text>
                 </Pressable>
               )}
+            </Glass>
+          </Animated.View>
+        )}
+        {mentionQuery != null && suggestions.length > 0 && (
+          <Animated.View
+            entering={FadeIn.duration(160).easing(EASE_OUT.factory())}
+            exiting={FadeOut.duration(120)}
+            style={styles.menu}
+          >
+            <Glass style={styles.menuCard}>
+              {suggestions.map((person) => (
+                <Pressable
+                  key={person.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Mention ${person.name}`}
+                  onPress={() => pickMention(person)}
+                  style={({ pressed }) => [
+                    styles.item,
+                    { backgroundColor: pressed ? theme.chip : "transparent" },
+                  ]}
+                >
+                  <Avatar source={person.avatar} size={36} />
+                  <Text style={[Type.body, { color: theme.label }]}>
+                    {person.name}
+                  </Text>
+                </Pressable>
+              ))}
             </Glass>
           </Animated.View>
         )}

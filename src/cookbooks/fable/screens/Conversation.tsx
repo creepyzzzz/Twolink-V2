@@ -43,6 +43,7 @@ import { Avatar } from "../components/ui/avatar";
 import { SFIcon } from "../../../ui/SFIcon";
 import { Radius, Space, Type } from "../constants/theme";
 import { REPLIES, messagesFor, olderMessagesFor, type Message } from "../data/messages";
+import { mentionedIds } from "../data/mentions";
 import { firstUnreadId } from "../data/unread";
 import { PEOPLE, PEOPLE_BY_ID, type Person } from "../data/people";
 import { useTheme } from "../hooks/use-theme";
@@ -64,6 +65,16 @@ function ThreadScreen({ id }: { id: string }) {
   const person = PEOPLE_BY_ID[id];
   const groups = useFable((state) => state.groups);
   const group = getGroup(groups, id);
+  const mentionNames = useMemo(
+    () =>
+      group
+        ? group.memberIds
+            .map((m) => PEOPLE_BY_ID[m]?.first)
+            .filter((f): f is string => !!f)
+        : [],
+    [group],
+  );
+  const selfFirst = useFable((st) => st.profile.name.split(" ")[0] ?? "");
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -289,11 +300,24 @@ function ThreadScreen({ id }: { id: string }) {
       // Group threads: a rotating member "replies", so their name and face
       // show on the typing bubble and the reply.
       const members = getGroup(useFable.getState().groups, id)?.memberIds;
-      const replier = members?.length
-        ? members[
-            (useFable.getState().threads[id]?.length ?? 0) % members.length
-          ]
-        : undefined;
+      const memberObjs = (members ?? [])
+        .map((m) => PEOPLE_BY_ID[m])
+        .filter((m): m is Person => !!m);
+      const mentioned = mentionedIds(
+        text,
+        memberObjs.map((m) => ({ id: m.id, first: m.first })),
+      );
+      // An @-mentioned member is "notified": they answer instead of the
+      // rotation.
+      const replier =
+        mentioned.length > 0
+          ? mentioned[0]
+          : members?.length
+            ? members[
+                (useFable.getState().threads[id]?.length ?? 0) %
+                  members.length
+              ]
+            : undefined;
       const t1 = setTimeout(() => {
         setTyping(true);
         setTypingPerson(replier ? (PEOPLE_BY_ID[replier] ?? null) : person);
@@ -625,6 +649,11 @@ function ThreadScreen({ id }: { id: string }) {
                 highlightActive={msg.id === activeMatchId}
                 senderName={
                   msg.from !== "me" ? senderName(msg) || undefined : undefined
+                }
+                mentions={
+                  group
+                    ? { names: mentionNames, self: selfFirst }
+                    : undefined
                 }
               />
               )}

@@ -64,6 +64,8 @@ type Props = {
   highlightActive?: boolean;
   /** Group threads: the sender's name, shown above incoming bubbles. */
   senderName?: string;
+  /** Group @mentions: member first names plus your own first name. */
+  mentions?: { names: string[]; self: string };
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -83,6 +85,7 @@ export const Bubble = memo(function Bubble({
   highlight,
   highlightActive,
   senderName,
+  mentions,
 }: Props) {
   const theme = useTheme();
   const scheme = useScheme();
@@ -283,6 +286,7 @@ export const Bubble = memo(function Bubble({
                 active={highlightActive}
                 mine
                 color={theme.outgoingText}
+                mentions={mentions}
               />
               {firstUrl ? <LinkPreview key={firstUrl} url={firstUrl} mine /> : null}
               {badge}
@@ -320,6 +324,7 @@ export const Bubble = memo(function Bubble({
                 active={highlightActive}
                 mine={false}
                 color={theme.incomingText}
+                mentions={mentions}
               />
               {firstUrl ? (
                 <LinkPreview key={firstUrl} url={firstUrl} mine={false} />

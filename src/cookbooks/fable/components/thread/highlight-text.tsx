@@ -3,6 +3,7 @@ import { Text } from "react-native";
 
 import { Accent, Type } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
+import { splitMentions } from "../../data/mentions";
 import { openExternalUrl, splitUrlSegments } from "./link-preview";
 
 type TextPart = { text: string; match: boolean };
@@ -29,10 +30,9 @@ function splitParts(text: string, query: string): TextPart[] {
 }
 
 /**
- * Bubble text with search matches highlighted, highlighter-style, and URLs
- * linkified (tappable, underlined). On outgoing blue the match inverts to
- * blue-on-white so it stays legible; on incoming frosted white it takes the
- * familiar yellow marker.
+ * Bubble text with search matches highlighted, highlighter-style, URLs
+ * linkified (tappable, underlined), and @mentions tinted — your own name
+ * gets a filled pill so self-mentions pop.
  */
 export function MessageText({
   text,
@@ -40,12 +40,15 @@ export function MessageText({
   active,
   mine,
   color,
+  mentions,
 }: {
   text: string;
   query?: string;
   active?: boolean;
   mine: boolean;
   color: string;
+  /** Group @mentions: member first names plus your own first name. */
+  mentions?: { names: string[]; self: string };
 }) {
   const theme = useTheme();
   const segments = useMemo(() => splitUrlSegments(text), [text]);
@@ -64,6 +67,37 @@ export function MessageText({
           ? "rgba(255, 190, 0, 0.95)"
           : "rgba(255, 204, 0, 0.5)",
       };
+  const mentionStyle = mine
+    ? { color: "#FFFFFF", fontWeight: "600" as const }
+    : { color: Accent, fontWeight: "600" as const };
+  const selfMentionStyle = mine
+    ? {
+        backgroundColor: "rgba(255,255,255,0.30)",
+        color: "#FFFFFF",
+        fontWeight: "700" as const,
+      }
+    : {
+        backgroundColor: "rgba(10,132,255,0.16)",
+        color: Accent,
+        fontWeight: "700" as const,
+      };
+  const mentionNames = mentions?.names ?? [];
+  const selfName = (mentions?.self ?? "").toLowerCase();
+  const renderMentionSpans = (t: string, keyPrefix: string) =>
+    splitMentions(t, mentionNames).map((sp, j) =>
+      sp.name ? (
+        <Text
+          key={`${keyPrefix}-${j}`}
+          style={
+            sp.name.toLowerCase() === selfName ? selfMentionStyle : mentionStyle
+          }
+        >
+          {sp.text}
+        </Text>
+      ) : (
+        <Text key={`${keyPrefix}-${j}`}>{sp.text}</Text>
+      ),
+    );
   return (
     <Text style={base}>
       {segments.map((seg, si) => {
@@ -85,6 +119,10 @@ export function MessageText({
               p.match ? (
                 <Text key={i} style={matchStyle}>
                   {p.text}
+                </Text>
+              ) : mentionNames.length > 0 ? (
+                <Text key={i}>
+                  {renderMentionSpans(p.text, `${si}-${i}`)}
                 </Text>
               ) : (
                 <Text key={i}>{p.text}</Text>
