@@ -3,6 +3,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
+import { AppState } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import {
@@ -11,6 +12,9 @@ import {
 } from "react-native-safe-area-context";
 import { preloadOrbImages } from "../cookbooks/fable/components/ui/orb-images";
 import { StoryHost } from "../cookbooks/fable/components/stories/story-viewer";
+import { LockScreen } from "../cookbooks/fable/components/lock/lock-screen";
+import { Welcome } from "../cookbooks/fable/components/onboarding/welcome";
+import { useFable } from "../cookbooks/fable/data/store";
 import { ME, FABLE_TEAM, PEOPLE } from "../cookbooks/fable/data/people";
 import { portraits, coast } from "../cookbooks/astra/data";
 
@@ -18,8 +22,44 @@ void SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = { initialRouteName: "index" };
 
+/**
+ * App lock gate. Renders the PIN screen over everything while locked and
+ * re-locks whenever the app leaves the foreground.
+ */
+function AppLockGate() {
+  const appPin = useFable((s) => s.appPin);
+  const appUnlocked = useFable((s) => s.appUnlocked);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active" && useFable.getState().appPin != null) {
+        useFable.getState().setAppUnlocked(false);
+      }
+    });
+    return () => sub.remove();
+  }, []);
+  if (appPin == null || appUnlocked) return null;
+  return <LockScreen />;
+}
+
+/** First-run welcome. Shows once, above everything, until completed. */
+function WelcomeGate() {
+  const onboarded = useFable((s) => s.onboarded);
+  const setOnboarded = useFable((s) => s.setOnboarded);
+  if (onboarded) return null;
+  return <Welcome onDone={() => setOnboarded(true)} />;
+}
+
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
+  // Wait for the persisted store (and the app-lock PIN) before revealing
+  // the app, so a locked app never flashes its content on launch.
+  const [hydrated, setHydrated] = useState(() =>
+    useFable.persist.hasHydrated(),
+  );
+  useEffect(() => {
+    if (hydrated) return;
+    return useFable.persist.onFinishHydration(() => setHydrated(true));
+  }, [hydrated]);
   // SF Pro (testing only — not licensed for distribution). Each weight is
   // its own family; text styles reference the weight directly via fontFamily.
   const [fontsLoaded] = useFonts({
@@ -46,9 +86,9 @@ export default function RootLayout() {
     };
   }, []);
   useEffect(() => {
-    if (ready && fontsLoaded) void SplashScreen.hideAsync();
-  }, [ready, fontsLoaded]);
-  if (!ready || !fontsLoaded) return null;
+    if (ready && fontsLoaded && hydrated) void SplashScreen.hideAsync();
+  }, [ready, fontsLoaded, hydrated]);
+  if (!ready || !fontsLoaded || !hydrated) return null;
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
@@ -74,6 +114,8 @@ export default function RootLayout() {
           {/* Story viewer: mounted once, above the navigator, so it sits on
               top of every flow (tabs and fable stack alike). */}
           <StoryHost />
+          <WelcomeGate />
+          <AppLockGate />
         </KeyboardProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

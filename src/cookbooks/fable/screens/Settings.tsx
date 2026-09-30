@@ -6,6 +6,7 @@ import { useTheme } from "../hooks/use-theme";
 
 export default function Settings() {
   const theme = useTheme();
+  const appPin = useFable((state) => state.appPin);
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.bg }}
@@ -55,6 +56,22 @@ export default function Settings() {
       >
         Fable is a local chat preview. Sample messages stay on this device.
       </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="App lock settings"
+        onPress={() => router.push("/fable/app-lock")}
+        style={{
+          paddingVertical: 24,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text style={{ color: theme.label, fontSize: 15 }}>App Lock</Text>
+        <Text style={{ color: theme.secondary, fontSize: 15 }}>
+          {appPin ? "On" : "Off"}
+        </Text>
+      </Pressable>
       <Pressable
         accessibilityRole="button"
         onPress={() =>
