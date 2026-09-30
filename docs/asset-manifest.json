@@ -136,8 +136,8 @@
   },
   {
     "path": "assets/images/icon.png",
-    "bytes": 302298,
-    "sha256": "59aa917bfd36ff76d938d2ac90fd84d8c32029f00261997a6861730987c13574",
+    "bytes": 389474,
+    "sha256": "84386a7d663529fa55b6123b7e9f835b7557138801a872e203c4a507c38f0f69",
     "source": "User-supplied Poffu whale icon (chat upload 2026-09-30), black margin removed, whale kept inside adaptive-icon safe zone on edge-matched blue"
   },
   {
