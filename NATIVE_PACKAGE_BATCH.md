@@ -1,29 +1,24 @@
-# Native package batch — install all at once
+# Native package batch — INSTALLED Sep 30, 2026
 
-These packages are approved in principle but deliberately NOT installed yet.
-The UI for everything below is already built and waiting. When Tariq says the
-word, read this file and install + connect every package in one go, then do a
-single fresh dev-client build.
+Installed in one go via `npx expo install` (Expo SDK 57-pinned versions);
+wired the same night. Tariq's fresh dev-client build picks up the native
+modules — until then Copy/Files degrade gracefully with a "needs the latest
+build" notice instead of crashing.
 
-## Packages
+## Installed
 
-| Package | What it unlocks | UI already built |
+| Package | Version | What it unlocked |
 |---|---|---|
-| `expo-clipboard` | Copy message text (long-press → Copy) | `src/cookbooks/fable/lib/clipboard.ts` resolves the module ID at runtime; until then the Copy row shows a "not ready yet" notice |
-| `expo-document-picker` | Pick files from the device (composer Files row, shared Documents) | `DocumentAttachment` model, document bubbles, Files composer row, Shared Documents sections — all parked behind the missing picker |
-| `expo-file-system` | Only if actually needed (reading picked file metadata / copying to cache) | Decide at install time; skip if `expo-document-picker` results suffice |
+| `expo-clipboard` | ~57.0.2 | Copy message text (long-press → Copy). `src/cookbooks/fable/lib/clipboard.ts` runtime-resolves it — no code change needed. |
+| `expo-document-picker` | ~57.0.3 | System file picker (composer Files row → `DocumentAttachment` message → document bubble; tap opens via `Linking`). Wired in `screens/Conversation.tsx` (`onAttachFile`); `SharedDocuments` profile rows are tappable too. |
 
-## At install time
+## Skipped deliberately
 
-1. `npx expo install <packages>` (Expo-compatible versions).
-2. Connect each result to its waiting UI:
-   - Clipboard: `lib/clipboard.ts` starts resolving — no code change needed.
-   - Document picker: wire picker results into the existing `DocumentAttachment` send path; populate real URIs; open files from bubbles/profile rows.
-3. Run `npx tsc --noEmit`, ESLint on changed files, and the Node test suite.
-4. Commit + push.
-5. Tell Tariq a fresh dev-client build is required (native dependencies).
+- `expo-file-system` — not needed: the picker returns name/size/mimeType and
+  copies the file into the app cache itself (`copyToCacheDirectory: true`);
+  nothing in the current UI does its own file I/O.
 
-## Do NOT add in this batch
+## Do NOT add
 
 - `expo-camera` — Tariq said no camera capture.
 - Anything else not listed above — new packages need his explicit approval first.

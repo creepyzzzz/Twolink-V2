@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useCallback, useMemo } from "react";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { SFIcon } from "../../../../ui/SFIcon";
 import { Radius, Space, Type } from "../../constants/theme";
@@ -23,12 +23,15 @@ export function extractDocuments(messages: Message[]): DocumentAttachment[] {
 
 /**
  * "Shared Documents" section for contact/group cards, mirroring Shared Links.
- * Renders nothing when empty. Rows are display-only until the native picker
- * supplies real file URIs to open.
+ * Renders nothing when empty. Tapping a row opens the file; the URI comes
+ * from the document picker (cached copy), so it opens while the file lives.
  */
 export function SharedDocuments({ messages }: { messages: Message[] }) {
   const theme = useTheme();
   const docs = useMemo(() => extractDocuments(messages), [messages]);
+  const openDoc = useCallback((uri: string) => {
+    if (uri) Linking.openURL(uri).catch(() => {});
+  }, []);
   if (docs.length === 0) return null;
   return (
     <>
@@ -46,7 +49,13 @@ export function SharedDocuments({ messages }: { messages: Message[] }) {
         ]}
       >
         {docs.map((doc) => (
-          <View key={`${doc.name}|${doc.size}`} style={styles.row}>
+          <Pressable
+            key={`${doc.name}|${doc.size}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${doc.name}`}
+            onPress={() => openDoc(doc.uri)}
+            style={styles.row}
+          >
             <View
               style={[
                 styles.icon,
@@ -69,7 +78,7 @@ export function SharedDocuments({ messages }: { messages: Message[] }) {
                 {formatBytes(doc.size)}
               </Text>
             </View>
-          </View>
+          </Pressable>
         ))}
       </View>
     </>

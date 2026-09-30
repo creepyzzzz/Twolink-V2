@@ -1,3 +1,4 @@
+import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
@@ -488,14 +489,48 @@ function ThreadScreen({ id }: { id: string }) {
     scrollToEnd();
   }, [id, replyTo, scrollToEnd]);
 
-  /** File attachments are parked until the next build is approved. */
-  const onAttachFile = useCallback(() => {
-    useFable.getState().showAlert({
-      title: "Files",
-      message: "File attachments will be enabled in the next build.",
-      actions: [{ text: "OK", style: "default" }],
+  /** File attachments via the system document picker. */
+  const onAttachFile = useCallback(async () => {
+    let res: DocumentPicker.DocumentPickerResult;
+    try {
+      res = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        multiple: false,
+        copyToCacheDirectory: true,
+      });
+    } catch {
+      // Native module missing — this runs on the dev build from before the
+      // package batch; the fresh build enables file attachments.
+      useFable.getState().showAlert({
+        title: "Files",
+        message:
+          "File attachments need the latest build — update and try again.",
+        actions: [{ text: "OK", style: "default" }],
+      });
+      return;
+    }
+    if (res.canceled || !res.assets || res.assets.length === 0) return;
+    const asset = res.assets[0];
+    const quote = replyTo
+      ? {
+          id: replyTo.id,
+          from: replyTo.from,
+          text: replyTo.text,
+          photo: replyTo.photo,
+        }
+      : undefined;
+    useFable.getState().append(id, asset.name ?? "File", "me", false, {
+      document: {
+        name: asset.name ?? "File",
+        size: asset.size ?? 0,
+        mimeType: asset.mimeType ?? "application/octet-stream",
+        uri: asset.uri,
+      },
+      replyTo: quote,
     });
-  }, []);
+    setReplyTo(null);
+    scrollToEnd();
+  }, [id, replyTo, scrollToEnd]);
 
   const onOpenPhoto = useCallback(
     (message: Message) => {

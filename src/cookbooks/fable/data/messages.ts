@@ -18,7 +18,7 @@ export type DocumentAttachment = {
   size: number;
   /** MIME type, e.g. "application/pdf". */
   mimeType: string;
-  /** Local file URI. Empty until the native picker lands. */
+  /** Local file URI, cached by the document picker. */
   uri: string;
 };
 

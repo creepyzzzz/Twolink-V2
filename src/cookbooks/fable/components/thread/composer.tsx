@@ -40,7 +40,7 @@ type Props = {
   insetBottom: number;
   onSend: (text: string) => void;
   onAttach: () => void;
-  /** File attachments (needs expo-document-picker — parked until approved). */
+  /** File attachments via the system document picker. */
   onAttachFile: () => void;
   onLayoutHeight: (h: number) => void; // full height incl. safe-area padding
   /** When set, a slim iMessage-style "replying to" strip sits above the input. */
