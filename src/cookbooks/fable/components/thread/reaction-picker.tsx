@@ -60,8 +60,8 @@ export const ReactionOverlay = memo(function ReactionOverlay({
         {/* Real native refraction on Android (same engine as the composer
             card) tinted dark blue — a frosted backdrop, not a flat dim. */}
         <AdaptiveGlassView
-          tintColor="rgba(26, 38, 82, 0.52)"
-          blurRadius={30}
+          tintColor="rgba(52, 68, 122, 0.36)"
+          blurRadius={16}
           style={StyleSheet.absoluteFill}
         />
       </Pressable>
