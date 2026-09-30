@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { GroupAvatar } from "../chats/group-row";
 import { GlassButton } from "../ui/glass-button";
@@ -12,8 +12,8 @@ export const THREAD_NAV_H = 64;
 
 /**
  * Group twin of ThreadHeader: back, a tappable identity (opens the group
- * card), video and the ••• menu (search, wallpaper, clear chat).
- * The panel begins right beneath.
+ * card), and the ••• menu (search, wallpaper, clear chat).
+ * No call buttons — group calls are out of scope. The panel begins beneath.
  */
 export function GroupHeader({
   group,
@@ -56,17 +56,6 @@ export function GroupHeader({
         </Text>
       </Pressable>
       <View style={styles.right}>
-        <GlassButton
-          symbol="video"
-          iconSize={18}
-          accessibilityLabel="Video call"
-          onPress={() =>
-            Alert.alert(
-              "Video calls",
-              "Calls are not available in this preview.",
-            )
-          }
-        />
         <ChatMenu threadId={group.id} onSearch={onSearch} />
       </View>
     </View>
