@@ -29,7 +29,6 @@ build" notice instead of crashing.
 | `expo-video` | ~57.0.5 | Inline video playback — parked until video messages get built (gallery is images-only today). |
 | `expo-image-manipulator` | ~57.0.20 | Photo compression/thumbnails — reserved for a future optimization pass. |
 | `expo-auth-session` | ~57.0.13 | OAuth flow helper — reserved for social login when Supabase auth lands. |
-| `@sentry/react-native` | ~7.11.0 | Crash reporting. Guarded init in `src/app/_layout.tsx` — no-op until `EXPO_PUBLIC_SENTRY_DSN` is set (add it to `.env` when the Sentry project exists). |
 
 ## Still excluded (Tariq's vetoes)
 
