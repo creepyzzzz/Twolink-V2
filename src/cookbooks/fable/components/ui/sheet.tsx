@@ -127,26 +127,22 @@ export function Sheet({ children, detent = 0.85 }: Props) {
     router.back();
   };
 
-  // Back button / system back. The gesture path sets `dismissed`
-  // synchronously on the UI thread first, so a back-press racing a
-  // fling-dismiss can't pop two routes.
-  const dismiss = () => {
-    if (dismissed.value) return;
-    dismissed.value = true;
+  // JS thread only. `Keyboard` (a native module object) must never be
+  // captured by a worklet — worklets cannot copy it to the UI runtime.
+  const startExit = () => {
     Keyboard.dismiss();
-    ty.value = withTiming(H, { duration: 260 }, (fin) => {
-      if (fin) goBack();
-    });
-  };
-
-  const exitUI = () => {
-    "worklet";
-    if (dismissed.value) return;
-    dismissed.value = true;
-    runOnJS(Keyboard.dismiss)();
     ty.value = withTiming(H, { duration: 260 }, (fin) => {
       if (fin) runOnJS(goBack)();
     });
+  };
+
+  // Back button / system back. The gesture path sets `dismissed`
+  // synchronously on the UI thread before hopping here, so a back-press
+  // racing a fling-dismiss can't pop two routes.
+  const dismiss = () => {
+    if (dismissed.value) return;
+    dismissed.value = true;
+    startExit();
   };
 
   const pan = Gesture.Pan()
@@ -184,7 +180,8 @@ export function Sheet({ children, detent = 0.85 }: Props) {
       const y = ty.value;
       const vy = e.velocityY;
       if (vy > 800 || y > restTy + H * 0.14) {
-        exitUI();
+        dismissed.value = true;
+        runOnJS(startExit)();
       } else if (vy < -700 || y < restTy / 2) {
         ty.value = withSpring(0, SNAP);
       } else {
