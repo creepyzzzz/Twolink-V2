@@ -26,7 +26,7 @@ import { EASE_OUT } from "../../constants/motion";
 import { Accent, Radius, Space, Type } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
 
-const BTN = 44;
+const SEND = 52;
 
 export type ReplyPreview = {
   name: string;
@@ -50,9 +50,11 @@ type Props = {
 };
 
 /**
- * The floating composer card in liquid glass: the text line on top,
- * a row of round actions beneath. It rides the keyboard, including the
- * interactive drag-to-dismiss. Emoji come from the device keyboard.
+ * The floating composer in liquid glass: a single input pill with the "+"
+ * tucked inside it on the left, and the send button as its own circle just
+ * outside the pill on the right (Astra-style), bottom-anchored as the pill
+ * grows. It rides the keyboard, including the interactive drag-to-dismiss.
+ * Emoji come from the device keyboard.
  */
 export function Composer({
   threadId,
@@ -90,12 +92,15 @@ export function Composer({
   // Restored once on mount — the input is uncontrolled after that.
   const initialDraft = useFable.getState().drafts[threadId] ?? "";
   const draft = useRef(initialDraft);
+  // Drives the send button's empty/filled styling; the input stays uncontrolled.
+  const [hasText, setHasText] = useState(initialDraft.trim().length > 0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const onChangeText = (t: string) => {
     draft.current = t;
     setDraft(threadId, t);
+    setHasText(t.trim().length > 0);
     if (!isGroup) return;
     const m = t.match(/@([\p{L}\p{N}_]*)$/u);
     setMentionQuery(m ? m[1].toLowerCase() : null);
@@ -118,6 +123,7 @@ export function Composer({
     inputRef.current?.clear();
     draft.current = "";
     setDraft(threadId, "");
+    setHasText(false);
     onSend(text);
   };
 
@@ -128,6 +134,7 @@ export function Composer({
     inputRef.current?.clear();
     draft.current = "";
     setDraft(threadId, "");
+    setHasText(false);
     onSchedule(text, at);
   };
 
@@ -161,107 +168,112 @@ export function Composer({
             style={styles.backdrop}
           />
         )}
-        <Animated.View
-          layout={LinearTransition.duration(220).easing(EASE_OUT.factory())}
-          style={[styles.lift, { boxShadow: theme.lift }]}
-        >
-          <Glass style={styles.card}>
-            {replyPreview && (
-              <Animated.View
-                entering={FadeInDown.duration(220).easing(EASE_OUT.factory())}
-                style={styles.replyRow}
-              >
-                <View
-                  style={[styles.replyBar, { backgroundColor: Accent }]}
-                />
-                <View style={styles.replyTextWrap}>
-                  <Text
-                    numberOfLines={1}
-                    style={[Type.caption, { color: Accent }]}
+        <View style={styles.row}>
+          <Animated.View
+            layout={LinearTransition.duration(220).easing(EASE_OUT.factory())}
+            style={[styles.lift, { boxShadow: theme.lift, flex: 1 }]}
+          >
+            <Glass style={styles.card}>
+              {replyPreview && (
+                <Animated.View
+                  entering={FadeInDown.duration(220).easing(EASE_OUT.factory())}
+                  style={styles.replyRow}
+                >
+                  <View
+                    style={[styles.replyBar, { backgroundColor: Accent }]}
+                  />
+                  <View style={styles.replyTextWrap}>
+                    <Text
+                      numberOfLines={1}
+                      style={[Type.caption, { color: Accent }]}
+                    >
+                      {replyPreview.name}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[Type.preview, { color: theme.secondary }]}
+                    >
+                      {replyPreview.photo ? "Photo" : replyPreview.text}
+                    </Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel reply"
+                    onPress={onCancelReply}
+                    hitSlop={8}
+                    style={styles.replyClose}
                   >
-                    {replyPreview.name}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={[Type.preview, { color: theme.secondary }]}
-                  >
-                    {replyPreview.photo ? "Photo" : replyPreview.text}
-                  </Text>
-                </View>
+                    <SFIcon name="xmark" size={12} color={theme.tertiary} />
+                  </Pressable>
+                </Animated.View>
+              )}
+              <View style={styles.inputRow}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Cancel reply"
-                  onPress={onCancelReply}
-                  hitSlop={8}
-                  style={styles.replyClose}
+                  accessibilityLabel="Attachments"
+                  onPress={() => {
+                    setMentionQuery(null);
+                    setMenuOpen((v) => !v);
+                  }}
+                  hitSlop={6}
+                  style={styles.plus}
                 >
-                  <SFIcon name="xmark" size={12} color={theme.tertiary} />
+                  <SFIcon
+                    name={menuOpen ? "xmark" : "plus"}
+                    size={22}
+                    color={menuOpen ? Accent : theme.label}
+                  />
                 </Pressable>
-              </Animated.View>
-            )}
-            <TextInput
-              ref={inputRef}
-              accessibilityLabel="Message"
-              testID="fable-message-input"
-              multiline
-              defaultValue={initialDraft}
-              placeholder="Message"
-              placeholderTextColor={theme.placeholder}
-              onChangeText={onChangeText}
-              onFocus={() => {
-                setMenuOpen(false);
-                setScheduleOpen(false);
-              }}
-              onSubmitEditing={submit}
-              submitBehavior="submit"
-              returnKeyType="send"
-              enablesReturnKeyAutomatically
-              selectionColor={Accent}
-              style={[Type.body, styles.input, { color: theme.label }]}
-            />
-            <View style={styles.actions}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Attachments"
-                onPress={() => {
-                  setMentionQuery(null);
-                  setMenuOpen((v) => !v);
-                }}
-                hitSlop={6}
-                style={[
-                  styles.round,
-                  {
-                    backgroundColor: menuOpen ? theme.outgoing : theme.chip,
-                  },
-                ]}
-              >
-                <SFIcon
-                  name="plus"
-                  size={19}
-                  color={menuOpen ? theme.outgoingText : theme.label}
+                <TextInput
+                  ref={inputRef}
+                  accessibilityLabel="Message"
+                  testID="fable-message-input"
+                  multiline
+                  defaultValue={initialDraft}
+                  placeholder="Message"
+                  placeholderTextColor={theme.placeholder}
+                  onChangeText={onChangeText}
+                  onFocus={() => {
+                    setMenuOpen(false);
+                    setScheduleOpen(false);
+                  }}
+                  onSubmitEditing={submit}
+                  submitBehavior="submit"
+                  returnKeyType="send"
+                  enablesReturnKeyAutomatically
+                  selectionColor={Accent}
+                  style={[Type.body, styles.input, { color: theme.label }]}
                 />
-              </Pressable>
-              <View style={styles.spacer} />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Send"
-                accessibilityHint="Long press to schedule for later"
-                hitSlop={6}
-                onPress={submit}
-                onLongPress={() => {
-                  if (!draft.current.trim()) return;
-                  setMentionQuery(null);
-                  setMenuOpen(false);
-                  setScheduleOpen(true);
-                }}
-                delayLongPress={450}
-                style={[styles.round, { backgroundColor: theme.outgoing }]}
-              >
-                <SFIcon name="arrow.up" size={17} color={theme.outgoingText} />
-              </Pressable>
-            </View>
-          </Glass>
-        </Animated.View>
+              </View>
+            </Glass>
+          </Animated.View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Send"
+            accessibilityHint="Long press to schedule for later"
+            hitSlop={6}
+            onPress={submit}
+            onLongPress={() => {
+              if (!draft.current.trim()) return;
+              setMentionQuery(null);
+              setMenuOpen(false);
+              setScheduleOpen(true);
+            }}
+            delayLongPress={450}
+            style={[
+              styles.send,
+              {
+                backgroundColor: hasText ? theme.outgoing : theme.chip,
+              },
+            ]}
+          >
+            <SFIcon
+              name="arrow.up"
+              size={20}
+              color={hasText ? theme.outgoingText : theme.tertiary}
+            />
+          </Pressable>
+        </View>
         {menuOpen && (
           <Animated.View
             entering={FadeIn.duration(160).easing(EASE_OUT.factory())}
@@ -315,7 +327,7 @@ export function Composer({
           <Animated.View
             entering={FadeIn.duration(160).easing(EASE_OUT.factory())}
             exiting={FadeOut.duration(120)}
-            style={styles.menu}
+            style={styles.menuRight}
           >
             <MenuCard style={styles.menuCard}>
               {schedulePresets().map((preset) => (
@@ -389,15 +401,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Space[4],
     paddingTop: Space[2],
   },
+  /** Pill + external send circle, bottom-anchored as the pill grows. */
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
   lift: {
     borderRadius: Radius.card,
     borderCurve: "continuous",
   },
   card: {
     borderRadius: Radius.card,
-    paddingHorizontal: Space[3],
-    paddingTop: 2,
-    paddingBottom: Space[3],
+    paddingLeft: Space[2],
+    paddingRight: Space[3],
+    paddingVertical: 6,
   },
   replyRow: {
     flexDirection: "row",
@@ -423,27 +440,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  input: {
-    maxHeight: 138,
-    paddingHorizontal: Space[2],
-    paddingTop: 15,
-    paddingBottom: 12,
-    lineHeight: 23,
-  },
-  actions: {
+  inputRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    alignItems: "flex-end",
   },
-  spacer: {
-    flex: 1,
-  },
-  round: {
-    width: BTN,
-    height: BTN,
-    borderRadius: BTN / 2,
+  plus: {
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
+  },
+  input: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 138,
+    paddingTop: 11,
+    paddingBottom: 10,
+    lineHeight: 23,
+  },
+  /** The send circle sits just outside the pill, tucked over its edge. */
+  send: {
+    width: SEND,
+    height: SEND,
+    borderRadius: SEND / 2,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: -10,
+    marginBottom: 2,
   },
   backdrop: {
     position: "absolute",
@@ -455,6 +478,14 @@ const styles = StyleSheet.create({
   menu: {
     position: "absolute",
     left: 0,
+    bottom: "100%",
+    marginBottom: 10,
+    minWidth: 230,
+  },
+  /** The Send Later sheet anchors over the external send circle. */
+  menuRight: {
+    position: "absolute",
+    right: 0,
     bottom: "100%",
     marginBottom: 10,
     minWidth: 230,
