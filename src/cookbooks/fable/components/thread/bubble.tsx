@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   FadeInDown,
@@ -20,6 +20,7 @@ import type { Person } from "../../data/people";
 import { useScheme, useTheme } from "../../hooks/use-theme";
 import type { ReactionTarget } from "./reaction-picker";
 import { MessageText } from "./highlight-text";
+import { DocumentContent } from "./document-bubble";
 import { LinkPreview, extractUrls } from "./link-preview";
 
 /**
@@ -91,8 +92,11 @@ export const Bubble = memo(function Bubble({
   const scheme = useScheme();
   const mine = message.from === "me";
   const firstUrl = useMemo(
-    () => (message.photo ? undefined : extractUrls(message.text)[0]),
-    [message.photo, message.text],
+    () =>
+      message.photo || message.document
+        ? undefined
+        : extractUrls(message.text)[0],
+    [message.photo, message.document, message.text],
   );
   const bubbleRef = useRef<View>(null);
   const onReactRef = useRef(onReact);
@@ -145,6 +149,13 @@ export const Bubble = memo(function Bubble({
     bubbleRef.current?.measureInWindow((x, y, width) => {
       if (width > 0) onReactRef.current(message, { x, y, width });
     });
+  }, [message]);
+
+  // Tapping a document opens it once the native picker supplies a URI.
+  // Until the picker package lands the URI is empty and the tap is inert.
+  const openDocument = useCallback(() => {
+    const uri = message.document?.uri;
+    if (uri) Linking.openURL(uri).catch(() => {});
   }, [message]);
 
   const reactions = message.reactions ?? [];
@@ -234,7 +245,42 @@ export const Bubble = memo(function Bubble({
               />
             </View>
           </Animated.View>
-          {message.photo ? (
+          {message.document ? (
+            <AnimatedPressable
+              ref={bubbleRef}
+              onPress={openDocument}
+              onLongPress={handleLongPress}
+              delayLongPress={350}
+              style={[
+                styles.bubble,
+                mine ? styles.mine : styles.theirs,
+                {
+                  backgroundColor: mine ? theme.outgoing : theme.surface,
+                  ...(mine
+                    ? null
+                    : {
+                        boxShadow:
+                          scheme === "dark"
+                            ? undefined
+                            : "0 4px 18px rgba(16, 16, 18, 0.05)",
+                      }),
+                },
+                depressStyle,
+              ]}
+            >
+              {quote}
+              {!!senderName && (
+                <Text
+                  numberOfLines={1}
+                  style={[styles.sender, { color: Accent }]}
+                >
+                  {senderName}
+                </Text>
+              )}
+              <DocumentContent message={message} mine={mine} />
+              {badge}
+            </AnimatedPressable>
+          ) : message.photo ? (
             <Animated.View
               ref={bubbleRef}
               style={[styles.photoWrap, depressStyle]}

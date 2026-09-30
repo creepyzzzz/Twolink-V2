@@ -15,6 +15,7 @@ import { PhotoViewer } from "../components/thread/photo-viewer";
 import { DisappearingRow } from "../components/profile/disappearing-row";
 import { Avatar } from "../components/ui/avatar";
 import { SharedLinks } from "../components/ui/shared-links";
+import { SharedDocuments } from "../components/ui/shared-documents";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
 import { messagesFor } from "../data/messages";
@@ -114,6 +115,7 @@ function ProfileScreen({ id }: { id: string }) {
         )}
 
         <SharedLinks messages={messages} />
+        <SharedDocuments messages={messages} />
       </SheetScrollView>
 
       {viewerPhoto && (

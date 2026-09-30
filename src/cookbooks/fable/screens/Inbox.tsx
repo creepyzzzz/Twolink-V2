@@ -23,10 +23,11 @@ import Animated, {
   useDerivedValue,
   useSharedValue,
 } from "react-native-reanimated";
+import type { Swipeable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ChatRow } from "../components/chats/chat-row";
-import { GroupRow } from "../components/chats/group-row";
+import { SwipeableChatRow } from "../components/chats/swipeable-chat-row";
+import { SwipeableGroupRow } from "../components/chats/swipeable-group-row";
 import { Glass } from "../components/ui/glass";
 import {
   NAV_H,
@@ -200,6 +201,22 @@ export default function ChatsScreen() {
   const [menuId, setMenuId] = useState<string | null>(null);
   const menuAnchorRef = useRef<View | null>(null);
   const rowViews = useRef(new Map<string, View | null>());
+  // Open swipeable rows, so opening one (or starting a scroll, or opening the
+  // long-press menu) closes the rest.
+  const swipeRefs = useRef(new Map<string, Swipeable | null>());
+  const closeSwipes = useCallback((except?: string) => {
+    swipeRefs.current.forEach((ref, id) => {
+      if (id !== except) ref?.close();
+    });
+  }, []);
+  const registerSwipeRef = useCallback((id: string, ref: Swipeable | null) => {
+    if (ref) swipeRefs.current.set(id, ref);
+    else swipeRefs.current.delete(id);
+  }, []);
+  const onSwipeOpen = useCallback(
+    (id: string) => closeSwipes(id),
+    [closeSwipes],
+  );
   const deleted = useFable((state) => state.deleted);
   const togglePin = useFable((state) => state.togglePin);
   const toggleMute = useFable((state) => state.toggleMute);
@@ -208,9 +225,10 @@ export default function ChatsScreen() {
   const deleteThread = useFable((state) => state.deleteThread);
   const showAlert = useFable((state) => state.showAlert);
   const openMenu = useCallback((id: string) => {
+    closeSwipes();
     menuAnchorRef.current = rowViews.current.get(id) ?? null;
     setMenuId(id);
-  }, []);
+  }, [closeSwipes]);
   const onDeletePress = useCallback(
     (id: string, name: string) => {
       setMenuId(null);
@@ -368,7 +386,10 @@ export default function ChatsScreen() {
       <Animated.ScrollView
         ref={listRef}
         onScroll={onScroll}
-        onScrollBeginDrag={() => setMenuId(null)}
+        onScrollBeginDrag={() => {
+          setMenuId(null);
+          closeSwipes();
+        }}
         scrollEventThrottle={16}
         animatedProps={lockProps}
         contentInsetAdjustmentBehavior="never"
@@ -498,7 +519,13 @@ export default function ChatsScreen() {
               }}
               collapsable={false}
             >
-              <GroupRow group={group} onLongPressRow={openMenu} />
+              <SwipeableGroupRow
+                group={group}
+                onLongPressRow={openMenu}
+                onDelete={onDeletePress}
+                registerRef={registerSwipeRef}
+                onOpen={onSwipeOpen}
+              />
             </View>
           </Animated.View>
         ))}
@@ -516,7 +543,13 @@ export default function ChatsScreen() {
               }}
               collapsable={false}
             >
-              <ChatRow chat={chat} onLongPressRow={openMenu} />
+              <SwipeableChatRow
+                chat={chat}
+                onLongPressRow={openMenu}
+                onDelete={onDeletePress}
+                registerRef={registerSwipeRef}
+                onOpen={onSwipeOpen}
+              />
             </View>
           </Animated.View>
         ))}

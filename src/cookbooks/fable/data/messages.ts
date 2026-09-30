@@ -20,6 +20,22 @@ export type Poll = {
   options: PollOption[];
 };
 
+/**
+ * A file attached to a message. The picker (expo-document-picker) is parked
+ * until the native package batch is approved — until then `uri` stays empty
+ * and the composer explains that instead of opening a picker.
+ */
+export type DocumentAttachment = {
+  /** Original file name, e.g. "contract.pdf". */
+  name: string;
+  /** Size in bytes. */
+  size: number;
+  /** MIME type, e.g. "application/pdf". */
+  mimeType: string;
+  /** Local file URI. Empty until the native picker lands. */
+  uri: string;
+};
+
 export type Message = {
   id: string;
   from: "me" | "them";
@@ -36,6 +52,11 @@ export type Message = {
   reactions?: string[];
   /** Group poll attached to this message. */
   poll?: Poll;
+  /**
+   * File attached to this message. `text` mirrors the file name so inbox
+   * previews, search, and reply quotes keep working unchanged.
+   */
+  document?: DocumentAttachment;
   /**
    * Epoch ms when a disappearing message expires. Only set on messages
    * sent after the thread's timer was enabled.

@@ -50,17 +50,17 @@ function load(file) {
   })(localRequire, module, module.exports);
   return module.exports;
 }
-const { useChat: astra, initialMessages } = load(
-  path.join(root, "src/cookbooks/astra/data.ts"),
-);
 const { useFable: fable } = load(
   path.join(root, "src/cookbooks/fable/data/store.ts"),
 );
 
-for (const [name, store, id, send] of [
-  ["Astra", astra, "mira", (state, id, text) => state.send(id, text)],
-  ["Fable", fable, "mara", (state, id, text) => state.append(id, text)],
-]) {
+// The shared store-behavior suite. (Astra's copy was removed with the dead
+// cookbook; only Fable remains.)
+{
+  const name = "Fable";
+  const store = fable;
+  const id = "mara";
+  const send = (state, id, text) => state.append(id, text);
   test(`${name}: blank and unknown-recipient submissions do not create threads`, () => {
     store.getState().reset();
     send(store.getState(), id, "   ");
@@ -102,7 +102,6 @@ for (const [name, store, id, send] of [
   });
   test(`${name}: toggleRead flips between read and unread`, () => {
     const s = () => store.getState();
-    if (!s().toggleRead) return; // Astra keeps the legacy read list.
     s().append(id, "First", "me");
     s().append(id, "Second", "them");
     const messages = s().threads[id] ?? [];
@@ -115,14 +114,6 @@ for (const [name, store, id, send] of [
     assert.equal(s().lastRead[id], messages.at(-1).id);
   });
 }
-test("Astra: reacting twice restores a sample message without mutating the sample", () => {
-  const original = JSON.stringify(initialMessages("mira"));
-  astra.getState().heart("mira", "m1");
-  assert.equal(astra.getState().threads.mira[0].heart, true);
-  astra.getState().heart("mira", "m1");
-  assert.equal(astra.getState().threads.mira[0].heart, false);
-  assert.equal(JSON.stringify(initialMessages("mira")), original);
-});
 test("Fable: toggling a reaction adds/removes it without mutating the sample", () => {
   const { messagesFor } = load(
     path.join(root, "src/cookbooks/fable/data/messages.ts"),
@@ -140,28 +131,11 @@ test("Fable: toggling a reaction adds/removes it without mutating the sample", (
   fable.getState().toggleReaction("missing", "x", "❤️");
   assert.equal(fable.getState().threads.missing, undefined);
 });
-test("Astra: unknown initial messages are empty and mute toggles independently", () => {
-  assert.deepEqual(initialMessages("missing"), []);
-  astra.getState().toggleMute("mira");
-  assert.ok(astra.getState().muted.includes("mira"));
-  astra.getState().toggleMute("mira");
-  assert.ok(!astra.getState().muted.includes("mira"));
-});
-test("Cookbook persistence uses separate namespaces and survives store hydration", async () => {
-  astra.getState().send("mira", "Astra only");
+test("Fable persistence survives store hydration", async () => {
   fable.getState().append("mara", "Fable only");
-  assert.equal(disks.size, 2);
-  const astraDisk = disks.get("astra-local-v1").get("astra-state");
   const fableDisk = disks.get("fable-local-v1").get("fable-state");
-  assert.ok(
-    astraDisk.includes("Astra only") && !astraDisk.includes("Fable only"),
-  );
-  assert.ok(
-    fableDisk.includes("Fable only") && !fableDisk.includes("Astra only"),
-  );
-  await astra.persist.rehydrate();
+  assert.ok(fableDisk.includes("Fable only"));
   await fable.persist.rehydrate();
-  assert.equal(astra.getState().threads.mira.at(-1).text, "Astra only");
   assert.equal(fable.getState().threads.mara.at(-1).text, "Fable only");
 });
 test("Fable: appending a photo with a URI and a reply quote persists both", () => {
@@ -189,6 +163,42 @@ test("Fable: appending a photo with a URI and a reply quote persists both", () =
   assert.equal(photo.photoUri, "file:///tmp/picked.jpg");
   assert.equal(photo.replyTo, undefined);
   assert.equal(target, null);
+});
+test("Fable: appending a document falls back to the file name and stores the attachment", () => {
+  fable.getState().reset();
+  fable
+    .getState()
+    .append("mara", "", "me", false, {
+      document: {
+        name: "deck.pdf",
+        size: 1234567,
+        mimeType: "application/pdf",
+        uri: "",
+      },
+    });
+  const doc = fable.getState().threads.mara.at(-1);
+  assert.equal(doc.text, "deck.pdf");
+  assert.deepEqual(doc.document, {
+    name: "deck.pdf",
+    size: 1234567,
+    mimeType: "application/pdf",
+    uri: "",
+  });
+  // An explicit caption wins over the file-name fallback.
+  fable
+    .getState()
+    .append("mara", "Q3 numbers", "me", false, {
+      document: {
+        name: "q3.xlsx",
+        size: 2048,
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        uri: "",
+      },
+    });
+  const captioned = fable.getState().threads.mara.at(-1);
+  assert.equal(captioned.text, "Q3 numbers");
+  assert.equal(captioned.document.name, "q3.xlsx");
 });
 
 const { unreadCount, firstUnreadId, seedLastReadId } = load(

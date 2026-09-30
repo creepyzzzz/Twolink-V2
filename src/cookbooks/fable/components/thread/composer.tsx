@@ -55,7 +55,7 @@ type Props = {
 /**
  * The floating composer in liquid glass: a single input pill with the "+"
  * tucked inside it on the left, and the send button as its own circle just
- * outside the pill on the right (Astra-style), bottom-anchored as the pill
+ * outside the pill on the right, bottom-anchored as the pill
  * grows. It rides the keyboard, including the interactive drag-to-dismiss.
  * Emoji come from the device keyboard.
  */

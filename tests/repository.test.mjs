@@ -49,7 +49,7 @@ test("Every bundled bitmap resolves, is documented, and has its original checksu
     assert.ok(existsSync(file), `Unresolved asset: ${file}`);
 });
 test("Cookbook route adapters resolve to independently organized screen implementations", () => {
-  for (const cookbook of ["fable", "astra"])
+  for (const cookbook of ["fable"])
     for (const [route, component] of [
       ["index", "Inbox"],
       ["chat/[id]", "Conversation"],

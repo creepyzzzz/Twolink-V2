@@ -15,7 +15,6 @@ import { StoryHost } from "../cookbooks/fable/components/stories/story-viewer";
 import { LockScreen } from "../cookbooks/fable/components/lock/lock-screen";
 import { useFable } from "../cookbooks/fable/data/store";
 import { ME, FABLE_TEAM, PEOPLE } from "../cookbooks/fable/data/people";
-import { portraits, coast } from "../cookbooks/astra/data";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -64,11 +63,7 @@ export default function RootLayout() {
     const people = [ME, FABLE_TEAM, ...PEOPLE];
     Promise.allSettled([
       preloadOrbImages(people.map((person) => person.avatar)),
-      Asset.loadAsync([
-        ...people.map((person) => person.story),
-        ...portraits,
-        coast,
-      ]),
+      Asset.loadAsync([...people.map((person) => person.story)]),
     ]).then(() => {
       if (mounted) setReady(true);
     });
@@ -87,9 +82,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="chat" />
             <Stack.Screen name="fable" />
-            <Stack.Screen name="astra" />
             {/* My Profile: a transparent modal at root level so it presents
                 over any stack (chat list, conversation, …) with the chat
                 visible behind the blur. */}

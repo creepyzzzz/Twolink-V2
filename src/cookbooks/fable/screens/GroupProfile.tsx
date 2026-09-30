@@ -17,6 +17,7 @@ import { GroupAvatar } from "../components/chats/group-row";
 import { Avatar } from "../components/ui/avatar";
 import { Glass } from "../components/ui/glass";
 import { SharedLinks } from "../components/ui/shared-links";
+import { SharedDocuments } from "../components/ui/shared-documents";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
 import { PEOPLE_BY_ID } from "../data/people";
@@ -144,6 +145,7 @@ function ProfileScreen({ id }: { id: string }) {
         )}
 
         <SharedLinks messages={messages} />
+        <SharedDocuments messages={messages} />
       </SheetScrollView>
 
       {viewerPhoto?.photoUri && (

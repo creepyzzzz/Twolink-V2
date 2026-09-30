@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { Pressable, Text, View, useColorScheme } from "react-native";
 
-export function NotFound({ home = "/" }: { home?: "/" | "/fable" | "/astra" }) {
+export function NotFound({ home = "/" }: { home?: "/" | "/fable" }) {
   const dark = useColorScheme() === "dark";
   return (
     <View

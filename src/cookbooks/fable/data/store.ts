@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createMMKV } from "react-native-mmkv";
-import { messagesFor, olderMessagesFor, type Message, type ReplyQuote } from "./messages";
+import { messagesFor, olderMessagesFor, type DocumentAttachment, type Message, type ReplyQuote } from "./messages";
 import type { ScheduledMessage } from "./scheduled";
 import { PEOPLE_BY_ID, type AvatarFace } from "./people";
 import { CHATS } from "./chats";
@@ -114,6 +114,8 @@ type State = {
       replyTo?: ReplyQuote;
       /** Group threads: which member sent this. */
       senderId?: string;
+      /** File attachment; `text` falls back to the file name. */
+      document?: DocumentAttachment;
     },
   ) => void;
   /** Prepends the next page of older history; no-op when exhausted. */
@@ -297,17 +299,20 @@ export const useFable = create<State>()(
       append: (id, text, from = "me", photo = false, opts) => {
         const person = PEOPLE_BY_ID[id];
         const group = getGroup(get().groups, id);
-        if ((!person && !group) || (!photo && !text.trim())) return;
+        if ((!person && !group) || (!photo && !text.trim() && !opts?.document))
+          return;
         const lifetime = get().disappearing[id] ?? 0;
         const message: Message = {
           id: `local-${Date.now()}-${++sequence}`,
           from,
-          text: text.trim(),
+          text:
+            opts?.document && !text.trim() ? opts.document.name : text.trim(),
           at: "now",
           photo,
           ...(opts?.photoUri ? { photoUri: opts.photoUri } : {}),
           ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
           ...(opts?.senderId ? { senderId: opts.senderId } : {}),
+          ...(opts?.document ? { document: opts.document } : {}),
           ...(lifetime > 0 ? { expiresAt: Date.now() + lifetime } : {}),
         };
         set((state) => ({

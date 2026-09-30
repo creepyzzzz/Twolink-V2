@@ -92,3 +92,5 @@ Desktop.ini
 
 expo-env.d.ts
 # @end expo-cli
+# Generated app-icon drafts (kept outside the repo in ~/workspace/twolink-app-icons/)
+app-icons/

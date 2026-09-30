@@ -1,55 +1,5 @@
 [
   {
-    "path": "assets/cookbooks/astra/photos/coast.png",
-    "bytes": 3139489,
-    "sha256": "0865a5de9bb7f01597ffa08a665596dd6df8a441075cf244dd04867ed9ecc033"
-  },
-  {
-    "path": "assets/cookbooks/astra/portraits/0.webp",
-    "bytes": 12064,
-    "sha256": "d6897abc6a96e8ec3f602f03e157808959b1d24c665b9a8887af7fade4d7a38c"
-  },
-  {
-    "path": "assets/cookbooks/astra/portraits/1.webp",
-    "bytes": 7770,
-    "sha256": "219e752cad2ce581b0eb865363e5f762ef039be5e1104c819bb65ec46a943687"
-  },
-  {
-    "path": "assets/cookbooks/astra/portraits/2.webp",
-    "bytes": 10280,
-    "sha256": "28988d746467130c41648042a9c9f80ddebf545d6f89ef0d5970cb8a44c6c93a"
-  },
-  {
-    "path": "assets/cookbooks/astra/portraits/3.webp",
-    "bytes": 7074,
-    "sha256": "45ef86d1f32037a4205f2ef735d2f4dea92e6d137f7f33a8cfc7bd915147a684"
-  },
-  {
-    "path": "assets/cookbooks/astra/portraits/4.webp",
-    "bytes": 11214,
-    "sha256": "63a3d91c9e889dfcd51831ac37206c0a6c5eb55cd12ba1b6b136e0aea5c24d91"
-  },
-  {
-    "path": "assets/cookbooks/astra/portraits/5.webp",
-    "bytes": 8986,
-    "sha256": "4bbad441f4628523c7b16b7449682391ca22b9b1906c9fbc8a1e48cc45315ea8"
-  },
-  {
-    "path": "assets/cookbooks/astra/portraits/6.webp",
-    "bytes": 6826,
-    "sha256": "a4dcc2188f7ec5f091f62c8c08bb4aad3b62c2bea10d11fb62a2bd6b89ab5bb2"
-  },
-  {
-    "path": "assets/cookbooks/astra/portraits/7.webp",
-    "bytes": 7580,
-    "sha256": "6a0819c5c6c9259fb096060f06760ea5c0855395d898db7d194365ebd3fe373a"
-  },
-  {
-    "path": "assets/cookbooks/astra/portraits/8.webp",
-    "bytes": 10470,
-    "sha256": "1b959dd57223c1db67bd96c62bb8347d6dacd150cafca145bc53db71802bde69"
-  },
-  {
     "path": "assets/cookbooks/fable/avatars/amara.webp",
     "bytes": 8276,
     "sha256": "165453bd46de78d645ec586700aae0685c261548d0d9ec2fbe8eb33e98322fbf"
