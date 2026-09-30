@@ -2,14 +2,21 @@ import { AndroidGlassMenu } from "expo-android-glass-view";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
-import { Alert, View } from "react-native";
+import { View } from "react-native";
 
 import { SFIcon } from "../../../../ui/SFIcon";
 import { useFable } from "../../data/store";
 import { useTheme } from "../../hooks/use-theme";
 import { GlassButton } from "../ui/glass-button";
+import { GlassAlert, type GlassAlertAction } from "../ui/glass-alert";
 
 const DESTRUCTIVE_RED = "#FF545B";
+
+type AlertSpec = {
+  title: string;
+  message?: string;
+  actions: GlassAlertAction[];
+};
 
 /**
  * The ••• button in a chat header. Opens kagantemizkan's native glass menu
@@ -25,15 +32,17 @@ export function ChatMenu({
   const theme = useTheme();
   const anchorRef = useRef<View>(null);
   const [open, setOpen] = useState(false);
+  const [alert, setAlert] = useState<AlertSpec | null>(null);
   const wallpaper = useFable((s) => s.wallpapers[threadId]);
 
   const pickWallpaper = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
-        "Photos",
-        "Allow photo access to choose a chat wallpaper.",
-      );
+      setAlert({
+        title: "Photos",
+        message: "Allow photo access to choose a chat wallpaper.",
+        actions: [{ text: "OK", style: "default" }],
+      });
       return;
     }
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -49,25 +58,29 @@ export function ChatMenu({
 
   const onWallpaper = () => {
     if (wallpaper) {
-      Alert.alert("Wallpaper", "Change or remove this chat's wallpaper?", [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => useFable.getState().setWallpaper(threadId, null),
-        },
-        { text: "Change", onPress: () => void pickWallpaper() },
-      ]);
+      setAlert({
+        title: "Wallpaper",
+        message: "Change or remove this chat's wallpaper?",
+        actions: [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: () => useFable.getState().setWallpaper(threadId, null),
+          },
+          { text: "Change", onPress: () => void pickWallpaper() },
+        ],
+      });
     } else {
       void pickWallpaper();
     }
   };
 
   const onClear = () => {
-    Alert.alert(
-      "Clear chat?",
-      "All messages in this conversation will be deleted.",
-      [
+    setAlert({
+      title: "Clear chat?",
+      message: "All messages in this conversation will be deleted.",
+      actions: [
         { text: "Cancel", style: "cancel" },
         {
           text: "Clear",
@@ -75,7 +88,7 @@ export function ChatMenu({
           onPress: () => useFable.getState().clearThread(threadId),
         },
       ],
-    );
+    });
   };
 
   return (
@@ -125,6 +138,13 @@ export function ChatMenu({
           else if (id === "clear") onClear();
         }}
         onDismiss={() => setOpen(false)}
+      />
+      <GlassAlert
+        visible={alert !== null}
+        title={alert?.title ?? ""}
+        message={alert?.message}
+        actions={alert?.actions ?? []}
+        onDismiss={() => setAlert(null)}
       />
     </>
   );
