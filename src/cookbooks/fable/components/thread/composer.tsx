@@ -532,8 +532,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     maxHeight: 138,
-    paddingTop: 11,
-    paddingBottom: 10,
+    // Symmetric: 10.5 + 23 + 10.5 = 44 = minHeight, so the single-line
+    // text/placeholder is optically centered on every platform.
+    // (textAlignVertical below is Android-only; iOS centers by geometry.)
+    paddingTop: 10.5,
+    paddingBottom: 10.5,
     lineHeight: 23,
     textAlignVertical: "center",
   },

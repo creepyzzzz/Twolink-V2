@@ -112,7 +112,8 @@ const styles = StyleSheet.create({
     paddingRight: 6,
   },
   editedLabel: {
-    fontSize: 10,
-    fontStyle: "italic",
+    fontSize: 11,
+    // Fixed line height keeps the row's height stable next to the ticks.
+    lineHeight: 14,
   },
 });
