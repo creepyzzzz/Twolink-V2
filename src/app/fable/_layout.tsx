@@ -23,6 +23,14 @@ export default function FableLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="chat/[id]" />
         <Stack.Screen
+          name="contact/[id]"
+          options={{
+            presentation: "formSheet",
+            sheetAllowedDetents: [0.75, 1],
+            sheetGrabberVisible: true,
+          }}
+        />
+        <Stack.Screen
           name="compose"
           options={{
             presentation: "formSheet",

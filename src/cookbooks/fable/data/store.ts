@@ -9,6 +9,7 @@ let sequence = 0;
 type State = {
   threads: Record<string, Message[]>;
   read: string[];
+  muted: Record<string, boolean>;
   theme: "system" | "light" | "dark";
   append: (
     id: string,
@@ -20,6 +21,7 @@ type State = {
   markRead: (id: string) => void;
   setTheme: (theme: State["theme"]) => void;
   toggleReaction: (id: string, messageId: string, emoji: string) => void;
+  toggleMute: (id: string) => void;
   reset: () => void;
 };
 export const useFable = create<State>()(
@@ -27,6 +29,7 @@ export const useFable = create<State>()(
     (set, get) => ({
       threads: {},
       read: [],
+      muted: {},
       theme: "system",
       append: (id, text, from = "me", photo = false, opts) => {
         const person = PEOPLE_BY_ID[id];
@@ -74,6 +77,10 @@ export const useFable = create<State>()(
         }));
       },
       setTheme: (theme) => set({ theme }),
+      toggleMute: (id) =>
+        set((state) => ({
+          muted: { ...state.muted, [id]: !state.muted[id] },
+        })),
       reset: () => set({ threads: {}, read: [] }),
     }),
     {

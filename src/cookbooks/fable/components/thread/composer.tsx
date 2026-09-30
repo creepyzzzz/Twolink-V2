@@ -1,7 +1,6 @@
 import { SFIcon } from "../../../../ui/SFIcon";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
-  Keyboard,
   Pressable,
   StyleSheet,
   Text,
@@ -11,7 +10,9 @@ import {
 } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import Animated, {
+  FadeIn,
   FadeInDown,
+  FadeOut,
   LinearTransition,
 } from "react-native-reanimated";
 
@@ -54,6 +55,7 @@ export function Composer({
   const theme = useTheme();
   const inputRef = useRef<TextInput>(null);
   const draft = useRef("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const onChangeText = (t: string) => {
     draft.current = t;
@@ -65,6 +67,13 @@ export function Composer({
     inputRef.current?.clear();
     draft.current = "";
     onSend(text);
+  };
+
+  /** The menu's one working item today; camera and files slot in here with
+   *  the native one-shot build. */
+  const choosePhoto = () => {
+    setMenuOpen(false);
+    onAttach();
   };
 
   const onLayout = (e: LayoutChangeEvent) =>
@@ -79,6 +88,14 @@ export function Composer({
         onLayout={onLayout}
         style={[styles.root, { paddingBottom: insetBottom + Space[2] }]}
       >
+        {menuOpen && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss attachment menu"
+            onPress={() => setMenuOpen(false)}
+            style={styles.backdrop}
+          />
+        )}
         <Animated.View
           layout={LinearTransition.duration(220).easing(EASE_OUT.factory())}
           style={[styles.lift, { boxShadow: theme.lift }]}
@@ -125,6 +142,7 @@ export function Composer({
               placeholder="Message"
               placeholderTextColor={theme.placeholder}
               onChangeText={onChangeText}
+              onFocus={() => setMenuOpen(false)}
               onSubmitEditing={submit}
               submitBehavior="submit"
               returnKeyType="send"
@@ -135,15 +153,21 @@ export function Composer({
             <View style={styles.actions}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Share a photo"
-                onPress={() => {
-                  Keyboard.dismiss();
-                  onAttach();
-                }}
+                accessibilityLabel="Attachments"
+                onPress={() => setMenuOpen((v) => !v)}
                 hitSlop={6}
-                style={[styles.round, { backgroundColor: theme.chip }]}
+                style={[
+                  styles.round,
+                  {
+                    backgroundColor: menuOpen ? theme.outgoing : theme.chip,
+                  },
+                ]}
               >
-                <SFIcon name="plus" size={19} color={theme.label} />
+                <SFIcon
+                  name="plus"
+                  size={19}
+                  color={menuOpen ? theme.outgoingText : theme.label}
+                />
               </Pressable>
               <View style={styles.spacer} />
               <Pressable
@@ -158,6 +182,34 @@ export function Composer({
             </View>
           </Glass>
         </Animated.View>
+        {menuOpen && (
+          <Animated.View
+            entering={FadeIn.duration(160).easing(EASE_OUT.factory())}
+            exiting={FadeOut.duration(120)}
+            style={styles.menu}
+          >
+            <Glass style={styles.menuCard}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose from photo library"
+                onPress={choosePhoto}
+                style={({ pressed }) => [
+                  styles.item,
+                  { backgroundColor: pressed ? theme.chip : "transparent" },
+                ]}
+              >
+                <View
+                  style={[styles.itemIcon, { backgroundColor: theme.chip }]}
+                >
+                  <SFIcon name="photo" size={18} color={theme.label} />
+                </View>
+                <Text style={[Type.body, { color: theme.label }]}>
+                  Photo Library
+                </Text>
+              </Pressable>
+            </Glass>
+          </Animated.View>
+        )}
       </View>
     </KeyboardStickyView>
   );
@@ -227,6 +279,41 @@ const styles = StyleSheet.create({
     width: BTN,
     height: BTN,
     borderRadius: BTN / 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backdrop: {
+    position: "absolute",
+    top: -3000,
+    left: -500,
+    right: -500,
+    bottom: -3000,
+  },
+  menu: {
+    position: "absolute",
+    left: 0,
+    bottom: "100%",
+    marginBottom: 10,
+    minWidth: 230,
+  },
+  menuCard: {
+    borderRadius: 20,
+    borderCurve: "continuous",
+    padding: 6,
+  },
+  item: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space[3],
+    paddingHorizontal: Space[3],
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderCurve: "continuous",
+  },
+  itemIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
   },

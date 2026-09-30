@@ -19,6 +19,7 @@ const NAMES = [
   "chevron.right",
   "chevron.left",
   "chevron.down",
+  "chevron.up",
   "bell.slash.fill",
   "arrow.counterclockwise",
   "arrow.up",

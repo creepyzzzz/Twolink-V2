@@ -19,6 +19,7 @@ import type { Message } from "../../data/messages";
 import type { Person } from "../../data/people";
 import { useScheme, useTheme } from "../../hooks/use-theme";
 import type { ReactionTarget } from "./reaction-picker";
+import { MessageText } from "./highlight-text";
 
 /**
  * Fable conversation bubble.
@@ -55,6 +56,10 @@ type Props = {
   onReply: (message: Message) => void;
   /** Tap a photo bubble to open it fullscreen. */
   onOpenPhoto: (message: Message) => void;
+  /** Active in-conversation search query — matches highlight in the text. */
+  highlight?: string;
+  /** This message holds the currently selected search match. */
+  highlightActive?: boolean;
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -71,6 +76,8 @@ export const Bubble = memo(function Bubble({
   reacting,
   onReply,
   onOpenPhoto,
+  highlight,
+  highlightActive,
 }: Props) {
   const theme = useTheme();
   const scheme = useScheme();
@@ -261,9 +268,13 @@ export const Bubble = memo(function Bubble({
               ]}
             >
               {quote}
-              <Text style={[Type.body, { color: theme.outgoingText }]}>
-                {message.text}
-              </Text>
+              <MessageText
+                text={message.text}
+                query={highlight}
+                active={highlightActive}
+                mine
+                color={theme.outgoingText}
+              />
               {badge}
             </AnimatedPressable>
           ) : (
@@ -285,9 +296,13 @@ export const Bubble = memo(function Bubble({
               ]}
             >
               {quote}
-              <Text style={[Type.body, { color: theme.incomingText }]}>
-                {message.text}
-              </Text>
+              <MessageText
+                text={message.text}
+                query={highlight}
+                active={highlightActive}
+                mine={false}
+                color={theme.incomingText}
+              />
               {badge}
             </AnimatedPressable>
           )}

@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { SFIcon } from "../../../../ui/SFIcon";
 import { Avatar } from "../ui/avatar";
 import { Accent, Space, Type } from "../../constants/theme";
 import type { Chat } from "../../data/chats";
@@ -17,6 +18,7 @@ export const ChatRow = memo(function ChatRow({ chat }: { chat: Chat }) {
   const person = PEOPLE_BY_ID[chat.personId];
   const read = useFable((state) => state.read.includes(chat.id));
   const last = useFable((state) => state.threads[chat.id]?.at(-1));
+  const muted = useFable((state) => !!state.muted[chat.id]);
   const unread = chat.unread > 0 && !read;
   const preview = last
     ? last.photo
@@ -29,7 +31,7 @@ export const ChatRow = memo(function ChatRow({ chat }: { chat: Chat }) {
     <Pressable
       testID={`fable-chat-${chat.id}`}
       accessibilityRole="button"
-      accessibilityLabel={`${person.name}${unread ? ", unread" : ""}. ${preview}`}
+      accessibilityLabel={`${person.name}${unread ? ", unread" : ""}${muted ? ", muted" : ""}. ${preview}`}
       onPress={() =>
         router.push({ pathname: "/fable/chat/[id]", params: { id: chat.id } })
       }
@@ -57,6 +59,9 @@ export const ChatRow = memo(function ChatRow({ chat }: { chat: Chat }) {
       </View>
       <View style={styles.meta}>
         {unread && <View style={styles.dot} accessibilityLabel="Unread" />}
+        {muted && (
+          <SFIcon name="bell.slash.fill" size={13} color={theme.tertiary} />
+        )}
         <Text style={[Type.meta, styles.time, { color: theme.secondary }]}>
           {last ? "now" : chat.time}
         </Text>

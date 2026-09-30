@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Avatar } from "../ui/avatar";
 import { GlassButton } from "../ui/glass-button";
@@ -9,13 +9,18 @@ import { useTheme } from "../../hooks/use-theme";
 
 export const THREAD_NAV_H = 64;
 
-/** The bar: a circle, an identity, a circle. The panel begins right beneath. */
+/**
+ * The bar: back, a tappable identity (opens the contact card),
+ * search and video. The panel begins right beneath.
+ */
 export function ThreadHeader({
   person,
   insetTop,
+  onSearch,
 }: {
   person: Person;
   insetTop: number;
+  onSearch: () => void;
 }) {
   const theme = useTheme();
   return (
@@ -29,7 +34,17 @@ export function ThreadHeader({
         accessibilityLabel="Back"
         onPress={() => router.back()}
       />
-      <View pointerEvents="none" style={styles.center}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${person.name} — contact info`}
+        onPress={() =>
+          router.push({
+            pathname: "/fable/contact/[id]",
+            params: { id: person.id },
+          })
+        }
+        style={styles.center}
+      >
         <Avatar source={person.avatar} size={44} />
         <Text
           numberOfLines={1}
@@ -37,15 +52,26 @@ export function ThreadHeader({
         >
           {person.first}
         </Text>
+      </Pressable>
+      <View style={styles.right}>
+        <GlassButton
+          symbol="magnifyingglass"
+          iconSize={17}
+          accessibilityLabel="Search in conversation"
+          onPress={onSearch}
+        />
+        <GlassButton
+          symbol="video"
+          iconSize={18}
+          accessibilityLabel="Video call"
+          onPress={() =>
+            Alert.alert(
+              "Video calls",
+              "Calls are not available in this preview.",
+            )
+          }
+        />
       </View>
-      <GlassButton
-        symbol="video"
-        iconSize={18}
-        accessibilityLabel="Video call"
-        onPress={() =>
-          Alert.alert("Video calls", "Calls are not available in this preview.")
-        }
-      />
     </View>
   );
 }
@@ -68,5 +94,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: "center",
     justifyContent: "center",
+  },
+  right: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
 });

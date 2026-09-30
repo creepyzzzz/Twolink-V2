@@ -21,6 +21,7 @@ import {
   ReactionOverlay,
   type ReactionTarget,
 } from "../components/thread/reaction-picker";
+import { SearchBar } from "../components/thread/search-bar";
 import { THREAD_NAV_H, ThreadHeader } from "../components/thread/thread-header";
 import { TypingBubble } from "../components/thread/typing";
 import { Radius, Space, Type } from "../constants/theme";
@@ -63,6 +64,10 @@ function ThreadScreen({ id }: { id: string }) {
   } | null>(null);
   // Swipe-to-reply target: arms the composer's reply strip.
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  // In-conversation search.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [matchIdx, setMatchIdx] = useState(0);
   // Fullscreen photo viewer source.
   const [viewerSource, setViewerSource] = useState<
     { uri: string } | number | null
@@ -72,6 +77,8 @@ function ThreadScreen({ id }: { id: string }) {
   const initialFrame = useRef<number | null>(null);
   const listRef = useAnimatedRef<Animated.ScrollView>();
   const [composerHeight, setComposerHeight] = useState(0);
+  // Row top offsets (content coordinates) for scrolling to search matches.
+  const rowTops = useRef(new Map<string, number>());
 
   // Include the floating composer in content geometry before the initial scroll.
   // Keyboard Controller supplies only the moving keyboard inset.
@@ -197,6 +204,63 @@ function ThreadScreen({ id }: { id: string }) {
       }
     : null;
 
+  // Search matches: text messages containing the query, in thread order.
+  const q = query.trim().toLowerCase();
+  const matches = useMemo(
+    () =>
+      q
+        ? messages.filter(
+            (m) => !m.photo && m.text.toLowerCase().includes(q),
+          )
+        : [],
+    [messages, q],
+  );
+  const activeMatchId = matches[matchIdx]?.id;
+  const matchesRef = useRef<Message[]>([]);
+  useEffect(() => {
+    matchesRef.current = matches;
+  }, [matches]);
+
+  const jumpTo = useCallback(
+    (i: number) => {
+      const m = matchesRef.current[i];
+      if (!m) return;
+      const top = rowTops.current.get(m.id);
+      if (top == null) return;
+      // Park the row just under the search bar.
+      listRef.current?.scrollTo({ y: Math.max(0, top - 120), animated: true });
+    },
+    [listRef],
+  );
+
+  const stepMatch = useCallback(
+    (dir: 1 | -1) => {
+      const n = matchesRef.current.length;
+      if (n === 0) return;
+      const next = (matchIdx + dir + n) % n;
+      setMatchIdx(next);
+      jumpTo(next);
+    },
+    [matchIdx, jumpTo],
+  );
+
+  const handleQuery = useCallback(
+    (text: string) => {
+      setQuery(text);
+      setMatchIdx(0);
+      // The match list recomputes on re-render; land on the first hit after.
+      const t = setTimeout(() => jumpTo(0), 80);
+      timers.current.push(t);
+    },
+    [jumpTo],
+  );
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setQuery("");
+    setMatchIdx(0);
+  }, []);
+
   const rows = useMemo(
     () =>
       messages.map((msg, i) => {
@@ -214,7 +278,11 @@ function ThreadScreen({ id }: { id: string }) {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
-      <ThreadHeader person={person} insetTop={insets.top} />
+      <ThreadHeader
+        person={person}
+        insetTop={insets.top}
+        onSearch={() => setSearchOpen(true)}
+      />
 
       {/* The panel: one big rounded card the conversation lives in. */}
       <View
@@ -248,7 +316,12 @@ function ThreadScreen({ id }: { id: string }) {
           ]}
         >
           {rows.map(({ msg, first, label, animate }) => (
-            <View key={msg.id}>
+            <View
+              key={msg.id}
+              onLayout={(e) =>
+                rowTops.current.set(msg.id, e.nativeEvent.layout.y)
+              }
+            >
               {label && (
                 <Text
                   style={[Type.caption, styles.day, { color: theme.tertiary }]}
@@ -265,6 +338,8 @@ function ThreadScreen({ id }: { id: string }) {
                 reacting={reaction?.message.id === msg.id}
                 onReply={setReplyTo}
                 onOpenPhoto={onOpenPhoto}
+                highlight={q || undefined}
+                highlightActive={msg.id === activeMatchId}
               />
             </View>
           ))}
@@ -280,6 +355,19 @@ function ThreadScreen({ id }: { id: string }) {
         replyPreview={replyPreview}
         onCancelReply={() => setReplyTo(null)}
       />
+
+      {searchOpen && (
+        <SearchBar
+          top={panelTop + 4}
+          query={query}
+          onQuery={handleQuery}
+          matchCount={matches.length}
+          matchIndex={matchIdx}
+          onPrev={() => stepMatch(-1)}
+          onNext={() => stepMatch(1)}
+          onClose={closeSearch}
+        />
+      )}
 
       {reaction && (
         <ReactionOverlay
