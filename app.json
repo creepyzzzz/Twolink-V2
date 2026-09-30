@@ -18,7 +18,8 @@
     "android": {
       "package": "com.poffu.chat",
       "adaptiveIcon": {
-        "backgroundColor": "#171819"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#FEDA2E"
       }
     },
     "plugins": [

@@ -136,8 +136,9 @@
   },
   {
     "path": "assets/images/icon.png",
-    "bytes": 88042,
-    "sha256": "bc5c19ee61eb13932ac13eb820bc4685793910135e51810bf8da07972264631c"
+    "bytes": 308472,
+    "sha256": "7e65b76e1f6b7529d16f3d8bdae87f19e6db0b1ba444f689991cbb91257f9ce8",
+    "source": "User-supplied Poffu penguin icon (chat upload 2026-09-30), white margin trimmed, resized to 1024x1024"
   },
   {
     "path": "assets/fonts/SF-Pro-Text-Regular.otf",
