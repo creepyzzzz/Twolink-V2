@@ -12,6 +12,7 @@ import { Avatar } from "../ui/avatar";
 import { Accent, Space, Type } from "../../constants/theme";
 import { PEOPLE_BY_ID } from "../../data/people";
 import { useFable, type Group } from "../../data/store";
+import { unreadCount } from "../../data/unread";
 import { useTheme } from "../../hooks/use-theme";
 
 export const ROW_AVATAR = 60;
@@ -69,11 +70,14 @@ export const GroupRow = memo(function GroupRow({
   onLongPressRow: (id: string) => void;
 }) {
   const theme = useTheme();
-  const read = useFable((state) => state.read.includes(group.id));
-  const last = useFable((state) => state.threads[group.id]?.at(-1));
+  const stored = useFable((state) => state.threads[group.id]);
+  const lastReadId = useFable((state) => state.lastRead[group.id]);
+  const messages = stored ?? [];
+  const last = messages.at(-1);
   const muted = useFable((state) => !!state.muted[group.id]);
   const pinned = useFable((state) => state.pinned.includes(group.id));
-  const unread = !!last && last.from !== "me" && !read;
+  const n = unreadCount(messages, lastReadId);
+  const unread = n > 0;
   const draftText = (useFable((state) => state.drafts[group.id]) ?? "").trim();
   const senderName =
     last && last.from !== "me" && last.senderId
@@ -130,7 +134,16 @@ export const GroupRow = memo(function GroupRow({
             {pinned && (
               <SFIcon name="pin.fill" size={13} color={theme.tertiary} rotation={45} />
             )}
-            {unread && <View style={styles.dot} accessibilityLabel="Unread" />}
+            {unread && (
+              <View
+                style={styles.badge}
+                accessibilityLabel={`${n} unread messages`}
+              >
+                <Text style={styles.badgeText}>
+                  {n > 99 ? "99+" : n}
+                </Text>
+              </View>
+            )}
             {muted && (
               <SFIcon name="bell.slash.fill" size={13} color={theme.tertiary} />
             )}
@@ -160,11 +173,20 @@ const styles = StyleSheet.create({
     minWidth: 44,
   },
   time: { fontVariant: ["tabular-nums"] },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: Accent,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+    fontVariant: ["tabular-nums"],
   },
   fallback: {
     alignItems: "center",

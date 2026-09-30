@@ -36,7 +36,9 @@ import {
 import { EASE_OUT } from "../constants/motion";
 import { Accent, Space } from "../constants/theme";
 import { CHATS } from "../data/chats";
+import { messagesFor } from "../data/messages";
 import { PEOPLE_BY_ID, STORIES, type Person } from "../data/people";
+import { unreadCount } from "../data/unread";
 import { openStory, pickAndPostStory } from "../data/story-state";
 import { useFable } from "../data/store";
 import { useTheme } from "../hooks/use-theme";
@@ -227,7 +229,18 @@ export default function ChatsScreen() {
     },
     [deleteThread, showAlert],
   );
-  const read = useFable((state) => state.read);
+  const threads = useFable((state) => state.threads);
+  const lastRead = useFable((state) => state.lastRead);
+  /** Derived unread count for a person thread (mock seed + live messages). */
+  const unreadFor = useCallback(
+    (id: string, personId: string) => {
+      const person = PEOPLE_BY_ID[personId];
+      const messages =
+        threads[id] ?? (person ? messagesFor(id, person.first) : []);
+      return unreadCount(messages, lastRead[id]);
+    },
+    [threads, lastRead],
+  );
   const groupsRecord = useFable((state) => state.groups);
   const groups = useMemo(
     () =>
@@ -262,7 +275,7 @@ export default function ChatsScreen() {
       CHATS.filter((chat) => {
         if (deleted.includes(chat.id)) return false;
         if (filter === "Groups") return false;
-        if (filter === "Unread" && !(chat.unread > 0 && !read.includes(chat.id)))
+        if (filter === "Unread" && unreadFor(chat.id, chat.personId) === 0)
           return false;
         const person = PEOPLE_BY_ID[chat.personId];
         const name = person ? person.name.toLowerCase() : "";
@@ -271,13 +284,21 @@ export default function ChatsScreen() {
         );
       }),
     );
-  }, [query, filter, read, pinSort, deleted]);
+  }, [query, filter, unreadFor, pinSort, deleted]);
 
   // The long-press menu mirrors the chat ••• menu: vertical icon + label
   // rows on the same native glass surface, with the same opening animation.
   const menuPinned = menuId != null && pinned.includes(menuId);
   const menuMuted = menuId != null && !!muted[menuId];
-  const menuMarkedRead = menuId != null && read.includes(menuId);
+  const menuMarkedRead =
+    menuId != null &&
+    unreadCount(
+      threads[menuId] ??
+        (PEOPLE_BY_ID[menuId]
+          ? messagesFor(menuId, PEOPLE_BY_ID[menuId].first)
+          : []),
+      lastRead[menuId],
+    ) === 0;
   const menuItems =
     menuId == null
       ? []

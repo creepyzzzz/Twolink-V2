@@ -3,6 +3,8 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { createMMKV } from "react-native-mmkv";
 import { messagesFor, olderMessagesFor, type Message, type ReplyQuote } from "./messages";
 import { PEOPLE_BY_ID, type AvatarFace } from "./people";
+import { CHATS } from "./chats";
+import { seedLastReadId, unreadCount } from "./unread";
 
 const storage = createMMKV({ id: "fable-local-v1" });
 let sequence = 0;
@@ -73,7 +75,14 @@ export function normalizeWallpaper(
 
 type State = {
   threads: Record<string, Message[]>;
-  read: string[];
+  /**
+   * Id of the last message the user has read, per thread. Unread counts and
+   * jump-to-first-unread derive from this (see data/unread.ts).
+   */
+  lastRead: Record<string, string>;
+  /** Thread currently open on screen; arrivals here are read immediately. */
+  openThreadId: string | null;
+  setOpenThread: (id: string | null) => void;
   muted: Record<string, boolean>;
   /** Thread ids pinned to the top of the inbox, most-recent pin first. */
   pinned: string[];
@@ -138,11 +147,38 @@ type State = {
   setDraft: (id: string, text: string) => void;
   reset: () => void;
 };
+/** Full message list for a thread: stored overrides, else the mock seed. */
+function threadMessages(
+  state: Pick<State, "threads">,
+  id: string,
+): Message[] {
+  const person = PEOPLE_BY_ID[id];
+  return (
+    state.threads[id] ?? (person ? messagesFor(id, person.first) : [])
+  );
+}
+
+/** Converts the mock `Chat.unread` counts into initial lastRead markers. */
+function seedLastRead(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const chat of CHATS) {
+    const person = PEOPLE_BY_ID[chat.personId];
+    if (!person) continue;
+    const id = seedLastReadId(
+      messagesFor(chat.id, person.first),
+      chat.unread,
+    );
+    if (id) out[chat.id] = id;
+  }
+  return out;
+}
 export const useFable = create<State>()(
   persist(
     (set, get) => ({
       threads: {},
-      read: [],
+      lastRead: seedLastRead(),
+      openThreadId: null,
+      setOpenThread: (id) => set({ openThreadId: id }),
       muted: {},
       pinned: [],
       drafts: {},
@@ -188,24 +224,29 @@ export const useFable = create<State>()(
         const person = PEOPLE_BY_ID[id];
         const group = getGroup(get().groups, id);
         if ((!person && !group) || (!photo && !text.trim())) return;
+        const message: Message = {
+          id: `local-${Date.now()}-${++sequence}`,
+          from,
+          text: text.trim(),
+          at: "now",
+          photo,
+          ...(opts?.photoUri ? { photoUri: opts.photoUri } : {}),
+          ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
+          ...(opts?.senderId ? { senderId: opts.senderId } : {}),
+        };
         set((state) => ({
           threads: {
             ...state.threads,
             [id]: [
               ...(state.threads[id] ??
                 (person ? messagesFor(id, person.first) : [])),
-              {
-                id: `local-${Date.now()}-${++sequence}`,
-                from,
-                text: text.trim(),
-                at: "now",
-                photo,
-                ...(opts?.photoUri ? { photoUri: opts.photoUri } : {}),
-                ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
-                ...(opts?.senderId ? { senderId: opts.senderId } : {}),
-              },
+              message,
             ],
           },
+          // A message landing in the open thread is read immediately.
+          ...(state.openThreadId === id
+            ? { lastRead: { ...state.lastRead, [id]: message.id } }
+            : {}),
         }));
       },
       loadEarlier: (id) => {
@@ -226,15 +267,31 @@ export const useFable = create<State>()(
         }));
       },
       markRead: (id) => {
-        if (!get().read.includes(id))
-          set((state) => ({ read: [...state.read, id] }));
+        const state = get();
+        const last = threadMessages(state, id).at(-1);
+        if (last && state.lastRead[id] !== last.id)
+          set({ lastRead: { ...state.lastRead, [id]: last.id } });
       },
-      toggleRead: (id) =>
-        set((state) => ({
-          read: state.read.includes(id)
-            ? state.read.filter((r) => r !== id)
-            : [...state.read, id],
-        })),
+      toggleRead: (id) => {
+        const state = get();
+        const messages = threadMessages(state, id);
+        if (unreadCount(messages, state.lastRead[id]) > 0) {
+          const last = messages.at(-1);
+          if (last) set({ lastRead: { ...state.lastRead, [id]: last.id } });
+          return;
+        }
+        // Mark unread: rewind to just before the latest incoming message.
+        let idx = messages.length - 1;
+        while (idx >= 0 && messages[idx].from === "me") idx--;
+        if (idx < 0) return;
+        set((s) => {
+          const lastRead = { ...s.lastRead };
+          const prev = messages[idx - 1];
+          if (prev) lastRead[id] = prev.id;
+          else delete lastRead[id];
+          return { lastRead };
+        });
+      },
       toggleReaction: (id, messageId, emoji) => {
         const person = PEOPLE_BY_ID[id];
         if (!person) return;
@@ -286,12 +343,14 @@ export const useFable = create<State>()(
           delete drafts[id];
           const muted = { ...state.muted };
           delete muted[id];
+          const lastRead = { ...state.lastRead };
+          delete lastRead[id];
           return {
             threads,
             drafts,
             muted,
+            lastRead,
             pinned: state.pinned.filter((p) => p !== id),
-            read: state.read.filter((r) => r !== id),
             deleted: state.deleted.includes(id)
               ? state.deleted
               : [...state.deleted, id],
@@ -306,10 +365,14 @@ export const useFable = create<State>()(
           return { drafts };
         }),
       clearThread: (id) =>
-        set((state) => ({
-          threads: { ...state.threads, [id]: [] },
-          read: state.read.filter((r) => r !== id),
-        })),
+        set((state) => {
+          const lastRead = { ...state.lastRead };
+          delete lastRead[id];
+          return {
+            threads: { ...state.threads, [id]: [] },
+            lastRead,
+          };
+        }),
       wallpapers: {},
       setWallpaper: (id, wallpaper) =>
         set((state) => {
@@ -326,7 +389,8 @@ export const useFable = create<State>()(
       reset: () =>
         set({
           threads: {},
-          read: [],
+          lastRead: {},
+          openThreadId: null,
           deleted: [],
           historyPage: {},
           wallpapers: {},

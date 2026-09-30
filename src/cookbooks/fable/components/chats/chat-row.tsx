@@ -11,8 +11,10 @@ import { SFIcon } from "../../../../ui/SFIcon";
 import { Avatar } from "../ui/avatar";
 import { Accent, Space, Type } from "../../constants/theme";
 import type { Chat } from "../../data/chats";
+import { messagesFor } from "../../data/messages";
 import { PEOPLE_BY_ID } from "../../data/people";
 import { useFable } from "../../data/store";
+import { unreadCount } from "../../data/unread";
 import { useTheme } from "../../hooks/use-theme";
 
 export const ROW_AVATAR = 60;
@@ -27,11 +29,14 @@ export const ChatRow = memo(function ChatRow({
 }) {
   const theme = useTheme();
   const person = PEOPLE_BY_ID[chat.personId];
-  const read = useFable((state) => state.read.includes(chat.id));
-  const last = useFable((state) => state.threads[chat.id]?.at(-1));
+  const stored = useFable((state) => state.threads[chat.id]);
+  const lastReadId = useFable((state) => state.lastRead[chat.id]);
+  const messages = stored ?? messagesFor(chat.id, person.first);
+  const last = messages.at(-1);
   const muted = useFable((state) => !!state.muted[chat.id]);
   const pinned = useFable((state) => state.pinned.includes(chat.id));
-  const unread = chat.unread > 0 && !read;
+  const n = unreadCount(messages, lastReadId);
+  const unread = n > 0;
   const draftText = (useFable((state) => state.drafts[chat.id]) ?? "").trim();
   const preview = last
     ? last.photo
@@ -88,7 +93,16 @@ export const ChatRow = memo(function ChatRow({
             {pinned && (
               <SFIcon name="pin.fill" size={13} color={theme.tertiary} rotation={45} />
             )}
-            {unread && <View style={styles.dot} accessibilityLabel="Unread" />}
+            {unread && (
+              <View
+                style={styles.badge}
+                accessibilityLabel={`${n} unread messages`}
+              >
+                <Text style={styles.badgeText}>
+                  {n > 99 ? "99+" : n}
+                </Text>
+              </View>
+            )}
             {muted && (
               <SFIcon name="bell.slash.fill" size={13} color={theme.tertiary} />
             )}
@@ -122,11 +136,20 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingLeft: Space[2],
   },
-  dot: {
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: Accent,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+    fontVariant: ["tabular-nums"],
   },
   time: {
     fontVariant: ["tabular-nums"],

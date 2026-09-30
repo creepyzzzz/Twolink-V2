@@ -91,14 +91,28 @@ for (const [name, store, id, send] of [
   });
   test(`${name}: reading twice is idempotent and reset preserves appearance`, () => {
     store.getState().markRead(id);
-    const read = store.getState().read;
+    const lastRead = store.getState().lastRead?.[id];
     store.getState().markRead(id);
-    assert.equal(store.getState().read, read);
+    assert.equal(store.getState().lastRead?.[id], lastRead);
     store.getState().setTheme("dark");
     store.getState().reset();
     assert.deepEqual(store.getState().threads, {});
-    assert.deepEqual(store.getState().read, []);
+    assert.deepEqual(store.getState().lastRead ?? {}, {});
     assert.equal(store.getState().theme, "dark");
+  });
+  test(`${name}: toggleRead flips between read and unread`, () => {
+    const s = () => store.getState();
+    if (!s().toggleRead) return; // Astra keeps the legacy read list.
+    s().append(id, "First", "me");
+    s().append(id, "Second", "them");
+    const messages = s().threads[id] ?? [];
+    assert.ok(messages.length >= 2);
+    s().toggleRead(id); // unread -> mark read
+    assert.equal(s().lastRead[id], messages.at(-1).id);
+    s().toggleRead(id); // mark unread: rewinds before the last incoming
+    assert.equal(s().lastRead[id], messages.at(-2).id);
+    s().toggleRead(id); // mark read again
+    assert.equal(s().lastRead[id], messages.at(-1).id);
   });
 }
 test("Astra: reacting twice restores a sample message without mutating the sample", () => {
@@ -175,4 +189,37 @@ test("Fable: appending a photo with a URI and a reply quote persists both", () =
   assert.equal(photo.photoUri, "file:///tmp/picked.jpg");
   assert.equal(photo.replyTo, undefined);
   assert.equal(target, null);
+});
+
+const { unreadCount, firstUnreadId, seedLastReadId } = load(
+  path.join(root, "src/cookbooks/fable/data/unread.ts"),
+);
+
+test("unread: counts incoming messages after the last-read marker", () => {
+  const msgs = [
+    { id: "a", from: "them" },
+    { id: "b", from: "me" },
+    { id: "c", from: "them" },
+    { id: "d", from: "them" },
+  ];
+  assert.equal(unreadCount(msgs), 3);
+  assert.equal(unreadCount(msgs, "a"), 2);
+  assert.equal(unreadCount(msgs, "d"), 0);
+  assert.equal(unreadCount(msgs, "missing"), 3);
+  assert.equal(firstUnreadId(msgs, "a"), "c");
+  assert.equal(firstUnreadId(msgs, "d"), undefined);
+  assert.equal(firstUnreadId([]), undefined);
+});
+
+test("unread: seed converts a legacy unread count into a marker", () => {
+  const msgs = [
+    { id: "a", from: "them" },
+    { id: "b", from: "me" },
+    { id: "c", from: "them" },
+    { id: "d", from: "them" },
+  ];
+  assert.equal(seedLastReadId(msgs, 2), "a");
+  assert.equal(seedLastReadId(msgs, 0), "d");
+  assert.equal(seedLastReadId(msgs, 9), undefined);
+  assert.equal(seedLastReadId([], 0), undefined);
 });

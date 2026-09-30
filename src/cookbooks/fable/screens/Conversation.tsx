@@ -41,6 +41,7 @@ import { Avatar } from "../components/ui/avatar";
 import { SFIcon } from "../../../ui/SFIcon";
 import { Radius, Space, Type } from "../constants/theme";
 import { REPLIES, messagesFor, olderMessagesFor, type Message } from "../data/messages";
+import { firstUnreadId } from "../data/unread";
 import { PEOPLE, PEOPLE_BY_ID, type Person } from "../data/people";
 import { useTheme } from "../hooks/use-theme";
 
@@ -72,8 +73,22 @@ function ThreadScreen({ id }: { id: string }) {
     [person],
   );
   const messages = stored ?? initial;
+  // Capture the first unread message before markRead clears it, so opening
+  // a thread with unread messages lands there instead of at the bottom.
+  const [jumpToUnreadId] = useState(() => {
+    const s = useFable.getState();
+    const msgs =
+      s.threads[id] ?? (person ? messagesFor(person.id, person.first) : []);
+    return firstUnreadId(msgs, s.lastRead[id]);
+  });
   useEffect(() => {
-    useFable.getState().markRead(id);
+    const s = useFable.getState();
+    s.setOpenThread(id);
+    s.markRead(id);
+    return () => {
+      if (useFable.getState().openThreadId === id)
+        useFable.getState().setOpenThread(null);
+    };
   }, [id]);
   const [typing, setTyping] = useState(false);
   /** Group threads: which member is "typing" / replying. */
@@ -120,10 +135,21 @@ function ThreadScreen({ id }: { id: string }) {
   const positionInitially = useCallback(() => {
     if (positioned.current || composerHeight === 0) return;
     positioned.current = true;
-    initialFrame.current = requestAnimationFrame(() =>
-      listRef.current?.scrollToEnd({ animated: false }),
-    );
-  }, [composerHeight, listRef]);
+    initialFrame.current = requestAnimationFrame(() => {
+      // Unread thread: land on the first unread message, parked under the
+      // header like in-conversation search hits. Otherwise go to the bottom.
+      const top =
+        jumpToUnreadId != null
+          ? rowTops.current.get(jumpToUnreadId)
+          : undefined;
+      if (top != null)
+        listRef.current?.scrollTo({
+          y: Math.max(0, top - 120),
+          animated: false,
+        });
+      else listRef.current?.scrollToEnd({ animated: false });
+    });
+  }, [composerHeight, listRef, jumpToUnreadId]);
 
   // Prepends the next older-history page, holding the viewport on the message
   // that was at the top so the list doesn't jump.
