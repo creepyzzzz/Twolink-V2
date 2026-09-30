@@ -1,9 +1,25 @@
+import { useEffect } from "react";
 import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { AndroidGlassMenuProvider } from "expo-android-glass-view";
 import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { useTheme } from "../../cookbooks/fable/hooks/use-theme";
 import { GlassAlertHost } from "../../cookbooks/fable/components/ui/glass-alert";
+import { useFable } from "../../cookbooks/fable/data/store";
+
+/**
+ * Sends due scheduled messages wherever the user is in the app: once on
+ * mount, then every 15 seconds. The queue itself is persisted, so messages
+ * scheduled before a restart still send.
+ */
+function ScheduledFlusher() {
+  useEffect(() => {
+    useFable.getState().flushScheduled();
+    const t = setInterval(() => useFable.getState().flushScheduled(), 15000);
+    return () => clearInterval(t);
+  }, []);
+  return null;
+}
 
 export const unstable_settings = { initialRouteName: "index" };
 export default function FableLayout() {
@@ -19,6 +35,7 @@ export default function FableLayout() {
     >
       <StatusBar style="dark" />
       <View style={{ flex: 1 }}>
+        <ScheduledFlusher />
         <Stack
           screenOptions={{
             headerShown: false,

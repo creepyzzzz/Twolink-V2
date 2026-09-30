@@ -44,6 +44,11 @@ import { SFIcon } from "../../../ui/SFIcon";
 import { Radius, Space, Type } from "../constants/theme";
 import { REPLIES, messagesFor, olderMessagesFor, type Message } from "../data/messages";
 import { mentionedIds } from "../data/mentions";
+import {
+  scheduledLabel,
+  type ScheduledMessage,
+} from "../data/scheduled";
+import { ScheduledBubble } from "../components/thread/scheduled-bubble";
 import { firstUnreadId } from "../data/unread";
 import { PEOPLE, PEOPLE_BY_ID, type Person } from "../data/people";
 import { useTheme } from "../hooks/use-theme";
@@ -342,6 +347,49 @@ function ThreadScreen({ id }: { id: string }) {
       timers.current.push(t1, t2);
     },
     [scrollToEnd, id, replyTo, person],
+  );
+
+  // Send Later: queue the text, preserving an armed reply. The flusher in
+  // the fable layout sends it when its time comes, even from the inbox.
+  const handleSchedule = useCallback(
+    (text: string, at: number) => {
+      const quote = replyTo
+        ? {
+            id: replyTo.id,
+            from: replyTo.from,
+            text: replyTo.text,
+            photo: replyTo.photo,
+          }
+        : undefined;
+      useFable.getState().scheduleMessage(id, text, at, quote);
+      setReplyTo(null);
+      scrollToEnd();
+    },
+    [scrollToEnd, id, replyTo],
+  );
+
+  const cancelScheduled = useCallback((item: ScheduledMessage) => {
+    useFable.getState().showAlert({
+      title: "Cancel scheduled message?",
+      message: `It was set to send ${scheduledLabel(item.at).toLowerCase()}.`,
+      actions: [
+        { text: "Keep", style: "cancel" },
+        {
+          text: "Cancel send",
+          style: "destructive",
+          onPress: () => useFable.getState().cancelScheduled(item.id),
+        },
+      ],
+    });
+  }, []);
+
+  const scheduledAll = useFable((state) => state.scheduled);
+  const scheduled = useMemo(
+    () =>
+      scheduledAll
+        .filter((m) => m.threadId === id)
+        .sort((a, b) => a.at - b.at),
+    [scheduledAll, id],
   );
 
   // Group polls: create the poll, then a few members vote over the next
@@ -662,6 +710,13 @@ function ThreadScreen({ id }: { id: string }) {
           {typing && (group ? typingPerson : person) && (
             <TypingBubble person={(group ? typingPerson : person) as Person} />
           )}
+          {scheduled.map((item) => (
+            <ScheduledBubble
+              key={item.id}
+              item={item}
+              onCancel={() => cancelScheduled(item)}
+            />
+          ))}
         </KeyboardChatScrollView>
         {loadingEarlier && (
           <View pointerEvents="none" style={styles.olderLoading}>
@@ -679,6 +734,7 @@ function ThreadScreen({ id }: { id: string }) {
         onLayoutHeight={setComposerHeight}
         replyPreview={replyPreview}
         onCancelReply={() => setReplyTo(null)}
+        onSchedule={handleSchedule}
       />
 
       {searchOpen && (

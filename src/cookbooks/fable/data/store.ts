@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createMMKV } from "react-native-mmkv";
 import { messagesFor, olderMessagesFor, type Message, type ReplyQuote } from "./messages";
+import type { ScheduledMessage } from "./scheduled";
 import { PEOPLE_BY_ID, type AvatarFace } from "./people";
 import { CHATS } from "./chats";
 import { seedLastReadId, unreadCount } from "./unread";
@@ -120,6 +121,18 @@ type State = {
   loadEarlier: (id: string) => void;
   markRead: (id: string) => void;
   toggleRead: (id: string) => void;
+  /** Messages queued to send later. Persisted, flushed by flushScheduled. */
+  scheduled: ScheduledMessage[];
+  /** Queue a message for later. Ignores empty text and past times. */
+  scheduleMessage: (
+    threadId: string,
+    text: string,
+    at: number,
+    replyTo?: ReplyQuote,
+  ) => void;
+  cancelScheduled: (id: string) => void;
+  /** Sends every due scheduled message into its thread as an outgoing message. */
+  flushScheduled: () => void;
   /** Removes a single message from a thread (context-menu delete). */
   deleteMessage: (id: string, messageId: string) => void;
   /** Removes every message from a thread. */
@@ -416,6 +429,7 @@ export const useFable = create<State>()(
             muted,
             lastRead,
             pinned: state.pinned.filter((p) => p !== id),
+            scheduled: state.scheduled.filter((m) => m.threadId !== id),
             deleted: state.deleted.includes(id)
               ? state.deleted
               : [...state.deleted, id],
@@ -451,6 +465,61 @@ export const useFable = create<State>()(
       alert: null,
       showAlert: (spec) => set({ alert: spec }),
       dismissAlert: () => set({ alert: null }),
+      scheduled: [],
+      scheduleMessage: (threadId, text, at, replyTo) => {
+        const clean = text.trim();
+        if (!clean || at <= Date.now()) return;
+        set((state) => ({
+          scheduled: [
+            ...state.scheduled,
+            {
+              id: `sched-${Date.now()}-${++sequence}`,
+              threadId,
+              text: clean,
+              at,
+              ...(replyTo ? { replyTo } : {}),
+            },
+          ],
+        }));
+      },
+      cancelScheduled: (id) =>
+        set((state) => ({
+          scheduled: state.scheduled.filter((m) => m.id !== id),
+        })),
+      flushScheduled: () => {
+        const now = Date.now();
+        const due = get().scheduled.filter((m) => m.at <= now);
+        if (!due.length) return;
+        set((state) => {
+          const threads = { ...state.threads };
+          const lastRead = { ...state.lastRead };
+          for (const m of due) {
+            const person = PEOPLE_BY_ID[m.threadId];
+            const group = getGroup(state.groups, m.threadId);
+            if (!person && !group) continue;
+            const message: Message = {
+              id: `local-${Date.now()}-${++sequence}`,
+              from: "me",
+              text: m.text,
+              at: "now",
+              ...(m.replyTo ? { replyTo: m.replyTo } : {}),
+            };
+            threads[m.threadId] = [
+              ...(threads[m.threadId] ??
+                (person ? messagesFor(m.threadId, person.first) : [])),
+              message,
+            ];
+            // It sends into the open thread: already read.
+            if (state.openThreadId === m.threadId)
+              lastRead[m.threadId] = message.id;
+          }
+          return {
+            threads,
+            lastRead,
+            scheduled: state.scheduled.filter((m) => m.at > now),
+          };
+        });
+      },
       reset: () =>
         set({
           threads: {},
@@ -461,6 +530,7 @@ export const useFable = create<State>()(
           wallpapers: {},
           pendingWallpaper: null,
           alert: null,
+          scheduled: [],
         }),
     }),
     {

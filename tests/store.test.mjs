@@ -274,3 +274,47 @@ test("mentions: splits @tokens that match member names", () => {
     [],
   );
 });
+
+const { schedulePresets, scheduledLabel } = load(
+  path.join(root, "src/cookbooks/fable/data/scheduled.ts"),
+);
+
+test("scheduled: queue validates, flushes due messages, cancels", () => {
+  fable.getState().reset();
+  const future = Date.now() + 3600_000;
+  fable.getState().scheduleMessage("mara", "later gator", future);
+  assert.equal(fable.getState().scheduled.length, 1);
+  // Past times and blank text are ignored.
+  fable.getState().scheduleMessage("mara", "past", Date.now() - 1000);
+  fable.getState().scheduleMessage("mara", "   ", future);
+  assert.equal(fable.getState().scheduled.length, 1);
+  // Nothing due yet: nothing lands in the thread.
+  fable.getState().flushScheduled();
+  assert.equal((fable.getState().threads["mara"] ?? []).length, 0);
+  assert.equal(fable.getState().scheduled.length, 1);
+  // Force it due: it sends as an outgoing message and leaves the queue.
+  fable.setState((st) => ({
+    scheduled: st.scheduled.map((m) => ({ ...m, at: Date.now() - 1 })),
+  }));
+  fable.getState().flushScheduled();
+  assert.equal(fable.getState().scheduled.length, 0);
+  const messages = fable.getState().threads["mara"];
+  assert.equal(messages.at(-1).text, "later gator");
+  assert.equal(messages.at(-1).from, "me");
+  // Cancel removes a queued message.
+  fable.getState().scheduleMessage("mara", "never", future);
+  const queuedId = fable.getState().scheduled.at(-1).id;
+  fable.getState().cancelScheduled(queuedId);
+  assert.equal(fable.getState().scheduled.length, 0);
+  fable.getState().reset();
+});
+
+test("scheduled: presets and labels", () => {
+  const now = Date.now();
+  const presets = schedulePresets(now);
+  assert.equal(presets.length, 3);
+  assert.ok(presets.every((p) => p.at > now));
+  assert.equal(presets[0].label, "In 1 hour");
+  assert.match(scheduledLabel(now + 3600_000), /Today/);
+  assert.match(scheduledLabel(now + 86400_000), /Tomorrow/);
+});

@@ -2,6 +2,7 @@ import { SFIcon } from "../../../../ui/SFIcon";
 import { useMemo, useRef, useState } from "react";
 import { getGroup, useFable } from "../../data/store";
 import { PEOPLE_BY_ID, type Person } from "../../data/people";
+import { schedulePresets } from "../../data/scheduled";
 import { Avatar } from "../ui/avatar";
 import {
   Pressable,
@@ -43,6 +44,8 @@ type Props = {
   /** When set, a slim iMessage-style "replying to" strip sits above the input. */
   replyPreview?: ReplyPreview | null;
   onCancelReply?: () => void;
+  /** Queue the text to send at a later time (long-press the send button). */
+  onSchedule: (text: string, at: number) => void;
 };
 
 /**
@@ -59,6 +62,7 @@ export function Composer({
   onLayoutHeight,
   replyPreview,
   onCancelReply,
+  onSchedule,
 }: Props) {
   const theme = useTheme();
   const inputRef = useRef<TextInput>(null);
@@ -86,6 +90,7 @@ export function Composer({
   const initialDraft = useFable.getState().drafts[threadId] ?? "";
   const draft = useRef(initialDraft);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const onChangeText = (t: string) => {
     draft.current = t;
@@ -115,6 +120,16 @@ export function Composer({
     onSend(text);
   };
 
+  const scheduleText = (at: number) => {
+    const text = draft.current.trim();
+    setScheduleOpen(false);
+    if (!text) return;
+    inputRef.current?.clear();
+    draft.current = "";
+    setDraft(threadId, "");
+    onSchedule(text, at);
+  };
+
   /** The menu's one working item today; camera and files slot in here with
    *  the native one-shot build. */
   const choosePhoto = () => {
@@ -134,11 +149,14 @@ export function Composer({
         onLayout={onLayout}
         style={[styles.root, { paddingBottom: insetBottom + Space[2] }]}
       >
-        {menuOpen && (
+        {(menuOpen || scheduleOpen) && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Dismiss attachment menu"
-            onPress={() => setMenuOpen(false)}
+            accessibilityLabel="Dismiss menu"
+            onPress={() => {
+              setMenuOpen(false);
+              setScheduleOpen(false);
+            }}
             style={styles.backdrop}
           />
         )}
@@ -189,7 +207,10 @@ export function Composer({
               placeholder="Message"
               placeholderTextColor={theme.placeholder}
               onChangeText={onChangeText}
-              onFocus={() => setMenuOpen(false)}
+              onFocus={() => {
+                setMenuOpen(false);
+                setScheduleOpen(false);
+              }}
               onSubmitEditing={submit}
               submitBehavior="submit"
               returnKeyType="send"
@@ -223,8 +244,16 @@ export function Composer({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Send"
+                accessibilityHint="Long press to schedule for later"
                 hitSlop={6}
                 onPress={submit}
+                onLongPress={() => {
+                  if (!draft.current.trim()) return;
+                  setMentionQuery(null);
+                  setMenuOpen(false);
+                  setScheduleOpen(true);
+                }}
+                delayLongPress={450}
                 style={[styles.round, { backgroundColor: theme.outgoing }]}
               >
                 <SFIcon name="arrow.up" size={17} color={theme.outgoingText} />
@@ -278,6 +307,41 @@ export function Composer({
                   <Text style={[Type.body, { color: theme.label }]}>Poll</Text>
                 </Pressable>
               )}
+            </Glass>
+          </Animated.View>
+        )}
+        {scheduleOpen && (
+          <Animated.View
+            entering={FadeIn.duration(160).easing(EASE_OUT.factory())}
+            exiting={FadeOut.duration(120)}
+            style={styles.menu}
+          >
+            <Glass style={styles.menuCard}>
+              {schedulePresets().map((preset) => (
+                <Pressable
+                  key={preset.label}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Schedule for ${preset.label}`}
+                  onPress={() => scheduleText(preset.at)}
+                  style={({ pressed }) => [
+                    styles.item,
+                    {
+                      backgroundColor: pressed
+                        ? theme.chip
+                        : "transparent",
+                    },
+                  ]}
+                >
+                  <View
+                    style={[styles.itemIcon, { backgroundColor: theme.chip }]}
+                  >
+                    <SFIcon name="clock" size={19} color={theme.label} />
+                  </View>
+                  <Text style={[Type.body, { color: theme.label }]}>
+                    {preset.label}
+                  </Text>
+                </Pressable>
+              ))}
             </Glass>
           </Animated.View>
         )}

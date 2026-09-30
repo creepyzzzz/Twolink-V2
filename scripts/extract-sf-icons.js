@@ -47,6 +47,7 @@ const NAMES = [
   "envelope.open.fill",
   "envelope.badge.fill",
   "chart.bar",
+  "clock",
 ];
 
 const bySource = {};

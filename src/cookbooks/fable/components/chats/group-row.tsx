@@ -13,6 +13,7 @@ import { Accent, Space, Type } from "../../constants/theme";
 import { PEOPLE_BY_ID } from "../../data/people";
 import { useFable, type Group } from "../../data/store";
 import { unreadCount } from "../../data/unread";
+import { scheduledLabel } from "../../data/scheduled";
 import { useTheme } from "../../hooks/use-theme";
 
 export const ROW_AVATAR = 60;
@@ -79,6 +80,12 @@ export const GroupRow = memo(function GroupRow({
   const n = unreadCount(messages, lastReadId);
   const unread = n > 0;
   const draftText = (useFable((state) => state.drafts[group.id]) ?? "").trim();
+  const scheduledNext = useFable((state) =>
+    state.scheduled
+      .filter((m) => m.threadId === group.id)
+      .sort((a, b) => a.at - b.at)
+      .at(0),
+  );
   const senderName =
     last && last.from !== "me" && last.senderId
       ? (PEOPLE_BY_ID[last.senderId]?.first ?? "")
@@ -128,6 +135,13 @@ export const GroupRow = memo(function GroupRow({
                 <>
                   <Text style={{ color: Accent }}>Draft: </Text>
                   <Text style={{ color: theme.secondary }}>{draftText}</Text>
+                </>
+              ) : scheduledNext ? (
+                <>
+                  <Text style={{ color: Accent }}>Scheduled: </Text>
+                  <Text style={{ color: theme.secondary }}>
+                    {scheduledLabel(scheduledNext.at)}
+                  </Text>
                 </>
               ) : (
                 preview

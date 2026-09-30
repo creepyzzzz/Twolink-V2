@@ -15,6 +15,7 @@ import { messagesFor } from "../../data/messages";
 import { PEOPLE_BY_ID } from "../../data/people";
 import { useFable } from "../../data/store";
 import { unreadCount } from "../../data/unread";
+import { scheduledLabel } from "../../data/scheduled";
 import { useTheme } from "../../hooks/use-theme";
 
 export const ROW_AVATAR = 60;
@@ -38,6 +39,12 @@ export const ChatRow = memo(function ChatRow({
   const n = unreadCount(messages, lastReadId);
   const unread = n > 0;
   const draftText = (useFable((state) => state.drafts[chat.id]) ?? "").trim();
+  const scheduledNext = useFable((state) =>
+    state.scheduled
+      .filter((m) => m.threadId === chat.id)
+      .sort((a, b) => a.at - b.at)
+      .at(0),
+  );
   const preview = last
     ? last.photo
       ? "Shared a photo"
@@ -80,6 +87,13 @@ export const ChatRow = memo(function ChatRow({
                 <>
                   <Text style={{ color: Accent }}>Draft: </Text>
                   <Text style={{ color: theme.secondary }}>{draftText}</Text>
+                </>
+              ) : scheduledNext ? (
+                <>
+                  <Text style={{ color: Accent }}>Scheduled: </Text>
+                  <Text style={{ color: theme.secondary }}>
+                    {scheduledLabel(scheduledNext.at)}
+                  </Text>
                 </>
               ) : (
                 <>
