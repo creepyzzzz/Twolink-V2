@@ -1,8 +1,8 @@
-import { BlurView } from "expo-blur";
 import { memo } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { ZoomIn } from "react-native-reanimated";
 
+import { AdaptiveGlassView } from "../../../../ui/GlassView";
 import { Glass } from "../ui/glass";
 import { Space } from "../../constants/theme";
 import { useTheme } from "../../hooks/use-theme";
@@ -57,7 +57,13 @@ export const ReactionOverlay = memo(function ReactionOverlay({
         onPress={onClose}
         style={StyleSheet.absoluteFill}
       >
-        <BlurView intensity={48} tint="light" style={StyleSheet.absoluteFill} />
+        {/* Real native refraction on Android (same engine as the composer
+            card) tinted dark blue — a frosted backdrop, not a flat dim. */}
+        <AdaptiveGlassView
+          tintColor="rgba(26, 38, 82, 0.52)"
+          blurRadius={30}
+          style={StyleSheet.absoluteFill}
+        />
       </Pressable>
       <Animated.View
         entering={ZoomIn.duration(160)}
