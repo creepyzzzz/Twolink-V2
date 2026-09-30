@@ -237,9 +237,9 @@ export function Composer({
                     setMenuOpen(false);
                     setScheduleOpen(false);
                   }}
-                  onSubmitEditing={submit}
-                  submitBehavior="submit"
-                  returnKeyType="send"
+                  // No returnKeyType/onSubmitEditing: the keyboard keeps its
+                  // newline key (multiline default); sending happens through
+                  // the on-screen send button.
                   enablesReturnKeyAutomatically
                   selectionColor={Accent}
                   style={[Type.body, styles.input, { color: theme.label }]}
@@ -458,14 +458,14 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     lineHeight: 23,
   },
-  /** The send circle sits just outside the pill, tucked over its edge. */
+  /** The send circle sits just outside the pill, with a clear gap. */
   send: {
     width: SEND,
     height: SEND,
     borderRadius: SEND / 2,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: -10,
+    marginLeft: Space[2],
     marginBottom: 2,
   },
   backdrop: {
