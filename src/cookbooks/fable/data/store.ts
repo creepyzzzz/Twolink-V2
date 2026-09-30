@@ -110,6 +110,7 @@ type State = {
   /** Prepends the next page of older history; no-op when exhausted. */
   loadEarlier: (id: string) => void;
   markRead: (id: string) => void;
+  toggleRead: (id: string) => void;
   /** Removes a single message from a thread (context-menu delete). */
   deleteMessage: (id: string, messageId: string) => void;
   /** Removes every message from a thread. */
@@ -228,6 +229,12 @@ export const useFable = create<State>()(
         if (!get().read.includes(id))
           set((state) => ({ read: [...state.read, id] }));
       },
+      toggleRead: (id) =>
+        set((state) => ({
+          read: state.read.includes(id)
+            ? state.read.filter((r) => r !== id)
+            : [...state.read, id],
+        })),
       toggleReaction: (id, messageId, emoji) => {
         const person = PEOPLE_BY_ID[id];
         if (!person) return;

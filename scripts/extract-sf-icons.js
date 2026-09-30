@@ -40,6 +40,12 @@ const NAMES = [
   "pin",
   "pin.fill",
   "pin.slash",
+  "pin.circle",
+  "pin.circle.fill",
+  "speaker.fill",
+  "speaker.slash.fill",
+  "envelope.open.fill",
+  "envelope.badge.fill",
 ];
 
 const bySource = {};

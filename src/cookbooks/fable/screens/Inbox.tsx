@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useMinimizeOnScrollHandler } from "expo-android-glass-view";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -31,7 +31,7 @@ import {
   StoriesHeader,
 } from "../components/chats/stories-header";
 import { EASE_OUT } from "../constants/motion";
-import { Accent, Space, Type } from "../constants/theme";
+import { Accent, Space } from "../constants/theme";
 import { CHATS } from "../data/chats";
 import { PEOPLE_BY_ID, STORIES, type Person } from "../data/people";
 import { openStory, pickAndPostStory } from "../data/story-state";
@@ -198,6 +198,9 @@ export default function ChatsScreen() {
   } | null>(null);
   const deleted = useFable((state) => state.deleted);
   const togglePin = useFable((state) => state.togglePin);
+  const toggleMute = useFable((state) => state.toggleMute);
+  const toggleRead = useFable((state) => state.toggleRead);
+  const muted = useFable((state) => state.muted);
   const deleteThread = useFable((state) => state.deleteThread);
   const showAlert = useFable((state) => state.showAlert);
   const onPinPress = useCallback(
@@ -437,12 +440,22 @@ export default function ChatsScreen() {
 
       {menu && (
         <PinPill
-          x={Math.min(Math.max(menu.x - 110, 12), width - 232)}
+          x={Math.min(Math.max(menu.x - 104, 12), width - 220)}
           y={Math.min(Math.max(menu.y - 128, 110), height - 260)}
           pinned={pinned.includes(menu.id)}
+          muted={!!muted[menu.id]}
+          markedRead={read.includes(menu.id)}
           onDismiss={() => setMenu(null)}
           onTogglePin={() => {
             togglePin(menu.id);
+            setMenu(null);
+          }}
+          onToggleMute={() => {
+            toggleMute(menu.id);
+            setMenu(null);
+          }}
+          onToggleRead={() => {
+            toggleRead(menu.id);
             setMenu(null);
           }}
           onDelete={() => {
@@ -477,15 +490,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 999,
-    paddingHorizontal: 6,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   pinAction: {
-    flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    justifyContent: "center",
+    width: 44,
+    height: 40,
   },
   pinDivider: {
     width: 1,
@@ -494,25 +506,64 @@ const styles = StyleSheet.create({
 });
 
 /**
- * The long-press context pill: liquid glass, floating at the finger, with
- * Pin/Unpin and Delete. Tap anywhere else (or scroll) to dismiss.
+ * The long-press context pill: liquid glass, floating at the finger.
+ * Icon toolbar: Pin/Unpin, Mute/Unmute, Mark read/unread, Delete.
+ * Tap anywhere else (or scroll) to dismiss.
  */
 function PinPill({
   x,
   y,
   pinned,
+  muted,
+  markedRead,
   onDismiss,
   onTogglePin,
+  onToggleMute,
+  onToggleRead,
   onDelete,
 }: {
   x: number;
   y: number;
   pinned: boolean;
+  muted: boolean;
+  markedRead: boolean;
   onDismiss: () => void;
   onTogglePin: () => void;
+  onToggleMute: () => void;
+  onToggleRead: () => void;
   onDelete: () => void;
 }) {
   const theme = useTheme();
+  const actions = [
+    {
+      key: "pin",
+      label: pinned ? "Unpin chat" : "Pin chat",
+      icon: pinned ? "pin.slash" : "pin.fill",
+      color: theme.label,
+      onPress: onTogglePin,
+    },
+    {
+      key: "mute",
+      label: muted ? "Unmute chat" : "Mute chat",
+      icon: muted ? "speaker.slash.fill" : "speaker.fill",
+      color: theme.label,
+      onPress: onToggleMute,
+    },
+    {
+      key: "read",
+      label: markedRead ? "Mark as unread" : "Mark as read",
+      icon: markedRead ? "envelope.badge.fill" : "envelope.open.fill",
+      color: theme.label,
+      onPress: onToggleRead,
+    },
+    {
+      key: "delete",
+      label: "Delete chat",
+      icon: "trash",
+      color: "#FF3B30",
+      onPress: onDelete,
+    },
+  ] as const;
   return (
     <Pressable
       accessibilityLabel="Dismiss"
@@ -520,33 +571,30 @@ function PinPill({
       style={StyleSheet.absoluteFill}
     >
       <Glass style={[styles.pinPill, { left: x, top: y }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={pinned ? "Unpin chat" : "Pin chat"}
-          onPress={onTogglePin}
-          style={styles.pinAction}
-        >
-          <SFIcon
-            name={pinned ? "pin.slash" : "pin.fill"}
-            size={17}
-            color={theme.label}
-          />
-          <Text style={[Type.caption, { color: theme.label }]}>
-            {pinned ? "Unpin" : "Pin"}
-          </Text>
-        </Pressable>
-        <View
-          style={[styles.pinDivider, { backgroundColor: theme.hairline }]}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Delete chat"
-          onPress={onDelete}
-          style={styles.pinAction}
-        >
-          <SFIcon name="trash" size={17} color="#FF3B30" />
-          <Text style={[Type.caption, { color: "#FF3B30" }]}>Delete</Text>
-        </Pressable>
+        {actions.map((action, i) => (
+          <Fragment key={action.key}>
+            {i > 0 ? (
+              <View
+                style={[
+                  styles.pinDivider,
+                  { backgroundColor: theme.hairline },
+                ]}
+              />
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              onPress={action.onPress}
+              style={styles.pinAction}
+            >
+              <SFIcon
+                name={action.icon}
+                size={19}
+                color={action.color}
+              />
+            </Pressable>
+          </Fragment>
+        ))}
       </Glass>
     </Pressable>
   );
