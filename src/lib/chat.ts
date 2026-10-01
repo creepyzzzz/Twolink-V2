@@ -189,7 +189,37 @@ export async function searchUsers(query: string): Promise<DbProfile[]> {
     .neq("id", myId ?? "")
     .limit(20);
   if (error) throw error;
-  return (data ?? []) as DbProfile[];
+  const rows = (data ?? []) as DbProfile[];
+  if (rows.length === 0 || !myId) return rows;
+
+  // Filter: hide non-discoverable users (unless friends), and blocked either way.
+  const friendIds = await getFriendIds().catch(() => [] as string[]);
+  const knownIds = new Set([...friendIds]);
+  try {
+    const { data: pend } = await supabase
+      .from("friendships")
+      .select("requester_id,addressee_id")
+      .eq("status", "pending")
+      .or(`requester_id.eq.${myId},addressee_id.eq.${myId}`);
+    for (const r of (pend ?? []) as { requester_id: string; addressee_id: string }[]) {
+      knownIds.add(r.requester_id === myId ? r.addressee_id : r.requester_id);
+    }
+  } catch {}
+  const blockedIds = new Set<string>();
+  try {
+    const { data: blocks } = await supabase
+      .from("blocks")
+      .select("blocker_id,blocked_id")
+      .or(`blocker_id.eq.${myId},blocked_id.eq.${myId}`);
+    for (const b of (blocks ?? []) as { blocker_id: string; blocked_id: string }[]) {
+      blockedIds.add(b.blocker_id === myId ? b.blocked_id : b.blocker_id);
+    }
+  } catch {}
+  return rows.filter((r) => {
+    if (blockedIds.has(r.id)) return false;
+    if (knownIds.has(r.id)) return true;
+    return (r as DbProfile & { allow_message_requests?: boolean }).allow_message_requests !== false;
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -367,6 +397,124 @@ export async function getOrCreateDirectChat(otherUserId: string): Promise<string
   if (error) throw error;
   if (!data) throw new Error("Failed to create chat");
   return data as string;
+}
+
+/* ---- Friend requests & blocks ---- */
+
+export type FriendshipStatus = "pending" | "accepted" | null;
+
+export type Friendship = {
+  requesterId: string;
+  addresseeId: string;
+  status: "pending" | "accepted";
+};
+
+/** Get the friendship status with another user (either direction). */
+export async function getFriendship(otherUserId: string): Promise<FriendshipStatus> {
+  const supabase = getSupabase();
+  const myId = await getMyUserId();
+  if (!myId) return null;
+  const { data } = await supabase
+    .from("friendships")
+    .select("status")
+    .or(
+      `and(requester_id.eq.${myId},addressee_id.eq.${otherUserId}),and(requester_id.eq.${otherUserId},addressee_id.eq.${myId})`,
+    )
+    .limit(1)
+    .maybeSingle();
+  return (data as { status: "pending" | "accepted" } | null)?.status ?? null;
+}
+
+/** Am I the recipient of a pending request from this user? */
+export async function isIncomingRequest(otherUserId: string): Promise<boolean> {
+  const supabase = getSupabase();
+  const myId = await getMyUserId();
+  if (!myId) return false;
+  const { data } = await supabase
+    .from("friendships")
+    .select("requester_id")
+    .eq("requester_id", otherUserId)
+    .eq("addressee_id", myId)
+    .eq("status", "pending")
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
+/** List my friends' user IDs (accepted friendships, either direction). */
+export async function getFriendIds(): Promise<string[]> {
+  const supabase = getSupabase();
+  const myId = await getMyUserId();
+  if (!myId) return [];
+  const { data } = await supabase
+    .from("friendships")
+    .select("requester_id,addressee_id")
+    .eq("status", "accepted")
+    .or(`requester_id.eq.${myId},addressee_id.eq.${myId}`);
+  const ids = new Set<string>();
+  for (const r of (data ?? []) as { requester_id: string; addressee_id: string }[]) {
+    ids.add(r.requester_id === myId ? r.addressee_id : r.requester_id);
+  }
+  return [...ids];
+}
+
+/** Incoming pending requests (requester IDs). */
+export async function getIncomingRequestIds(): Promise<string[]> {
+  const supabase = getSupabase();
+  const myId = await getMyUserId();
+  if (!myId) return [];
+  const { data } = await supabase
+    .from("friendships")
+    .select("requester_id")
+    .eq("addressee_id", myId)
+    .eq("status", "pending");
+  return ((data ?? []) as { requester_id: string }[]).map((r) => r.requester_id);
+}
+
+export async function acceptFriendRequest(requesterId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc("accept_friend_request", {
+    requester_id: requesterId,
+  });
+  if (error) throw error;
+}
+
+export async function declineFriendRequest(requesterId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc("decline_friend_request", {
+    requester_id: requesterId,
+  });
+  if (error) throw error;
+}
+
+export async function blockUser(userId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc("block_user", { blocked_id: userId });
+  if (error) throw error;
+}
+
+/** Privacy toggle: can strangers send me message requests? */
+export async function getAllowMessageRequests(): Promise<boolean> {
+  const supabase = getSupabase();
+  const myId = await getMyUserId();
+  if (!myId) return true;
+  const { data } = await supabase
+    .from("profiles")
+    .select("allow_message_requests")
+    .eq("id", myId)
+    .maybeSingle();
+  return (data as { allow_message_requests: boolean } | null)?.allow_message_requests ?? true;
+}
+
+export async function setAllowMessageRequests(allow: boolean): Promise<void> {
+  const supabase = getSupabase();
+  const myId = await getMyUserId();
+  if (!myId) throw new Error("Not signed in");
+  const { error } = await supabase
+    .from("profiles")
+    .update({ allow_message_requests: allow })
+    .eq("id", myId);
+  if (error) throw error;
 }
 
 export async function createGroupChat(
