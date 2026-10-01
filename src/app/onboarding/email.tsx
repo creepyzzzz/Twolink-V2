@@ -13,7 +13,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Accent,
-  Ink,
   Space,
   Type,
 } from "../../cookbooks/fable/constants/theme";
@@ -127,7 +126,7 @@ export default function EmailSignIn() {
             style={({ pressed }) => [
               styles.button,
               {
-                backgroundColor: Ink,
+                backgroundColor: "#3394FA",
                 opacity: !valid || sending ? 0.4 : 1,
               },
               pressed && styles.pressed,
@@ -168,22 +167,22 @@ const styles = StyleSheet.create({
     paddingTop: Space[6],
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontFamily: "SFProText-Bold",
     letterSpacing: -0.5,
   },
   input: {
-    height: 56,
-    borderRadius: 28,
+    height: 52,
+    borderRadius: 26,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Space[5],
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: "SFProText-Regular",
     marginTop: Space[6],
   },
   button: {
-    height: 56,
-    borderRadius: 28,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
     marginTop: Space[4],
@@ -192,7 +191,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    fontSize: 17,
+    fontSize: 15,
     fontFamily: "SFProText-Medium",
     letterSpacing: -0.2,
     color: "#FFFFFF",

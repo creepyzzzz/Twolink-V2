@@ -13,7 +13,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Accent,
-  Ink,
   Space,
   Type,
 } from "../../cookbooks/fable/constants/theme";
@@ -165,7 +164,7 @@ export default function VerifyCode() {
             style={({ pressed }) => [
               styles.button,
               {
-                backgroundColor: Ink,
+                backgroundColor: "#3394FA",
                 opacity: code.length !== 6 || verifying ? 0.4 : 1,
               },
               pressed && styles.pressed,
@@ -232,20 +231,20 @@ const styles = StyleSheet.create({
     paddingTop: Space[6],
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontFamily: "SFProText-Bold",
     letterSpacing: -0.5,
   },
   codeInput: {
-    fontSize: 36,
+    fontSize: 32,
     fontFamily: "SFProText-Medium",
     letterSpacing: 12,
     marginTop: Space[8],
     paddingLeft: 12, // recenter: letterSpacing adds trailing space
   },
   button: {
-    height: 56,
-    borderRadius: 28,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
     marginTop: Space[6],
@@ -254,7 +253,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    fontSize: 17,
+    fontSize: 15,
     fontFamily: "SFProText-Medium",
     letterSpacing: -0.2,
     color: "#FFFFFF",

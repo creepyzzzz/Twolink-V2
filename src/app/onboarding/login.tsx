@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Image } from "expo-image";
+import { useVideoPlayer, VideoView } from "expo-video";
 import {
   Pressable,
   StyleSheet,
@@ -9,19 +9,10 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
-import { useEffect } from "react";
 import { SvgXml } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Accent,
-  Ink,
   Space,
   Type,
 } from "../../cookbooks/fable/constants/theme";
@@ -33,15 +24,17 @@ const GOOGLE_G = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><p
 
 const ENVELOPE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4.5 7.5 7.5 6 7.5-6"/></svg>`;
 
+const POFFU_BLUE = "#3394FA";
+
 function AuthButton({
   label,
   icon,
-  dark,
+  primary,
   onPress,
 }: {
   label: string;
   icon: React.ReactNode;
-  dark?: boolean;
+  primary?: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -53,8 +46,8 @@ function AuthButton({
       style={({ pressed }) => [
         styles.button,
         {
-          backgroundColor: dark ? Ink : theme.surface,
-          borderColor: dark ? "transparent" : theme.hairline,
+          backgroundColor: primary ? POFFU_BLUE : theme.surface,
+          borderColor: primary ? "transparent" : theme.hairline,
         },
         pressed && styles.pressed,
       ]}
@@ -63,7 +56,7 @@ function AuthButton({
       <Text
         style={[
           styles.buttonText,
-          { color: dark ? "#FFFFFF" : theme.label },
+          { color: primary ? "#FFFFFF" : theme.label },
         ]}
       >
         {label}
@@ -73,10 +66,11 @@ function AuthButton({
 }
 
 /**
- * Screen 2 — top half: the cheering sea-creature trio, gently animated in a
- * slow seamless loop. Bottom half: Google + email sign-in in the app's iOS
- * style, with a gradient melting the art into the auth area (no hard boundary).
- * Email sign-in is wired through Supabase OTP; Google is still UI-only.
+ * Screen 2 — top half: the cheering sea-creature trio, animated with real
+ * body movement in a slow seamless loop. Bottom half: Google + email sign-in
+ * in the app's iOS style, with a gradient melting the art into the auth area
+ * (no hard boundary). Email sign-in is wired through Supabase OTP; Google is
+ * still UI-only.
  */
 export default function Login() {
   const theme = useTheme();
@@ -85,24 +79,14 @@ export default function Login() {
   const showAlert = useFable((s) => s.showAlert);
   const setOnboarded = useFable((s) => s.setOnboarded);
 
-  // Slow-mo seamless loop for the hero art: a gentle zoom + upward drift
-  // that reverses forever. Runs on the UI thread at the display's refresh
-  // rate (120fps on 120Hz phones).
-  const zoom = useSharedValue(1);
-  const drift = useSharedValue(0);
-  const artStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: zoom.get() }, { translateY: drift.get() }],
-  }));
-
-  useEffect(() => {
-    const ease = Easing.inOut(Easing.ease);
-    zoom.set(
-      withRepeat(withTiming(1.06, { duration: 10000, easing: ease }), -1, true),
-    );
-    drift.set(
-      withRepeat(withTiming(-12, { duration: 10000, easing: ease }), -1, true),
-    );
-  }, [drift, zoom]);
+  const player = useVideoPlayer(
+    require("../../../assets/auth/login-trio.mp4"),
+    (p) => {
+      p.loop = true;
+      p.muted = true;
+      void p.play();
+    },
+  );
 
   const comingSoon = (method: string) =>
     showAlert({
@@ -136,14 +120,12 @@ export default function Login() {
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
       <StatusBar style="dark" />
       <View style={[styles.artWrap, { height: artHeight }]}>
-        <Animated.View style={[StyleSheet.absoluteFill, artStyle]}>
-          <Image
-            source={require("../../../assets/auth/login-trio.jpg")}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            accessibilityLabel="Poffu and friends cheering"
-          />
-        </Animated.View>
+        <VideoView
+          player={player}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          nativeControls={false}
+        />
         <LinearGradient
           colors={["transparent", theme.bg]}
           style={styles.fade}
@@ -165,7 +147,7 @@ export default function Login() {
           />
           <AuthButton
             label="Continue with Email"
-            dark
+            primary
             icon={<SvgXml xml={ENVELOPE} width={20} height={20} />}
             onPress={continueWithEmail}
           />
@@ -204,7 +186,7 @@ const styles = StyleSheet.create({
     paddingTop: Space[2],
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontFamily: "SFProText-Bold",
     letterSpacing: -0.5,
   },
@@ -213,8 +195,8 @@ const styles = StyleSheet.create({
     gap: Space[3],
   },
   button: {
-    height: 56,
-    borderRadius: 28,
+    height: 52,
+    borderRadius: 26,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     alignItems: "center",
@@ -225,7 +207,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    fontSize: 17,
+    fontSize: 15,
     fontFamily: "SFProText-Medium",
     letterSpacing: -0.2,
   },

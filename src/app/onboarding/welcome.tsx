@@ -52,7 +52,7 @@ export default function Welcome() {
         >
           <Glass
             interactive
-            tint="rgba(23,25,27,0.62)"
+            tint="rgba(51,148,250,0.72)"
             style={styles.pill}
           >
             <Text style={styles.pillText}>Continue</Text>
@@ -74,17 +74,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   pillSize: {
-    width: 200,
-    height: 56,
+    width: 160,
+    height: 48,
   },
   pill: {
     flex: 1,
-    borderRadius: 28,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
   },
   pillText: {
-    fontSize: 17,
+    fontSize: 15,
     fontFamily: "SFProText-Semibold",
     letterSpacing: -0.2,
     color: "#FFFFFF",

@@ -167,9 +167,9 @@
     "source": "Full-screen 9:16 whale artwork picked by Tariq (chat, 2026-10-01); used as-is on the welcome screen"
   },
   {
-    "path": "assets/auth/login-trio.jpg",
-    "bytes": 93059,
-    "sha256": "0ef0b8696909216dcc523f41663243de55736069555d4eb96794acd6a9dc8924",
-    "source": "Cheering sea-creature trio picked by Tariq (chat, 2026-10-01); animated with a slow zoom/drift loop on the login screen"
+    "path": "assets/auth/login-trio.mp4",
+    "bytes": 4337146,
+    "sha256": "3236f76c9813960bf627dcb946a78c8a630b21ec547c211fa6a2223c7f2fc187",
+    "source": "Cheering sea-creature trio picked by Tariq (chat, 2026-10-01); image-to-video animation (subtle slow-mo body movement, looped) on the login screen"
   }
 ]
