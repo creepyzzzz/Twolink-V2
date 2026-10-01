@@ -1,6 +1,7 @@
 import { SFIcon } from "../../../../ui/SFIcon";
 import { useMemo, useRef, useState } from "react";
 import { getGroup, useFable } from "../../data/store";
+import { sendTypingIndicator } from "../../../../lib/chat";
 import { avatarSource, type Person } from "../../data/people";
 import { schedulePresets } from "../../data/scheduled";
 import { Avatar } from "../ui/avatar";
@@ -113,9 +114,19 @@ export function Composer({
   const [hasText, setHasText] = useState(initialDraft.trim().length > 0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onChangeText = (t: string) => {
     draft.current = t;
+    if (!typingTimer.current) {
+      void sendTypingIndicator(threadId, true);
+    } else {
+      clearTimeout(typingTimer.current);
+    }
+    typingTimer.current = setTimeout(() => {
+      void sendTypingIndicator(threadId, false);
+      typingTimer.current = null;
+    }, 3000);
     // While editing, the thread draft stays stashed — typing must not clobber it.
     if (!editPreview) setDraft(threadId, t);
     setHasText(t.trim().length > 0);
@@ -148,6 +159,11 @@ export function Composer({
     if (editPreview) {
       onSaveEdit?.(editPreview.messageId, text);
       return;
+    }
+    if (typingTimer.current) {
+      clearTimeout(typingTimer.current);
+      typingTimer.current = null;
+      void sendTypingIndicator(threadId, false);
     }
     setDraft(threadId, "");
     onSend(text);

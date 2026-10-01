@@ -16,6 +16,7 @@ import Animated, {
 import { Radius, Space } from "../../constants/theme";
 import type { Person } from "../../data/people";
 import { useScheme, useTheme } from "../../hooks/use-theme";
+import { Avatar } from "../ui/avatar";
 
 function Dot({ delay, color }: { delay: number; color: string }) {
   const t = useSharedValue(0);
@@ -45,7 +46,13 @@ function Dot({ delay, color }: { delay: number; color: string }) {
   );
 }
 
-export function TypingBubble({ person }: { person: Person }) {
+export function TypingBubble({
+  person,
+  isGroup,
+}: {
+  person: Person;
+  isGroup?: boolean;
+}) {
   const theme = useTheme();
   const scheme = useScheme();
   return (
@@ -54,6 +61,13 @@ export function TypingBubble({ person }: { person: Person }) {
       exiting={FadeOut.duration(140)}
       style={styles.row}
     >
+      {isGroup && (
+        person.avatar != null ? (
+          <Avatar source={person.avatar} size={32} />
+        ) : (
+          <View style={{ width: 32, height: 32 }} />
+        )
+      )}
       <View
         accessibilityLabel={`${person.first} is typing`}
         style={[

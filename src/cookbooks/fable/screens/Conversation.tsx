@@ -32,6 +32,7 @@ import { DeletedTombstone } from "../components/thread/tombstone";
 import { Composer, type ReplyPreview } from "../components/thread/composer";
 import { RequestActions } from "../components/thread/request-actions";
 import { PhotoViewer } from "../components/thread/photo-viewer";
+import { TypingBubble } from "../components/thread/typing";
 import {
   ReactionOverlay,
   type ReactionTarget,
@@ -135,6 +136,12 @@ function ThreadScreen({ id }: { id: string }) {
       return firstUnreadId(s.threads[id] ?? [], s.lastRead[id]);
     },
   );
+  const typingUserIds = useFable((state) => state.typing[id]);
+  const myId = useFable((state) => state.myId);
+  const othersTyping = useMemo(
+    () => (typingUserIds ?? []).filter((uid) => uid !== myId),
+    [typingUserIds, myId]
+  );
   useEffect(() => {
     const s = useFable.getState();
     s.setOpenThread(id);
@@ -195,6 +202,8 @@ function ThreadScreen({ id }: { id: string }) {
   // Geometry bookkeeping so prepending history doesn't move the viewport.
   const contentHeight = useRef(0);
   const scrollY = useRef(0);
+  const layoutHeight = useRef(0);
+  const atBottom = useRef(true);
   const prependAdjust = useRef<number | null>(null);
 
   // Include the floating composer in content geometry before the initial scroll.
@@ -233,7 +242,14 @@ function ThreadScreen({ id }: { id: string }) {
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = e.nativeEvent.contentOffset.y;
+      const h = e.nativeEvent.layoutMeasurement.height;
+      const contentH = e.nativeEvent.contentSize.height;
       scrollY.current = y;
+      layoutHeight.current = h;
+      
+      // We consider the user "at the bottom" if they're within 100px of the end.
+      atBottom.current = y + h >= contentH - 100;
+
       if (y <= 48 && !loadingEarlier && hasEarlier) loadEarlierMessages();
     },
     [loadingEarlier, hasEarlier, loadEarlierMessages],
@@ -255,7 +271,13 @@ function ThreadScreen({ id }: { id: string }) {
           );
         }
       } else {
-        positionInitially();
+        if (!positioned.current && composerHeight > 0) {
+          positionInitially();
+        } else if (positioned.current && h > prev && atBottom.current) {
+          // Auto-scroll to keep the user at the bottom when new bubbles (or typing indicators) appear.
+          const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 40);
+          timers.current.push(t);
+        }
       }
     },
     [positionInitially, listRef],
@@ -823,6 +845,11 @@ function ThreadScreen({ id }: { id: string }) {
               onCancel={() => cancelScheduled(item)}
             />
           ))}
+          {othersTyping.map((uid) => {
+            const p = people[uid];
+            if (!p) return null;
+            return <TypingBubble key={`typing-${uid}`} person={p} isGroup={!!group} />;
+          })}
         </KeyboardChatScrollView>
         {loadingEarlier && (
           <View pointerEvents="none" style={styles.olderLoading}>

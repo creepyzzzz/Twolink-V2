@@ -57,9 +57,13 @@ export const ChatRow = memo(function ChatRow({
         ? "You deleted this message"
         : "This message was deleted"
       : last.photo
-        ? "Shared a photo"
-        : last.text
+        ? "Photo"
+        : last.document
+          ? last.document.name
+          : last.text
     : chat.preview;
+  const isPhoto = last ? !!last.photo : preview === "Photo";
+  const isDoc = last ? !!last.document : (preview !== "Photo" && preview !== last?.text && preview !== "This message was deleted" && preview !== "You deleted this message" && preview !== "");
   const fromMe = last ? last.from === "me" : chat.previewFromMe;
 
   return (
@@ -106,10 +110,17 @@ export const ChatRow = memo(function ChatRow({
                   </Text>
                 </>
               ) : (
-                <>
-                  {fromMe ? "You: " : ""}
-                  {preview}
-                </>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                  {fromMe ? <Text style={{ color: theme.secondary }}>You: </Text> : null}
+                  {isPhoto ? (
+                    <SFIcon name="camera.fill" size={12} color={theme.secondary} />
+                  ) : isDoc ? (
+                    <SFIcon name="doc.fill" size={12} color={theme.secondary} />
+                  ) : null}
+                  <Text numberOfLines={1} style={{ flex: 1, color: unread ? theme.label : theme.secondary }}>
+                    {preview}
+                  </Text>
+                </View>
               )}
             </Text>
           </View>

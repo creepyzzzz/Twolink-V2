@@ -120,6 +120,7 @@ export function StoryViewer({ item, person, isMe, open, onClose }: Props) {
   const reduced = useReducedMotion();
   const liked = useStoryLiked(item.id);
   const { width, height } = useWindowDimensions();
+  const [loaded, setLoaded] = useState(false);
 
   const ty = useSharedValue(0);
   const enter = useSharedValue(0);
@@ -157,6 +158,7 @@ export function StoryViewer({ item, person, isMe, open, onClose }: Props) {
     armed.set(false);
     enter.set(0);
     progress.set(0);
+    setLoaded(false);
     // Start a few frames after the new photo and name are committed, while the card is still invisible,
     // so the swap never costs a frame of the entrance.
     enter.set(
@@ -171,29 +173,30 @@ export function StoryViewer({ item, person, isMe, open, onClose }: Props) {
         ),
       ),
     );
+  }, [open, item, armed, enter, ty]);
+
+  useEffect(() => {
+    if (!open || !loaded) return;
     progress.set(
-      withDelay(
-        ENTER_DELAY,
-        withTiming(
-          1,
-          {
-            duration: DURATION,
-            easing: Easing.linear,
-            reduceMotion: ReduceMotion.Never,
-          },
-          (done) => {
-            if (done) {
-              armed.set(true);
-              leave();
-            }
-          },
-        ),
-      ),
+      withTiming(
+        1,
+        {
+          duration: DURATION,
+          easing: Easing.linear,
+          reduceMotion: ReduceMotion.Never,
+        },
+        (done) => {
+          if (done) {
+            armed.set(true);
+            leave();
+          }
+        },
+      )
     );
     return () => {
       cancelAnimation(progress);
     };
-  }, [open, item, armed, enter, leave, progress, ty]);
+  }, [open, loaded, item, armed, leave, progress]);
 
   const tap = Gesture.Tap().onEnd((_e, success) => {
     if (success) leave();
@@ -266,6 +269,7 @@ export function StoryViewer({ item, person, isMe, open, onClose }: Props) {
           style={StyleSheet.absoluteFill}
           contentFit="cover"
           transition={0}
+          onLoad={() => setLoaded(true)}
         />
         {/* Gesture surface sits under the controls so the buttons stay ordinary pressables. */}
         <GestureDetector gesture={surface}>

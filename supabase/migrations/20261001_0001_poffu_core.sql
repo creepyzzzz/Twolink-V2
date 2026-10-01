@@ -12,7 +12,6 @@ create extension if not exists "pgcrypto";
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  phone text unique,
   display_name text not null default $$$$,
   username text unique,
   avatar_url text,
@@ -155,11 +154,11 @@ security definer
 set search_path = public
 as $func$
 begin
-  insert into public.profiles (id, display_name, phone)
+  insert into public.profiles (id, display_name, username)
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> $$display_name$$, $$$$),
-    nullif(new.phone, $$$$)
+    nullif(new.raw_user_meta_data ->> $$username$$, $$$$)
   )
   on conflict (id) do nothing;
   return new;
@@ -191,6 +190,18 @@ drop trigger if exists protect_member_role on public.chat_members;
 create trigger protect_member_role
   before update on public.chat_members
   for each row execute function public.protect_member_role();
+
+create or replace function public.search_users_by_username(p_username text)
+returns setof public.profiles
+language sql
+security definer
+stable
+set search_path = public
+as $func$
+  select * from public.profiles
+  where username = p_username
+  limit 1;
+$func$;
 
 -- CHUNK: rls-policies
 alter table public.profiles enable row level security;
@@ -336,6 +347,18 @@ drop policy if exists "push_tokens_own" on public.push_tokens;
 create policy "push_tokens_own" on public.push_tokens
   for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- Webhook to trigger push notifications
+drop trigger if exists on_message_created_push on public.messages;
+create trigger on_message_created_push
+  after insert on public.messages
+  for each row execute function supabase_functions.http_request(
+    'http://functions.supabase.com/send-push',
+    'POST',
+    '{"Content-type":"application/json"}',
+    '{}',
+    '1000'
+  );
 
 -- CHUNK: storage-realtime
 insert into storage.buckets (id, name, public)

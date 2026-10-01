@@ -69,7 +69,7 @@ export type Message = {
 };
 
 /** Delivery state for outgoing messages (WhatsApp-style ticks). */
-export type MessageStatus = "sent" | "delivered" | "read";
+export type MessageStatus = "sending" | "sent" | "delivered" | "read" | "failed";
 
 /**
  * The ID to use for backend operations (delete, edit, reactions).

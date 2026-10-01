@@ -1,0 +1,16 @@
+Folder to place the icons:
+d:\WORK\Twolink-V2\assets\icons\docs
+
+Required Icons (Please save them exactly with these filenames as .png or .svg):
+1. pdf.png (or pdf.svg) - For PDF files
+2. excel.png (or excel.svg) - For Excel/Spreadsheet files
+3. word.png (or word.svg) - For Word document files
+4. ppt.png (or ppt.svg) - For PowerPoint/Presentation files
+5. video.png (or video.svg) - For Video files (mp4, mov, etc)
+6. audio.png (or audio.svg) - For Audio files (mp3, wav, etc)
+7. zip.png (or zip.svg) - For compressed archives (zip, rar, 7z)
+8. default.png (or default.svg) - For any unknown/generic file types
+
+Note: If you use .png, make sure they have a transparent background. If you use .svg, ensure they don't have hardcoded fixed width/heights that can't be scaled by React Native.
+
+Once you have placed these files in `assets\icons\docs`, I can update `document-bubble.tsx` to read directly from these local asset files using `require("../../../../assets/icons/docs/pdf.png")` instead of using the colored `SFIcon` vectors.

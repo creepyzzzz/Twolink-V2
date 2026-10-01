@@ -9,6 +9,8 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
+  withTiming,
   type SharedValue,
 } from "react-native-reanimated";
 
@@ -18,6 +20,7 @@ import { OrbButton } from "../ui/orb-button";
 import { Accent, Type } from "../../constants/theme";
 import { AVATAR_FACES } from "../../data/people";
 import { useFable } from "../../data/store";
+import { useStoryUploading } from "../../data/story-state";
 import { useTheme } from "../../hooks/use-theme";
 
 /** Geometry — every number here is shared with the list screen. */
@@ -279,6 +282,7 @@ function StoryItem({
   onPress,
 }: ItemProps) {
   const theme = useTheme();
+  const uploading = useStoryUploading();
   const isMe = index === 0;
   const clusterK = index - 1; // 0..2 for the three that tuck into the title
   const inCluster = clusterK >= 0 && clusterK < CLUSTER_COUNT;
@@ -353,6 +357,24 @@ function StoryItem({
   const ringWidth = state === "seen" ? 1.25 : RING;
   const inner = AV - 2 * (RING + RING_GAP);
 
+  const rotate = useSharedValue(0);
+  useEffect(() => {
+    if (isMe && uploading) {
+      rotate.set(
+        withRepeat(
+          withTiming(360, { duration: 1200, easing: Easing.linear }),
+          -1,
+        )
+      );
+    } else {
+      rotate.set(0);
+    }
+  }, [isMe, uploading]);
+
+  const uploadRingStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotate.get()}deg` }],
+  }));
+
   return (
     <Pressable
       onPress={onPress}
@@ -380,16 +402,22 @@ function StoryItem({
             <SFIcon name="plus" size={26} color={theme.label} />
           </View>
         ) : (
-          <View
-            style={[
-              styles.ring,
-              {
-                borderColor: ringColor,
-                borderWidth: ringWidth,
-                padding: RING - ringWidth,
-              },
-            ]}
-          >
+          <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+            <Animated.View
+              style={[
+                styles.ring,
+                uploadRingStyle,
+                {
+                  position: 'absolute',
+                  borderColor: isMe && uploading ? Accent : ringColor,
+                  borderWidth: ringWidth,
+                  borderStyle: isMe && uploading ? 'dashed' : 'solid',
+                  width: AV,
+                  height: AV,
+                  borderRadius: AV / 2,
+                },
+              ]}
+            />
             {person.photoUrl ? (
               <Image
                 source={{ uri: person.photoUrl }}

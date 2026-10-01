@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   FadeInDown,
@@ -262,7 +262,19 @@ export const Bubble = memo(function Bubble({
         source={photoSource}
         style={{ flex: 1 }}
         contentFit="cover"
+        transition={300}
+        placeholder={mine ? undefined : "L6Pj0^jE.AyE_3t7t7R**0o#DgR4"}
       />
+      {mine && message.status === "sending" && (
+        <View style={[StyleSheet.absoluteFill, styles.photoOverlay]}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      )}
+      {mine && message.status === "failed" && (
+        <View style={[StyleSheet.absoluteFill, styles.photoOverlay, { backgroundColor: 'rgba(255,50,50,0.5)' }]}>
+          <SFIcon name="exclamationmark.circle" size={32} color="#FFFFFF" />
+        </View>
+      )}
     </Pressable>
     {message.replyTo && (
       <View pointerEvents="none" style={styles.photoQuoteWrap}>
@@ -385,7 +397,14 @@ export const Bubble = memo(function Bubble({
               <DeliveryTicks message={message} />
             </View>
           ) : (
-            bubbleBody
+            <View style={styles.theirsColumn}>
+              {bubbleBody}
+              {message.edited && (
+                <View style={styles.theirsStatusRow}>
+                  <Text style={styles.editedLabel}>Edited</Text>
+                </View>
+              )}
+            </View>
           )}
         </Animated.View>
       </GestureDetector>
@@ -418,6 +437,19 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     gap: 8,
   },
+  theirsColumn: {
+    flex: 1,
+    alignItems: "flex-start",
+  },
+  theirsStatusRow: {
+    marginTop: 3,
+    paddingLeft: 6,
+  },
+  editedLabel: {
+    fontSize: 11,
+    lineHeight: 14,
+    color: "#8E8E93",
+  },
   hint: {
     overflow: "hidden",
     alignItems: "flex-end",
@@ -441,6 +473,11 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     overflow: "hidden",
     backgroundColor: "#E9E9EB",
+  },
+  photoOverlay: {
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   photoQuoteWrap: {
     position: "absolute",

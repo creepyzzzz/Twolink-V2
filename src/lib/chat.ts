@@ -183,11 +183,7 @@ export async function searchUsers(query: string): Promise<DbProfile[]> {
   const q = query.trim();
   if (!q) return [];
   const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
-    .neq("id", myId ?? "")
-    .limit(20);
+    .rpc("search_users_by_username", { p_username: q });
   if (error) throw error;
   const rows = (data ?? []) as DbProfile[];
   if (rows.length === 0 || !myId) return rows;
@@ -875,6 +871,7 @@ export type ChatEventHandlers = {
   onReceipt?: (receipt: DbReceipt) => void;
   onChatChange?: () => void;
   onFriendshipChange?: () => void;
+  onTyping?: (chatId: string, userId: string, isTyping: boolean) => void;
 };
 
 /**
@@ -898,10 +895,12 @@ export function subscribeToChatEvents(handlers: ChatEventHandlers): () => void {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "message_receipts" },
-      (payload) =>
-        handlers.onReceipt?.(
-          (payload.new ?? payload.old) as DbReceipt,
-        ),
+      (payload) => {
+        const pNew = payload.new as Record<string, unknown> | undefined;
+        const pOld = payload.old as Record<string, unknown> | undefined;
+        const r = (pNew && Object.keys(pNew).length > 0 ? pNew : pOld) as DbReceipt;
+        if (r && r.message_id) handlers.onReceipt?.(r);
+      }
     )
     .on(
       "postgres_changes",
@@ -918,10 +917,37 @@ export function subscribeToChatEvents(handlers: ChatEventHandlers): () => void {
       { event: "*", schema: "public", table: "friendships" },
       () => handlers.onFriendshipChange?.(),
     )
+    .on(
+      "broadcast",
+      { event: "typing" },
+      (payload) => {
+        if (payload.payload) {
+          handlers.onTyping?.(
+            payload.payload.chatId,
+            payload.payload.userId,
+            payload.payload.isTyping
+          );
+        }
+      }
+    )
     .subscribe();
   return () => {
     void supabase.removeChannel(channel);
   };
+}
+
+/* ------------------------------------------------------------------ */
+
+export async function sendTypingIndicator(chatId: string, isTyping: boolean): Promise<void> {
+  const supabase = getSupabase();
+  const myId = await getMyUserId();
+  if (!myId) return;
+  const channel = supabase.channel("poffu-chat-events");
+  void channel.send({
+    type: "broadcast",
+    event: "typing",
+    payload: { chatId, userId: myId, isTyping },
+  });
 }
 
 /* ------------------------------------------------------------------ */

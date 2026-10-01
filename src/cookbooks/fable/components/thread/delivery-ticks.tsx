@@ -8,6 +8,7 @@ import {
   withTiming,
 } from "react-native-reanimated";
 import { Path, Svg } from "react-native-svg";
+import { SFIcon } from "../../../../ui/SFIcon";
 
 import type { Message, MessageStatus } from "../../data/messages";
 import { useTheme } from "../../hooks/use-theme";
@@ -66,6 +67,14 @@ export function DeliveryTicks({ message }: { message: Message }) {
     strokeDashoffset: drawSecond.value * TICK_LEN,
     stroke: interpolateColor(blueMix.value, [0, 1], [gray, READ_BLUE]),
   }));
+
+  if (status === "failed") {
+    return (
+      <View style={styles.statusRow}>
+        <SFIcon name="exclamationmark.circle.fill" size={14} color="#FF3B30" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.statusRow}>

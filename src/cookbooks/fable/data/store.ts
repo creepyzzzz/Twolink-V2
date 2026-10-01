@@ -242,6 +242,9 @@ type State = {
   ensureThread: (id: string) => Promise<void>;
   /** Prepends the next older page; no-op when exhausted. */
   loadEarlier: (id: string) => Promise<void>;
+  /** Tracks who is typing in each thread */
+  typing: Record<string, string[]>;
+  setTyping: (chatId: string, userId: string, isTyping: boolean) => void;
 
   /* ---- live stories ---- */
   stories: StoryItem[];
@@ -541,14 +544,14 @@ async function handleIncomingMessage(row: DbMessage) {
 async function handleMessageUpdate(row: DbMessage) {
   const st = useFable.getState();
   const list = st.threads[row.chat_id];
-  if (!list || !list.some((m) => m.id === row.id)) return;
+  if (!list || !list.some((m) => m.id === row.id || m.serverId === row.id)) return;
   const mapped = await mapDbMessage(row, st).catch(() => null);
   if (!mapped) return;
   useFable.setState((s) => ({
     threads: {
       ...s.threads,
       [row.chat_id]: (s.threads[row.chat_id] ?? []).map((m) =>
-        m.id === row.id ? { ...mapped, status: m.status ?? mapped.status } : m,
+        m.id === row.id || m.serverId === row.id ? { ...mapped, status: m.status ?? mapped.status, id: m.id, serverId: m.serverId } : m,
       ),
     },
   }));
@@ -574,11 +577,16 @@ async function handleReceipt(r: DbReceipt) {
     );
     if (!m) continue;
     const chat = st.chats.find((c) => c.id === chatId);
-    const rollup = await fetchReceiptRollup(
-      [r.message_id],
-      chat?.memberCount ?? 2,
-    ).catch(() => null);
-    const res = rollup?.[r.message_id];
+    let res: { delivered: boolean; read: boolean } | undefined;
+    if ((chat?.memberCount ?? 2) <= 2) {
+      res = { delivered: !!r.delivered_at || !!r.read_at, read: !!r.read_at };
+    } else {
+      const rollup = await fetchReceiptRollup(
+        [r.message_id],
+        chat?.memberCount ?? 2,
+      ).catch(() => null);
+      res = rollup?.[r.message_id];
+    }
     if (!res) continue;
     const status: MessageStatus = res.read
       ? "read"
@@ -590,7 +598,9 @@ async function handleReceipt(r: DbReceipt) {
       threads: {
         ...s.threads,
         [chatId]: (s.threads[chatId] ?? []).map((x) =>
-          x.id === r.message_id ? { ...x, status } : x,
+          x.id === r.message_id || x.serverId === r.message_id
+            ? { ...x, status }
+            : x,
         ),
       },
     }));
@@ -600,11 +610,44 @@ async function handleReceipt(r: DbReceipt) {
 
 /* ------------------------------------------------------------------ */
 
+let sweeperInterval: ReturnType<typeof setInterval> | null = null;
+
+function startSweeper() {
+  if (sweeperInterval) return;
+  sweeperInterval = setInterval(() => {
+    const state = useFable.getState();
+    const now = Date.now();
+    let changed = false;
+    const nextThreads = { ...state.threads };
+    
+    for (const [id, messages] of Object.entries(nextThreads)) {
+      const valid = messages.filter((m) => !m.expiresAt || m.expiresAt > now);
+      if (valid.length !== messages.length) {
+        nextThreads[id] = valid;
+        changed = true;
+      }
+    }
+    
+    if (changed) {
+      useFable.setState({ threads: nextThreads });
+    }
+  }, 10000);
+}
+
 export const useFable = create<State>()(
   persist(
     (set, get) => ({
       myId: null,
       bootstrapped: false,
+      typing: {},
+      setTyping: (chatId, userId, isTyping) =>
+        set((state) => {
+          const currentlyTyping = state.typing[chatId] ?? [];
+          const nowTyping = isTyping
+            ? [...new Set([...currentlyTyping, userId])]
+            : currentlyTyping.filter((id) => id !== userId);
+          return { typing: { ...state.typing, [chatId]: nowTyping } };
+        }),
       bootstrap: () => {
         if (!bootstrapPromise) {
           bootstrapPromise = (async () => {
@@ -645,8 +688,11 @@ export const useFable = create<State>()(
                 onChatChange: () => scheduleChatRefresh(),
                 onFriendshipChange: () =>
                   void get().refreshRequests().catch(() => {}),
+                onTyping: (chatId, userId, isTyping) =>
+                  get().setTyping(chatId, userId, isTyping),
               });
               set({ bootstrapped: true });
+              startSweeper();
             } finally {
               if (!get().bootstrapped) bootstrapPromise = null;
             }
@@ -658,6 +704,10 @@ export const useFable = create<State>()(
         if (liveUnsub) {
           liveUnsub();
           liveUnsub = null;
+        }
+        if (sweeperInterval) {
+          clearInterval(sweeperInterval);
+          sweeperInterval = null;
         }
         bootstrapPromise = null;
         set({
@@ -1078,7 +1128,7 @@ export const useFable = create<State>()(
           ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
           ...(opts?.document ? { document: opts.document } : {}),
           ...(lifetime > 0 ? { expiresAt: Date.now() + lifetime } : {}),
-          status: "sent",
+          status: "sending",
         };
         set((state) => ({
           threads: {
@@ -1173,8 +1223,8 @@ export const useFable = create<State>()(
           set((state) => ({
             threads: {
               ...state.threads,
-              [id]: (state.threads[id] ?? []).filter(
-                (m) => m.id !== tempId,
+              [id]: (state.threads[id] ?? []).map((m) =>
+                m.id === tempId ? { ...m, status: "failed" as const } : m,
               ),
             },
           }));
@@ -1189,11 +1239,11 @@ export const useFable = create<State>()(
         if (message.deletedForEveryone) return;
         const st = get();
         if (message.photo && message.photoUri) {
-          await st.append(targetChatId, "", "me", true, {
+          await st.append(targetChatId, message.text ?? "", "me", true, {
             photoUri: message.photoUri,
           });
         } else if (message.document) {
-          await st.append(targetChatId, message.document.name, "me", false, {
+          await st.append(targetChatId, message.text || message.document.name, "me", false, {
             document: message.document,
           });
         } else if (message.text.trim()) {
@@ -1356,7 +1406,7 @@ export const useFable = create<State>()(
             threads: {
               ...state.threads,
               [id]: current.map((m) =>
-                m.id === messageId && m.from === "me"
+                (m.id === messageId || m.serverId === messageId) && m.from === "me"
                   ? { ...m, status }
                   : m,
               ),

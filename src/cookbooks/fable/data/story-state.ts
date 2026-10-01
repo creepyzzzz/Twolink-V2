@@ -9,11 +9,13 @@ type StoryState = {
   /** The user whose stories are open in the viewer, or null. */
   activeUserId: string | null;
   liked: string[];
+  uploading: boolean;
 };
 
 const useStories = create<StoryState>(() => ({
   activeUserId: null,
   liked: [],
+  uploading: false,
 }));
 
 /** Mark one story viewed locally (server flag set by the viewer too). */
@@ -45,6 +47,9 @@ export function toggleStoryLike(id: string) {
       : [...state.liked, id],
   }));
 }
+export function useStoryUploading() {
+  return useStories((state) => state.uploading);
+}
 
 /** Posts a photo-library picture to your story. Shared by the rail cell and the viewer. */
 export async function pickAndPostStory() {
@@ -59,6 +64,7 @@ export async function pickAndPostStory() {
   });
   if (res.canceled || res.assets.length === 0) return;
   try {
+    useStories.setState({ uploading: true });
     await postStoryDb(res.assets[0].uri);
     await useFable.getState().refreshStories();
   } catch {
@@ -67,5 +73,7 @@ export async function pickAndPostStory() {
       message: "Check your connection and try again.",
       actions: [{ text: "OK", style: "default" }],
     });
+  } finally {
+    useStories.setState({ uploading: false });
   }
 }
