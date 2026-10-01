@@ -24,8 +24,14 @@ import {
   type NativeSyntheticEvent,
 } from "react-native";
 import { KeyboardChatScrollView } from "react-native-keyboard-controller";
-import Animated, { useAnimatedRef } from "react-native-reanimated";
+import Animated, {
+  FadeInUp,
+  FadeOut,
+  SlideOutDown,
+  useAnimatedRef,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { EASE_OUT } from "../constants/motion";
 
 import { Bubble } from "../components/thread/bubble";
 import { DeletedTombstone } from "../components/thread/tombstone";
@@ -179,6 +185,7 @@ function ThreadScreen({ id }: { id: string }) {
   const initialFrame = useRef<number | null>(null);
   const listRef = useAnimatedRef<Animated.ScrollView>();
   const [composerHeight, setComposerHeight] = useState(0);
+  const [actionsHeight, setActionsHeight] = useState(0);
   // Row top offsets (content coordinates) for scrolling to search matches.
   const rowTops = useRef(new Map<string, number>());
   // Geometry bookkeeping so prepending history doesn't move the viewport.
@@ -744,7 +751,12 @@ function ThreadScreen({ id }: { id: string }) {
           onScrollBeginDrag={() => setReaction(null)}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: composerHeight + Space[2] },
+            {
+              paddingBottom:
+                (isIncomingRequest
+                  ? Math.max(actionsHeight, composerHeight)
+                  : composerHeight) + Space[2],
+            },
           ]}
         >
           {rows.map(({ msg, first, last, label, gapLabel, animate }) => (
@@ -816,37 +828,54 @@ function ThreadScreen({ id }: { id: string }) {
       </View>
 
       {isIncomingRequest && chat?.otherUserId ? (
-        <RequestActions
-          requesterId={chat.otherUserId}
-          requesterName={person?.first ?? "this person"}
-          insetBottom={insets.bottom}
-          onAccept={() => acceptRequest(chat.otherUserId!)}
-          onDecline={async () => {
-            await declineRequest(chat.otherUserId!);
-            router.replace("/fable");
-          }}
-          onBlock={async () => {
-            await blockUserAction(chat.otherUserId!);
-            router.replace("/fable");
-          }}
-        />
+        <Animated.View
+          key="request-actions"
+          exiting={FadeOut.duration(220).easing(EASE_OUT.factory())}
+        >
+          <Animated.View
+            exiting={SlideOutDown.duration(280).easing(EASE_OUT.factory())}
+          >
+            <RequestActions
+              requesterId={chat.otherUserId}
+              requesterName={person?.first ?? "this person"}
+              insetBottom={insets.bottom}
+              onLayoutHeight={setActionsHeight}
+              onAccept={() => acceptRequest(chat.otherUserId!)}
+              onDecline={async () => {
+                await declineRequest(chat.otherUserId!);
+                router.replace("/fable");
+              }}
+              onBlock={async () => {
+                await blockUserAction(chat.otherUserId!);
+                router.replace("/fable");
+              }}
+            />
+          </Animated.View>
+        </Animated.View>
       ) : (
-        <Composer
-          key={editing ? `edit-${editing.messageId}` : "compose"}
-          threadId={id}
-          insetBottom={insets.bottom}
-          onSend={onSend}
-          onAttach={onAttach}
-          onAttachFile={onAttachFile}
-          onLayoutHeight={setComposerHeight}
-          replyPreview={replyPreview}
-          onCancelReply={() => setReplyTo(null)}
-          onSchedule={handleSchedule}
-          editPreview={editing}
-          initialText={editing?.text}
-          onSaveEdit={onSaveEdit}
-          onCancelEdit={() => setEditing(null)}
-        />
+        <Animated.View
+          key="composer"
+          entering={FadeInUp.duration(340)
+            .delay(140)
+            .easing(EASE_OUT.factory())}
+        >
+          <Composer
+            key={editing ? `edit-${editing.messageId}` : "compose"}
+            threadId={id}
+            insetBottom={insets.bottom}
+            onSend={onSend}
+            onAttach={onAttach}
+            onAttachFile={onAttachFile}
+            onLayoutHeight={setComposerHeight}
+            replyPreview={replyPreview}
+            onCancelReply={() => setReplyTo(null)}
+            onSchedule={handleSchedule}
+            editPreview={editing}
+            initialText={editing?.text}
+            onSaveEdit={onSaveEdit}
+            onCancelEdit={() => setEditing(null)}
+          />
+        </Animated.View>
       )}
 
       {searchOpen && (

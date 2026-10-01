@@ -13,6 +13,7 @@ export function RequestActions({
   onAccept,
   onDecline,
   onBlock,
+  onLayoutHeight,
 }: {
   requesterId: string;
   requesterName: string;
@@ -20,6 +21,7 @@ export function RequestActions({
   onAccept: () => Promise<void> | void;
   onDecline: () => Promise<void> | void;
   onBlock: () => Promise<void> | void;
+  onLayoutHeight?: (height: number) => void;
 }) {
   const theme = useTheme();
   const [busy, setBusy] = useState<"accept" | "decline" | "block" | null>(null);
@@ -35,7 +37,10 @@ export function RequestActions({
   };
 
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(insetBottom, 12) }]}>
+    <View
+      style={[styles.wrap, { paddingBottom: Math.max(insetBottom, 12) }]}
+      onLayout={(e) => onLayoutHeight?.(e.nativeEvent.layout.height)}
+    >
       <Text style={[styles.title, { color: theme.secondary }]}>
         {requesterName} wants to message you
       </Text>
