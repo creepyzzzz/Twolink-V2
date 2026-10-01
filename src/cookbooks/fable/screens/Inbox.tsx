@@ -529,7 +529,7 @@ export default function ChatsScreen() {
               <Image
                 source={require("../../../../assets/cookbooks/fable/empty-whale.png")}
                 style={styles.emptyWhale}
-                contentFit="cover"
+                contentFit="contain"
               />
               <Text style={[styles.emptyTitle, { color: theme.label }]}>
                 No chats yet
@@ -598,8 +598,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 48,
   },
   emptyWhale: {
-    width: 200,
-    aspectRatio: 651 / 522,
+    width: 140,
+    aspectRatio: 771 / 642,
   },
   emptyTitle: {
     fontSize: 20,
