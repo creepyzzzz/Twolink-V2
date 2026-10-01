@@ -1,5 +1,26 @@
 import { router } from "expo-router";
-import { Pressable, Text, View, useColorScheme } from "react-native";
+import { ActivityIndicator, Pressable, Text, View, useColorScheme } from "react-native";
+
+/**
+ * Neutral loading state for deep-link routes while the store is still
+ * bootstrapping (chat list not yet loaded). Rendered instead of NotFound
+ * so a cold start never flashes "not found" for a valid target.
+ */
+export function LoadingRoute() {
+  const dark = useColorScheme() === "dark";
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: dark ? "#171819" : "#F2F2F4",
+      }}
+    >
+      <ActivityIndicator size="small" color={dark ? "#91BFFF" : "#0060C9"} />
+    </View>
+  );
+}
 
 export function NotFound({ home = "/" }: { home?: "/" | "/fable" }) {
   const dark = useColorScheme() === "dark";

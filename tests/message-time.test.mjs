@@ -26,7 +26,7 @@ test("message-time: gap threshold is one hour", () => {
   assert.equal(GAP_MS, 3_600_000);
 });
 
-test("message-time: parses the mock at-shapes", () => {
+test("message-time: parses the inbox at-shapes", () => {
   const now = new Date();
   const parsedNow = atToDate("now");
   assert.ok(Math.abs(parsedNow - now) < 60_000);
@@ -60,61 +60,29 @@ test("message-time: gap labels read like iMessage", () => {
   assert.equal(formatGapLabel(new Date(2026, 8, 30, 12, 30)), "12:30 PM");
 });
 
-// messages.ts is dependency-free too; load it the same way.
-const messagesFile = path.join(
-  root,
-  "src/cookbooks/fable/data/messages.ts",
-);
-const messagesOutput = ts.transpileModule(
-  readFileSync(messagesFile, "utf8"),
-  {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2022,
-    },
-  },
-).outputText;
-const messagesModule = { exports: {} };
-vm.runInThisContext(
-  `(function(require,module,exports){${messagesOutput}\n})`,
-  { filename: messagesFile },
-)(require, messagesModule, messagesModule.exports);
-const { messagesFor, olderMessagesFor } = messagesModule.exports;
-
-/**
- * Mirrors the gap rule in Conversation.tsx: same-day messages separated
- * by >= GAP_MS earn a centered label showing the newer message's time.
- */
-function gapLabels(messages) {
-  const dayOf = (at) =>
-    at.startsWith("Yesterday") ? "Yesterday" : at.includes(" ") ? at.split(" ")[0] : "Today";
+// The gap rule mirrors Conversation.tsx: same-day messages separated by
+// >= GAP_MS earn a centered label showing the newer message's time.
+// Synthetic fixtures stand in for thread data (no app seed content).
+function gapLabels(times) {
   const out = [];
-  messages.forEach((msg, i) => {
-    const prev = messages[i - 1];
-    if (!prev || dayOf(prev.at) !== dayOf(msg.at)) return;
-    const a = atToDate(prev.at);
-    const b = atToDate(msg.at);
+  times.forEach((at, i) => {
+    const prev = times[i - 1];
+    if (!prev) return;
+    const a = atToDate(prev);
+    const b = atToDate(at);
     if (a && b && b.getTime() - a.getTime() >= GAP_MS)
       out.push(formatGapLabel(b));
   });
   return out;
 }
 
-test("message-time: mock seeds render iMessage gap headers", () => {
-  // Mara: 9:44 -> 12:15 is the only same-day hour gap.
-  assert.deepEqual(
-    gapLabels(messagesFor("mara", "Mara")),
-    ["12:15 PM"],
-  );
-  // Theo: 9:20 -> 14:05 is the only same-day hour gap.
-  assert.deepEqual(
-    gapLabels(messagesFor("theo", "Theo")),
-    ["2:05 PM"],
-  );
-  // Mara's scroll-up history: 19:02 -> 20:35 earns one on every device,
-  // even in threads whose seed snapshot is already stored.
-  assert.deepEqual(
-    gapLabels(olderMessagesFor("mara", "Mara", 0)),
-    ["8:35 PM"],
-  );
+test("message-time: threads render iMessage gap headers", () => {
+  // 9:44 -> 12:15 is the only same-day hour gap.
+  assert.deepEqual(gapLabels(["9:44", "12:15"]), ["12:15 PM"]);
+  // 9:20 -> 14:05 likewise.
+  assert.deepEqual(gapLabels(["9:20", "14:05"]), ["2:05 PM"]);
+  // Sub-hour gaps earn no header.
+  assert.deepEqual(gapLabels(["19:02", "19:30"]), []);
+  // Scroll-up history: 19:02 -> 20:35 earns one.
+  assert.deepEqual(gapLabels(["19:02", "20:35"]), ["8:35 PM"]);
 });

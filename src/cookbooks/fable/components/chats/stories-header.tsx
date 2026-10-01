@@ -14,13 +14,11 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { GlassButton } from "../ui/glass-button";
-import { MyAvatar } from "../ui/my-avatar";
 import { Orb } from "../ui/orb";
 import { OrbButton } from "../ui/orb-button";
 import { Accent, Type } from "../../constants/theme";
-import { AVATAR_FACES, type Person } from "../../data/people";
+import { AVATAR_FACES } from "../../data/people";
 import { useFable } from "../../data/store";
-import { useStorySeen } from "../../data/story-state";
 import { useTheme } from "../../hooks/use-theme";
 
 /** Geometry — every number here is shared with the list screen. */
@@ -40,15 +38,29 @@ const RING_GAP = 2.5;
 const easeOut = Easing.out(Easing.cubic);
 const easeInOut = Easing.inOut(Easing.cubic);
 
+/** One cell in the stories rail, built from live data (index 0 is you). */
+export type RailStory = {
+  userId: string;
+  first: string;
+  isMe: boolean;
+  /** Bundled face asset — used when there's no photo. */
+  avatar: number;
+  photoUrl: string | null;
+  /** Ring state for other people's stories. */
+  state: "unread" | "seen" | "none";
+  /** Whether you've posted a story (drives your cell). */
+  hasStory: boolean;
+};
+
 type Props = {
   progress: SharedValue<number>; // 0 collapsed → 1 expanded, finger-driven
   stretch: SharedValue<number>; // overscroll beyond expanded, in points
-  stories: Person[];
+  stories: RailStory[];
   width: number;
   insetTop: number;
   isOpen: boolean;
   onPressCluster: () => void;
-  onPressStory: (person: Person) => void;
+  onPressStory: (item: RailStory) => void;
   onPressCompose: () => void;
   onPressMe: () => void;
 };
@@ -135,10 +147,10 @@ export function StoriesHeader({
           gap: GAP,
         }}
       >
-        {stories.map((person, i) => (
+        {stories.map((item, i) => (
           <StoryItem
-            key={person.id}
-            person={person}
+            key={item.userId}
+            person={item}
             index={i}
             progress={progress}
             stretch={stretch}
@@ -147,7 +159,7 @@ export function StoriesHeader({
             clusterCY={clusterCY}
             slotCY={slotCY}
             isOpen={isOpen}
-            onPress={() => onPressStory(person)}
+            onPress={() => onPressStory(item)}
           />
         ))}
       </Animated.ScrollView>
@@ -222,7 +234,7 @@ export function StoriesHeader({
 }
 
 type ItemProps = {
-  person: Person;
+  person: RailStory;
   index: number;
   progress: SharedValue<number>;
   stretch: SharedValue<number>;
@@ -308,17 +320,9 @@ function StoryItem({
     };
   });
 
-  const seenNow = useStorySeen(person.id);
-  const myStories = useFable((state) => state.myStories);
-  const hasMyStories = isMe && myStories.length > 0;
+  const hasMyStories = isMe && person.hasStory;
   // Your cell: unread ring once you've posted; the seen logic is for others.
-  const state = isMe
-    ? hasMyStories
-      ? "unread"
-      : "none"
-    : seenNow && person.storyState !== "none"
-      ? "seen"
-      : person.storyState;
+  const state = isMe ? (hasMyStories ? "unread" : "none") : person.state;
   const ringColor =
     state === "unread"
       ? Accent
@@ -339,7 +343,7 @@ function StoryItem({
           ? hasMyStories
             ? "Your story"
             : "Add to your story"
-          : `${person.name}'s story`
+          : `${person.first}'s story`
       }
       style={[styles.item, { zIndex: inCluster ? 100 - index : 50 - index }]}
     >
@@ -366,8 +370,16 @@ function StoryItem({
               },
             ]}
           >
-            {isMe ? (
-              <MyAvatar size={inner} />
+            {person.photoUrl ? (
+              <Image
+                source={{ uri: person.photoUrl }}
+                style={{
+                  width: inner,
+                  height: inner,
+                  borderRadius: inner / 2,
+                }}
+                contentFit="cover"
+              />
             ) : (
               <Orb source={person.avatar} size={inner} />
             )}

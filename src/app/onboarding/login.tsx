@@ -173,12 +173,20 @@ export default function Login() {
   // Content rests on the white part of the artwork (~52% down) and rides
   // up as the keyboard appears.
   const contentShift = useAnimatedStyle(() => ({
-    paddingTop: Math.max(0, fullHeightRef.current * 0.52 - keyboard.height.value),
+    // The frostWrap's 300px fade zone sits above the content, so subtract it
+    // to keep the resting title position unchanged.
+    paddingTop: Math.max(
+      0,
+      fullHeightRef.current * 0.52 - 300 - keyboard.height.value,
+    ),
   }));
 
   const valid = EMAIL_RE.test(email.trim()) && password.length >= 6;
 
   const done = () => {
+    // The root auth listener also boots the store; this makes the fresh
+    // login path deterministic instead of racing the listener.
+    void useFable.getState().bootstrap();
     setOnboarded(true);
     router.replace("/(tabs)/chats");
   };
@@ -291,22 +299,9 @@ export default function Login() {
         style={StyleSheet.absoluteFill}
         contentFit="cover"
       />
-      {/*
-        Full-screen progressive frost: transparent over the sharp artwork up
-        top, ramping to a clean white frost behind the inputs and buttons.
-        No panel, no box edges — the frost is the background itself. The blur
-        gradient is baked into the artwork (sharp trio -> blurred wash).
-      */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={[
-          "rgba(255,255,255,0)",
-          "rgba(255,255,255,0)",
-          "rgba(255,255,255,0.62)",
-        ]}
-        locations={[0, 0.3, 0.72]}
-        style={StyleSheet.absoluteFill}
-      />
+      {/* The blur gradient is baked into the artwork (sharp trio -> blurred
+          wash). The white frost lives on the traveling frostWrap below, so it
+          rides up with the title/inputs/buttons when the keyboard opens. */}
       <Animated.View style={[styles.contentWrap, contentShift]}>
         <ScrollView
           style={styles.flex}
@@ -314,11 +309,29 @@ export default function Login() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View
-            style={[styles.content, { paddingBottom: insets.bottom + Space[4] }]}
-          >
-            {/* No panel behind the auth content — it floats directly over
-                the full-screen progressive frost. */}
+          {/*
+            Full-bleed frost that travels with the content: the top padding
+            is a soft fade zone over the artwork (no box edges), and the
+            frost is always behind the title/inputs/buttons — including when
+            the keyboard lifts them into the sharper part of the art.
+          */}
+          <View style={styles.frostWrap}>
+            <LinearGradient
+              pointerEvents="none"
+              colors={[
+                "rgba(255,255,255,0)",
+                "rgba(255,255,255,0.5)",
+                "rgba(255,255,255,0.75)",
+              ]}
+              locations={[0, 0.32, 1]}
+              style={StyleSheet.absoluteFill}
+            />
+            <View
+              style={[
+                styles.content,
+                { paddingBottom: insets.bottom + Space[4] },
+              ]}
+            >
             {step === "idle" ? (
               <Animated.View
                 key="idle"
@@ -450,6 +463,7 @@ export default function Login() {
                 <BackLink onPress={() => goBack("form")} />
               </Animated.View>
             )}
+            </View>
           </View>
         </ScrollView>
       </Animated.View>
@@ -470,6 +484,15 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+  },
+  frostWrap: {
+    // Full-bleed frost that travels with the content. The 300px top padding
+    // is the soft fade zone over the artwork (no box edges); the gradient
+    // reaches full frost just above the title and stays frosted below the
+    // buttons. Because it is in normal flow inside the shifted container,
+    // it rides up with the fields when the keyboard opens.
+    paddingTop: 300,
+    paddingBottom: 80,
   },
   content: {
     flex: 1,

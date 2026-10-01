@@ -70,71 +70,6 @@
     "sha256": "1a7eacaa809e53ed3e782727b92b13de14b27c4018a559a59c35aa09b08abb2b"
   },
   {
-    "path": "assets/cookbooks/fable/stories/amara.jpg",
-    "bytes": 235042,
-    "sha256": "c8352ece9c6e9fc5048d1e0dc3efd483e713fa654c1ad1610d04a48c5a9e7196"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/elena.jpg",
-    "bytes": 273327,
-    "sha256": "3b4d951bec2abb99bf622495e5234c302188ed76488c5ccc216fea6950f52899"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/elias.jpg",
-    "bytes": 276635,
-    "sha256": "5a15980e0a30e0a2436d0e68f2470794012663d1d5d254fb101ab44db9f68acf"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/jonas.jpg",
-    "bytes": 311067,
-    "sha256": "f9bdb0aa1e6ff623d40fd00fe4c85c952af25c235a68ed86b3b7336a5262bebe"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/kenji.jpg",
-    "bytes": 286844,
-    "sha256": "1e0dc0bd76af949417fda3bbf33471d4652616daf922db318bd9b319ec2e1f5d"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/lucas.jpg",
-    "bytes": 338525,
-    "sha256": "5a65357345b1c1b0cdd5727feca0bd56ac4143451acbc0c00a0e7e419e0d9ffa"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/mara.jpg",
-    "bytes": 306353,
-    "sha256": "3f283d845c0b1904deadb842093f5353c31fb90885b467bec4d53f4ba45b311d"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/me.jpg",
-    "bytes": 407177,
-    "sha256": "52766fc821e9ba28c003f3af901cd15a393421f58dd37ae81b00e777c4f1e6ac"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/nia.jpg",
-    "bytes": 215810,
-    "sha256": "2a72b5aa65f3264663b0c7849cf9e03764ff7564aa32d659f64ba697bedc09df"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/rafael.jpg",
-    "bytes": 271598,
-    "sha256": "a074872146206b6a57da7b9284d4bc2e31b3c049afb75c126bde89d6e56c0f86"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/sofia.jpg",
-    "bytes": 296323,
-    "sha256": "e3ccf458f5028bd026d37980e7c96e8f858b6437416f1a6ca233ef2c7b91cb22"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/theo.jpg",
-    "bytes": 237558,
-    "sha256": "d9eae441f0faa7c5609ef173d57ae3193e983ae1b265cf8fd6f0e5955760db02"
-  },
-  {
-    "path": "assets/cookbooks/fable/stories/zara.jpg",
-    "bytes": 321256,
-    "sha256": "ca3363d397aa9e8a8e37c7f6d4a76b81f88b81c0b1feb423f8905942f0e45300"
-  },
-  {
     "path": "assets/images/icon.png",
     "bytes": 389474,
     "sha256": "84386a7d663529fa55b6123b7e9f835b7557138801a872e203c4a507c38f0f69",
@@ -170,6 +105,6 @@
     "path": "assets/auth/login-trio-9x16-progressive.jpg",
     "bytes": 101777,
     "sha256": "3b9a09237614789751b07b023ca53e9be1916b7f49f1fcddc89e59fb1067d1f3",
-    "provenance": "Progressive-blur variant of docs/auth-exploration/login-trio-9x16.jpg (Tariq-supplied trio art, white gradient extension below y975): sharp until 32% height, smoothstep blur ramp (Gaussian radius 22) to 62%, fully blurred below. PIL + numpy composite, JPEG q90. Built Oct 1 2026 — login screen background, replaces the rectangular frosted panel with a full-screen blur gradient."
+    "provenance": "Progressive-blur variant of docs/auth-exploration/login-trio-9x16.jpg (Tariq-supplied trio art, white gradient extension below y975): sharp until 32% height, smoothstep blur ramp (Gaussian radius 22) to 62%, fully blurred below. PIL + numpy composite, JPEG q90. Built Oct 1 2026 \u2014 login screen background, replaces the rectangular frosted panel with a full-screen blur gradient."
   }
 ]

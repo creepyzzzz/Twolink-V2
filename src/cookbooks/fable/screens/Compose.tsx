@@ -1,13 +1,14 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlashList } from "@shopify/flash-list";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { SFIcon } from "../../../ui/SFIcon";
 import { Avatar } from "../components/ui/avatar";
 import { Glass } from "../components/ui/glass";
 import { GlassButton } from "../components/ui/glass-button";
-import { PEOPLE } from "../data/people";
-import { useFable } from "../data/store";
+import { avatarSource, type Person } from "../data/people";
+import { dbProfileToPerson, useFable } from "../data/store";
+import { getOrCreateDirectChat, searchUsers } from "../../../lib/chat";
 import { Accent, Type } from "../constants/theme";
 import { useTheme } from "../hooks/use-theme";
 
@@ -16,37 +17,55 @@ export default function Compose() {
   const [groupMode, setGroupMode] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [groupName, setGroupName] = useState("");
+  const [results, setResults] = useState<Person[]>([]);
+  const [creating, setCreating] = useState(false);
   const theme = useTheme();
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filtered = useMemo(
-    () =>
-      PEOPLE.filter((person) =>
-        person.name.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [query],
-  );
+  // Live user search against profiles (debounced).
+  useEffect(() => {
+    if (debounce.current) clearTimeout(debounce.current);
+    debounce.current = setTimeout(() => {
+      void searchUsers(query)
+        .then((found) => setResults(found.map(dbProfileToPerson)))
+        .catch(() => setResults([]));
+    }, 250);
+    return () => {
+      if (debounce.current) clearTimeout(debounce.current);
+    };
+  }, [query]);
 
   const toggleMember = (id: string) =>
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id],
     );
 
-  const create = () => {
-    if (selected.length === 0) return;
-    const store = useFable.getState();
-    // Only a name the user typed is stored — a blank field lets the chat
-    // row and header fall back to member names via groupDisplayName().
-    const name = groupName.trim();
-    const id = store.createGroup(name, selected);
-    // A couple of hellos so the new thread feels alive.
-    store.append(id, "Hey everyone! 🙌", "them", false, {
-      senderId: selected[0],
-    });
-    if (selected[1])
-      store.append(id, "Finally, a group chat", "them", false, {
-        senderId: selected[1],
+  const create = async () => {
+    if (selected.length === 0 || creating) return;
+    setCreating(true);
+    try {
+      const store = useFable.getState();
+      // Only a name the user typed is stored — a blank field lets the chat
+      // row and header fall back to member names via groupDisplayName().
+      const name = groupName.trim();
+      const id = await store.createGroup(name, selected);
+      router.replace({ pathname: "/fable/chat/[id]", params: { id } });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const openDirect = async (person: Person) => {
+    try {
+      const id = await getOrCreateDirectChat(person.id);
+      router.replace({ pathname: "/fable/chat/[id]", params: { id } });
+    } catch {
+      useFable.getState().showAlert({
+        title: "Couldn't open chat",
+        message: "Check your connection and try again.",
+        actions: [{ text: "OK", style: "default" }],
       });
-    router.replace({ pathname: "/fable/chat/[id]", params: { id } });
+    }
   };
 
   return (
@@ -197,7 +216,7 @@ export default function Compose() {
         </Glass>
       </View>
       <FlashList
-        data={filtered}
+        data={results}
         keyExtractor={(person) => person.id}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
@@ -212,12 +231,7 @@ export default function Compose() {
                   : `Message ${item.name}`
               }
               onPress={() =>
-                groupMode
-                  ? toggleMember(item.id)
-                  : router.replace({
-                      pathname: "/fable/chat/[id]",
-                      params: { id: item.id },
-                    })
+                groupMode ? toggleMember(item.id) : void openDirect(item)
               }
               style={{
                 flexDirection: "row",
@@ -226,7 +240,7 @@ export default function Compose() {
                 paddingVertical: 12,
               }}
             >
-              <Avatar source={item.avatar} size={52} />
+              <Avatar source={avatarSource(item)} size={52} />
               <Text style={{ flex: 1, color: theme.label, fontSize: 17 }}>
                 {item.name}
               </Text>
@@ -259,7 +273,7 @@ export default function Compose() {
               textAlign: "center",
             }}
           >
-            No friends with that name.
+            {query.trim() ? "No people found." : "Search for people by name."}
           </Text>
         }
       />
@@ -288,17 +302,18 @@ export default function Compose() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Create group"
-            disabled={selected.length === 0}
-            onPress={create}
+            disabled={selected.length === 0 || creating}
+            onPress={() => void create()}
             style={{
               flex: 1,
               height: 56,
               borderRadius: 28,
               borderCurve: "continuous",
-              backgroundColor: selected.length === 0 ? theme.chip : Accent,
+              backgroundColor:
+                selected.length === 0 ? theme.chip : Accent,
               alignItems: "center",
               justifyContent: "center",
-              opacity: selected.length === 0 ? 0.5 : 1,
+              opacity: selected.length === 0 || creating ? 0.5 : 1,
             }}
           >
             <Text

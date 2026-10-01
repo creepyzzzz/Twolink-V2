@@ -1,31 +1,39 @@
 import { create } from "zustand";
 import * as ImagePicker from "expo-image-picker";
 import { Alert } from "react-native";
-import type { Person } from "./people";
+
+import { markStoryViewed, postStoryDb } from "../../../lib/chat";
 import { useFable } from "./store";
 
-type StoryState = { active: Person | null; seen: string[]; liked: string[] };
+type StoryState = {
+  /** The user whose stories are open in the viewer, or null. */
+  activeUserId: string | null;
+  liked: string[];
+};
+
 const useStories = create<StoryState>(() => ({
-  active: null,
-  seen: [],
+  activeUserId: null,
   liked: [],
 }));
+
+/** Mark one story viewed locally (server flag set by the viewer too). */
 export function markStorySeen(id: string) {
-  useStories.setState((state) =>
-    state.seen.includes(id) ? state : { seen: [...state.seen, id] },
-  );
+  useFable.setState((state) => ({
+    stories: state.stories.map((s) =>
+      s.id === id ? { ...s, viewed: true } : s,
+    ),
+  }));
+  void markStoryViewed(id).catch(() => {});
 }
-export function useStorySeen(id: string) {
-  return useStories((state) => state.seen.includes(id));
-}
-export function openStory(person: Person) {
-  useStories.setState({ active: person });
+
+export function openStory(userId: string) {
+  useStories.setState({ activeUserId: userId });
 }
 export function closeStory() {
-  useStories.setState({ active: null });
+  useStories.setState({ activeUserId: null });
 }
-export function useActiveStory() {
-  return useStories((state) => state.active);
+export function useActiveStoryUserId() {
+  return useStories((state) => state.activeUserId);
 }
 export function useStoryLiked(id: string) {
   return useStories((state) => state.liked.includes(id));
@@ -50,5 +58,14 @@ export async function pickAndPostStory() {
     quality: 0.9,
   });
   if (res.canceled || res.assets.length === 0) return;
-  useFable.getState().postStory(res.assets[0].uri);
+  try {
+    await postStoryDb(res.assets[0].uri);
+    await useFable.getState().refreshStories();
+  } catch {
+    useFable.getState().showAlert({
+      title: "Couldn't post story",
+      message: "Check your connection and try again.",
+      actions: [{ text: "OK", style: "default" }],
+    });
+  }
 }

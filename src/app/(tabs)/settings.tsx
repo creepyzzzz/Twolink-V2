@@ -107,6 +107,7 @@ export default function SettingsScreen() {
     } catch {
       // Session cleanup is best-effort; local state still signs out.
     }
+    useFable.getState().shutdown();
     setOnboarded(false);
     router.replace("/onboarding/welcome");
   };

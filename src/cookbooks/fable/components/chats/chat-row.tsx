@@ -10,11 +10,9 @@ import {
 import { SFIcon } from "../../../../ui/SFIcon";
 import { Avatar } from "../ui/avatar";
 import { Accent, Space, Type } from "../../constants/theme";
-import type { Chat } from "../../data/chats";
-import { messagesFor } from "../../data/messages";
-import { PEOPLE_BY_ID } from "../../data/people";
+import { avatarSource, faceForUserId, type Person } from "../../data/people";
 import { useFable } from "../../data/store";
-import { unreadCount } from "../../data/unread";
+import type { ChatRow as ChatRowData } from "../../../../lib/chat";
 import { scheduledLabel } from "../../data/scheduled";
 import { useTheme } from "../../hooks/use-theme";
 
@@ -25,18 +23,26 @@ export const ChatRow = memo(function ChatRow({
   chat,
   onLongPressRow,
 }: {
-  chat: Chat;
+  chat: ChatRowData;
   onLongPressRow: (id: string) => void;
 }) {
   const theme = useTheme();
-  const person = PEOPLE_BY_ID[chat.personId];
+  const people = useFable((state) => state.people);
+  // The profile map may not have this user yet — fall back to the row's own
+  // name and a deterministic face so the chat never renders nameless.
+  const person: Person = (
+    chat.otherUserId ? people[chat.otherUserId] : undefined
+  ) ?? {
+    id: chat.otherUserId ?? chat.id,
+    name: chat.name,
+    first: chat.name,
+    avatar: faceForUserId(chat.otherUserId ?? chat.id),
+  };
   const stored = useFable((state) => state.threads[chat.id]);
-  const lastReadId = useFable((state) => state.lastRead[chat.id]);
-  const messages = stored ?? messagesFor(chat.id, person.first);
-  const last = messages.at(-1);
-  const muted = useFable((state) => !!state.muted[chat.id]);
-  const pinned = useFable((state) => state.pinned.includes(chat.id));
-  const n = unreadCount(messages, lastReadId);
+  const last = stored?.at(-1);
+  const muted = chat.muted;
+  const pinned = chat.pinned;
+  const n = chat.unread;
   const unread = n > 0;
   const draftText = (useFable((state) => state.drafts[chat.id]) ?? "").trim();
   const scheduledNext = useFable((state) =>
@@ -54,7 +60,7 @@ export const ChatRow = memo(function ChatRow({
         ? "Shared a photo"
         : last.text
     : chat.preview;
-  const fromMe = last ? last.from === "me" : chat.fromMe;
+  const fromMe = last ? last.from === "me" : chat.previewFromMe;
 
   return (
     <View>
@@ -75,7 +81,7 @@ export const ChatRow = memo(function ChatRow({
             { backgroundColor: pressed ? theme.rowPressed : "transparent" },
           ]}
         >
-          <Avatar source={person.avatar} size={ROW_AVATAR} />
+          <Avatar source={avatarSource(person)} size={ROW_AVATAR} />
           <View style={styles.body}>
             <Text numberOfLines={1} style={[Type.name, { color: theme.label }]}>
               {person.name}
@@ -125,7 +131,7 @@ export const ChatRow = memo(function ChatRow({
               <SFIcon name="bell.slash.fill" size={13} color={theme.tertiary} />
             )}
             <Text style={[Type.meta, styles.time, { color: theme.secondary }]}>
-              {last ? "now" : chat.time}
+              {chat.previewAt}
             </Text>
           </View>
         </Pressable>

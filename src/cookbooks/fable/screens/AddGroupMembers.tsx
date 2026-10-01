@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -13,42 +13,60 @@ import { SFIcon } from "../../../ui/SFIcon";
 import { Avatar } from "../components/ui/avatar";
 import { MenuCard } from "../components/ui/menu-card";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
-import { PEOPLE } from "../data/people";
-import { getGroup, groupDisplayName, useFable } from "../data/store";
+import { avatarSource, type Person } from "../data/people";
+import { dbProfileToPerson, getGroup, groupDisplayName, useFable } from "../data/store";
+import { searchUsers } from "../../../lib/chat";
 import { Accent, Space, Type } from "../constants/theme";
 import { useTheme } from "../hooks/use-theme";
-import { NotFound } from "../../NotFound";
+import { NotFound, LoadingRoute } from "../../NotFound";
 
 export default function AddGroupMembersRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groups = useFable((state) => state.groups);
-  return getGroup(groups, id) ? (
-    <AddMembersScreen id={id} />
-  ) : (
-    <NotFound home="/fable" />
-  );
+  const bootstrapped = useFable((state) => state.bootstrapped);
+  useEffect(() => {
+    if (!bootstrapped) void useFable.getState().bootstrap();
+  }, [bootstrapped]);
+  if (!getGroup(groups, id)) {
+    if (!bootstrapped) return <LoadingRoute />;
+    return <NotFound home="/fable" />;
+  }
+  return <AddMembersScreen id={id} />;
 }
 
 /** Pick people who aren't in the group yet and add them — profile-sheet style. */
 function AddMembersScreen({ id }: { id: string }) {
   const group = useFable((state) => getGroup(state.groups, id));
+  const people = useFable((state) => state.people);
+  const myId = useFable((state) => state.myId);
   const addGroupMembers = useFable((state) => state.addGroupMembers);
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Person[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const candidates = useMemo(() => {
-    const memberIds = group?.memberIds ?? [];
-    return PEOPLE.filter((person) => !memberIds.includes(person.id));
-  }, [group]);
-  const filtered = useMemo(
-    () =>
-      candidates.filter((person) =>
-        person.name.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [candidates, query],
-  );
+  const memberIds = group?.memberIds ?? [];
+  // Live user search; current members are filtered out.
+  useEffect(() => {
+    if (debounce.current) clearTimeout(debounce.current);
+    debounce.current = setTimeout(() => {
+      void searchUsers(query)
+        .then((found) =>
+          setResults(
+            found
+              .map(dbProfileToPerson)
+              .filter((p) => !memberIds.includes(p.id)),
+          ),
+        )
+        .catch(() => setResults([]));
+    }, 250);
+    return () => {
+      if (debounce.current) clearTimeout(debounce.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, id]);
   if (!group) return null;
 
   const toggle = (personId: string) =>
@@ -60,8 +78,7 @@ function AddMembersScreen({ id }: { id: string }) {
 
   const add = () => {
     if (selected.length === 0) return;
-    addGroupMembers(id, selected);
-    router.back();
+    void addGroupMembers(id, selected).then(() => router.back());
   };
 
   return (
@@ -94,7 +111,7 @@ function AddMembersScreen({ id }: { id: string }) {
 
         <Text style={[Type.caption, { color: theme.secondary }]}>
           {selected.length === 0
-            ? `Adding to ${groupDisplayName(group)}`
+            ? `Adding to ${groupDisplayName(group, people, myId)}`
             : `${selected.length} member${selected.length === 1 ? "" : "s"} selected`}
         </Text>
 
@@ -136,7 +153,7 @@ function AddMembersScreen({ id }: { id: string }) {
           ) : null}
         </MenuCard>
 
-        {filtered.map((person) => {
+        {results.map((person) => {
           const isSelected = selected.includes(person.id);
           return (
             <Pressable
@@ -146,7 +163,7 @@ function AddMembersScreen({ id }: { id: string }) {
               onPress={() => toggle(person.id)}
               style={styles.row}
             >
-              <Avatar source={person.avatar} size={52} />
+              <Avatar source={avatarSource(person)} size={52} />
               <Text style={[styles.rowName, { color: theme.label }]}>
                 {person.name}
               </Text>
@@ -166,13 +183,11 @@ function AddMembersScreen({ id }: { id: string }) {
             </Pressable>
           );
         })}
-        {filtered.length === 0 && (
-          <Text
-            style={[styles.empty, { color: theme.secondary }]}
-          >
-            {candidates.length === 0
-              ? "Everyone's already in this group."
-              : "No friends with that name."}
+        {results.length === 0 && (
+          <Text style={[styles.empty, { color: theme.secondary }]}>
+            {query.trim()
+              ? "No people found."
+              : "Search for people by name."}
           </Text>
         )}
       </SheetScrollView>

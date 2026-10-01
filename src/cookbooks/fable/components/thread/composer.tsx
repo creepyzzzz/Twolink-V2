@@ -1,7 +1,7 @@
 import { SFIcon } from "../../../../ui/SFIcon";
 import { useMemo, useRef, useState } from "react";
 import { getGroup, useFable } from "../../data/store";
-import { PEOPLE_BY_ID, type Person } from "../../data/people";
+import { avatarSource, type Person } from "../../data/people";
 import { schedulePresets } from "../../data/scheduled";
 import { Avatar } from "../ui/avatar";
 import {
@@ -86,15 +86,16 @@ export function Composer({
   const inputRef = useRef<TextInput>(null);
   const setDraft = useFable((state) => state.setDraft);
   const group = useFable((s) => getGroup(s.groups, threadId));
+  const people = useFable((s) => s.people);
   const isGroup = group != null;
   const groupMembers = useMemo(
     () =>
       group
         ? group.memberIds
-            .map((m) => PEOPLE_BY_ID[m])
+            .map((m) => people[m])
             .filter((m): m is Person => !!m)
         : [],
-    [group],
+    [group, people],
   );
   // @mention autocomplete: trailing "@query" in a group thread.
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -442,7 +443,7 @@ export function Composer({
                     { backgroundColor: pressed ? theme.chip : "transparent" },
                   ]}
                 >
-                  <Avatar source={person.avatar} size={36} />
+                  <Avatar source={avatarSource(person)} size={36} />
                   <Text style={[Type.body, { color: theme.label }]}>
                     {person.name}
                   </Text>

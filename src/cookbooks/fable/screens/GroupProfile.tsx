@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { AndroidGlassToggle } from "expo-android-glass-view";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -21,7 +21,7 @@ import { SharedLinks } from "../components/ui/shared-links";
 import { SharedDocuments } from "../components/ui/shared-documents";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
-import { PEOPLE_BY_ID } from "../data/people";
+import { avatarSource } from "../data/people";
 import {
   useFable,
   getGroup,
@@ -30,22 +30,28 @@ import {
   isGroupAdmin,
 } from "../data/store";
 import { useTheme } from "../hooks/use-theme";
-import { NotFound } from "../../NotFound";
+import { NotFound, LoadingRoute } from "../../NotFound";
 
 export default function GroupProfileRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groups = useFable((state) => state.groups);
-  return getGroup(groups, id) ? (
-    <ProfileScreen id={id} />
-  ) : (
-    <NotFound home="/fable" />
-  );
+  const bootstrapped = useFable((state) => state.bootstrapped);
+  useEffect(() => {
+    if (!bootstrapped) void useFable.getState().bootstrap();
+  }, [bootstrapped]);
+  if (!getGroup(groups, id)) {
+    if (!bootstrapped) return <LoadingRoute />;
+    return <NotFound home="/fable" />;
+  }
+  return <ProfileScreen id={id} />;
 }
 
 /** The group card: identity, mute, members, and the thread's shared photos. */
 function ProfileScreen({ id }: { id: string }) {
   const groups = useFable((state) => state.groups);
   const group = getGroup(groups, id);
+  const people = useFable((state) => state.people);
+  const myId = useFable((state) => state.myId);
   const muted = useFable((state) => !!state.muted[id]);
   const toggleMute = useFable((state) => state.toggleMute);
   const stored = useFable((state) => state.threads[id]);
@@ -54,7 +60,7 @@ function ProfileScreen({ id }: { id: string }) {
   const { width } = useWindowDimensions();
   const messages = useMemo(() => stored ?? [], [stored]);
   const photos = useMemo(
-    () => messages.filter((m) => m.photo),
+    () => messages.filter((m) => m.photo && m.photoUri),
     [messages],
   );
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -62,17 +68,19 @@ function ProfileScreen({ id }: { id: string }) {
   const [nameDraft, setNameDraft] = useState("");
   if (!group) return null;
 
-  const isAdmin = isGroupAdmin(group, "me");
+  const isAdmin = isGroupAdmin(group, myId ?? "");
   const admins = groupAdminIds(group);
+  const displayName = groupDisplayName(group, people, myId);
   const saveName = () => {
-    if (nameDraft.trim()) useFable.getState().setGroupName(id, nameDraft);
+    if (nameDraft.trim())
+      void useFable.getState().setGroupName(id, nameDraft);
     setRenaming(false);
   };
   const onMemberLongPress = (memberId: string) => {
-    if (!isAdmin || memberId === "me") return;
+    if (!isAdmin || memberId === myId) return;
     const store = useFable.getState();
     const admin = admins.includes(memberId);
-    const person = PEOPLE_BY_ID[memberId];
+    const person = people[memberId];
     store.showAlert({
       title: person?.name ?? "Member",
       actions: [
@@ -80,12 +88,16 @@ function ProfileScreen({ id }: { id: string }) {
         {
           text: admin ? "Remove admin" : "Make admin",
           style: "default",
-          onPress: () => store.setGroupAdmin(id, memberId, !admin),
+          onPress: () => {
+            void store.setGroupAdmin(id, memberId, !admin);
+          },
         },
         {
           text: "Remove",
           style: "destructive",
-          onPress: () => store.removeGroupMember(id, memberId),
+          onPress: () => {
+            void store.removeGroupMember(id, memberId);
+          },
         },
       ],
     });
@@ -124,7 +136,7 @@ function ProfileScreen({ id }: { id: string }) {
             />
           ) : (
             <Text style={[styles.name, { color: theme.label }]}>
-              {groupDisplayName(group)}
+              {displayName}
             </Text>
           )}
           {isAdmin &&
@@ -162,9 +174,11 @@ function ProfileScreen({ id }: { id: string }) {
           <View style={styles.row}>
             <Text style={[Type.body, { color: theme.label }]}>Mute</Text>
             <AndroidGlassToggle
-              accessibilityLabel={`Mute ${groupDisplayName(group)}`}
+              accessibilityLabel={`Mute ${displayName}`}
               value={muted}
-              onValueChange={() => toggleMute(id)}
+              onValueChange={() => {
+                void toggleMute(id);
+              }}
               accentColor={Accent}
             />
           </View>
@@ -186,7 +200,7 @@ function ProfileScreen({ id }: { id: string }) {
           ]}
         >
           {group.memberIds.map((memberId) => {
-            const person = PEOPLE_BY_ID[memberId];
+            const person = people[memberId];
             if (!person) return null;
             return (
               <Pressable
@@ -203,10 +217,10 @@ function ProfileScreen({ id }: { id: string }) {
                 delayLongPress={350}
                 style={styles.memberRow}
               >
-                <Avatar source={person.avatar} size={44} />
+                <Avatar source={avatarSource(person)} size={44} />
                 <View style={styles.memberNameCol}>
                   <Text style={[Type.body, { color: theme.label }]}>
-                    {memberId === "me" ? "You" : person.name}
+                    {memberId === myId ? "You" : person.name}
                   </Text>
                   {admins.includes(memberId) && (
                     <Text

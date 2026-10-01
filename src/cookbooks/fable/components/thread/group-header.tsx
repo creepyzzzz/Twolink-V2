@@ -6,7 +6,7 @@ import { GlassButton } from "../ui/glass-button";
 import { ChatMenu } from "./chat-menu";
 import { Space, Type } from "../../constants/theme";
 import type { Group } from "../../data/store";
-import { groupDisplayName } from "../../data/store";
+import { groupDisplayName, useFable } from "../../data/store";
 import { useTheme } from "../../hooks/use-theme";
 
 export const THREAD_NAV_H = 64;
@@ -26,6 +26,9 @@ export function GroupHeader({
   onSearch: () => void;
 }) {
   const theme = useTheme();
+  const people = useFable((s) => s.people);
+  const myId = useFable((s) => s.myId);
+  const name = groupDisplayName(group, people, myId);
   return (
     <View
       pointerEvents="box-none"
@@ -39,7 +42,7 @@ export function GroupHeader({
       />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${groupDisplayName(group)} — group info`}
+        accessibilityLabel={`${name} — group info`}
         onPress={() =>
           router.push({
             pathname: "/fable/group/[id]",
@@ -53,7 +56,7 @@ export function GroupHeader({
           numberOfLines={1}
           style={[Type.caption, { color: theme.secondary, marginTop: 4 }]}
         >
-          {groupDisplayName(group)} · {group.memberIds.length}
+          {name} · {group.memberIds.length}
         </Text>
       </Pressable>
       <View style={styles.right}>

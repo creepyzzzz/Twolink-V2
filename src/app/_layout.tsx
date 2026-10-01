@@ -1,4 +1,3 @@
-import { Asset } from "expo-asset";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -14,11 +13,32 @@ import { preloadOrbImages } from "../cookbooks/fable/components/ui/orb-images";
 import { StoryHost } from "../cookbooks/fable/components/stories/story-viewer";
 import { LockScreen } from "../cookbooks/fable/components/lock/lock-screen";
 import { useFable } from "../cookbooks/fable/data/store";
-import { ME, FABLE_TEAM, PEOPLE } from "../cookbooks/fable/data/people";
+import { AVATAR_FACES } from "../cookbooks/fable/data/people";
+import { getSupabase, isSupabaseConfigured } from "../lib/supabase";
 
 void SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = { initialRouteName: "index" };
+
+/**
+ * Boots the live Supabase store whenever an auth session exists, and tears
+ * it down on sign-out. Covers cold starts (existing session) and fresh
+ * logins; logout itself also calls shutdown() directly.
+ */
+function useLiveDataSession() {
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const supabase = getSupabase();
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) void useFable.getState().bootstrap();
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) void useFable.getState().bootstrap();
+      else if (event === "SIGNED_OUT") useFable.getState().shutdown();
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+}
 
 /**
  * App lock gate. Renders the PIN screen over everything while locked and
@@ -41,6 +61,7 @@ function AppLockGate() {
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
+  useLiveDataSession();
   // Wait for the persisted store (and the app-lock PIN) before revealing
   // the app, so a locked app never flashes its content on launch.
   const [hydrated, setHydrated] = useState(() =>
@@ -60,11 +81,8 @@ export default function RootLayout() {
   });
   useEffect(() => {
     let mounted = true;
-    const people = [ME, FABLE_TEAM, ...PEOPLE];
-    Promise.allSettled([
-      preloadOrbImages(people.map((person) => person.avatar)),
-      Asset.loadAsync([...people.map((person) => person.story)]),
-    ]).then(() => {
+    // Preload every bundled face: any live user maps to one of them.
+    preloadOrbImages(Object.values(AVATAR_FACES)).then(() => {
       if (mounted) setReady(true);
     });
     return () => {

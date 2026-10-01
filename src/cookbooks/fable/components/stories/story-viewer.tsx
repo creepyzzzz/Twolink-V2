@@ -4,7 +4,6 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
 import {
-  Image as RNImage,
   Pressable,
   StyleSheet,
   Text,
@@ -28,32 +27,23 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Glass } from "../ui/glass";
 import { GlassButton } from "../ui/glass-button";
-import { Orb } from "../ui/orb";
+import { Avatar } from "../ui/avatar";
 import { SNAP } from "../../constants/motion";
 import { Radius, Space, Type } from "../../constants/theme";
-import { STORIES, type Person } from "../../data/people";
+import { avatarSource, type Person } from "../../data/people";
 import {
   closeStory,
   markStorySeen,
   pickAndPostStory,
-  useActiveStory,
+  useActiveStoryUserId,
   useStoryLiked,
   toggleStoryLike,
 } from "../../data/story-state";
-import { useFable } from "../../data/store";
+import { deleteStoryDb, getOrCreateDirectChat } from "../../../../lib/chat";
+import { useFable, type StoryItem } from "../../data/store";
 
 const DURATION = 6000;
 const ENTER_DELAY = 50;
-
-/** "5m", "2h", "3d" from a timestamp. */
-function agoString(at: number) {
-  const mins = Math.max(0, Math.round((Date.now() - at) / 60000));
-  if (mins < 1) return "now";
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  return `${Math.round(hours / 24)}d`;
-}
 
 /**
  * Mounted once in the root layout, above the navigator, so the viewer always sits on top.
@@ -61,31 +51,61 @@ function agoString(at: number) {
  * its photo and starts the entrance, so no frame of the entrance is lost to mounting.
  */
 export function StoryHost() {
-  const active = useActiveStory();
+  const activeUserId = useActiveStoryUserId();
+  const stories = useFable((s) => s.stories);
+  const people = useFable((s) => s.people);
+  const myId = useFable((s) => s.myId);
   useEffect(() => () => closeStory(), []);
-  // Mount with a real story from the start (hidden), so the first open is as cheap as every other.
-  const [shown, setShown] = useState<Person>(active ?? STORIES[1]);
-  // Keep the last story on screen while it animates out.
-  if (active && active !== shown) setShown(active);
+  // The latest story from the opened user (newest first in the store).
+  const current =
+    activeUserId && people[activeUserId]
+      ? stories.find((s) => s.userId === activeUserId) ?? null
+      : null;
+  // Keep the last story mounted while it animates out (exit plays on `open=false`).
+  const [shown, setShown] = useState<{
+    item: StoryItem;
+    person: Person;
+    isMe: boolean;
+  } | null>(null);
+  if (
+    current &&
+    people[activeUserId!] &&
+    current.id !== shown?.item.id
+  )
+    setShown({
+      item: current,
+      person: people[activeUserId!],
+      isMe: activeUserId === myId,
+    });
   return (
     <View
       collapsable={false}
-      accessibilityElementsHidden={!active}
-      importantForAccessibility={active ? "yes" : "no-hide-descendants"}
-      accessibilityViewIsModal={!!active}
-      pointerEvents={active ? "box-none" : "none"}
+      accessibilityElementsHidden={!activeUserId}
+      importantForAccessibility={activeUserId ? "yes" : "no-hide-descendants"}
+      accessibilityViewIsModal={!!activeUserId}
+      pointerEvents={activeUserId ? "box-none" : "none"}
       style={StyleSheet.absoluteFill}
     >
       <>
-        {active && <StatusBar style="light" />}
-        <StoryViewer person={shown} open={!!active} onClose={closeStory} />
+        {activeUserId && <StatusBar style="light" />}
+        {shown && (
+          <StoryViewer
+            item={shown.item}
+            person={shown.person}
+            isMe={shown.isMe}
+            open={!!activeUserId}
+            onClose={closeStory}
+          />
+        )}
       </>
     </View>
   );
 }
 
 type Props = {
+  item: StoryItem;
   person: Person;
+  isMe: boolean;
   open: boolean;
   onClose: () => void;
 };
@@ -95,10 +115,10 @@ type Props = {
  * over it. Tap or drag down to leave; it leaves on its own when the bar fills.
  * Hosted at the root so it always sits above the navigator.
  */
-export function StoryViewer({ person, open, onClose }: Props) {
+export function StoryViewer({ item, person, isMe, open, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
-  const liked = useStoryLiked(person.id);
+  const liked = useStoryLiked(item.id);
   const { width, height } = useWindowDimensions();
 
   const ty = useSharedValue(0);
@@ -106,7 +126,10 @@ export function StoryViewer({ person, open, onClose }: Props) {
   const progress = useSharedValue(0);
   const armed = useSharedValue(false); // gestures only count once the card has fully arrived
 
-  const markSeen = useCallback(() => markStorySeen(person.id), [person.id]);
+  const markSeen = useCallback(
+    () => markStorySeen(item.id),
+    [item.id],
+  );
 
   const leave = useCallback(() => {
     "worklet";
@@ -170,7 +193,7 @@ export function StoryViewer({ person, open, onClose }: Props) {
     return () => {
       cancelAnimation(progress);
     };
-  }, [open, person, armed, enter, leave, progress, ty]);
+  }, [open, item, armed, enter, leave, progress, ty]);
 
   const tap = Gesture.Tap().onEnd((_e, success) => {
     if (success) leave();
@@ -203,24 +226,27 @@ export function StoryViewer({ person, open, onClose }: Props) {
     width: progress.get() * (width - 2 * Space[4]),
   }));
 
-  const isMe = person.id === "me";
   const name = isMe ? "Your story" : person.first;
-  // Your posted stories live in the fable store (newest first); the viewer
-  // shows the latest. Everyone else keeps their bundled story art.
-  const myStories = useFable((state) => state.myStories);
-  const myLatest = isMe && myStories.length > 0 ? myStories[0] : null;
-  const storyUri = myLatest
-    ? myLatest.uri
-    : RNImage.resolveAssetSource(person.story).uri;
-  const ago = myLatest ? agoString(myLatest.at) : person.storyAgo;
+  const storyUri = item.mediaUrl;
+  const ago = item.ago;
 
   const deleteMyStory = useCallback(() => {
-    const stories = useFable.getState().myStories;
-    if (stories.length === 0) return;
-    useFable.getState().removeStory(stories[0].uri);
-    // Nothing left to show — leave the viewer with the usual animation.
-    if (stories.length === 1) leave();
-  }, [leave]);
+    void deleteStoryDb(item.id)
+      .then(() => useFable.getState().refreshStories())
+      .catch(() => {});
+    // Leave the viewer with the usual animation.
+    leave();
+  }, [item.id, leave]);
+
+  const replyToStory = useCallback(() => {
+    leave();
+    void getOrCreateDirectChat(person.id).then((chatId) => {
+      router.push({
+        pathname: "/fable/chat/[id]",
+        params: { id: chatId },
+      });
+    });
+  }, [leave, person.id]);
 
   return (
     <View collapsable={false} style={StyleSheet.absoluteFill}>
@@ -265,7 +291,7 @@ export function StoryViewer({ person, open, onClose }: Props) {
           <Animated.View style={[styles.fill, bar]} />
         </View>
         <View style={styles.header}>
-          <Orb source={person.avatar} size={36} shadow={false} />
+          <Avatar source={avatarSource(person)} size={36} />
           <Text
             numberOfLines={1}
             style={[Type.name, styles.name, { flexShrink: 1 }]}
@@ -310,13 +336,7 @@ export function StoryViewer({ person, open, onClose }: Props) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Reply to ${name}`}
-              onPress={() => {
-                leave();
-                router.push({
-                  pathname: "/fable/chat/[id]",
-                  params: { id: person.id },
-                });
-              }}
+              onPress={replyToStory}
               style={{ flex: 1 }}
             >
               <Glass effect="clear" style={styles.reply}>
@@ -331,7 +351,7 @@ export function StoryViewer({ person, open, onClose }: Props) {
               size={48}
               tint="#FFFFFF"
               accessibilityLabel={liked ? "Unlike story" : "Like story"}
-              onPress={() => toggleStoryLike(person.id)}
+              onPress={() => toggleStoryLike(item.id)}
             />
           </View>
         )}

@@ -6,6 +6,7 @@ import { GlassButton } from "../ui/glass-button";
 import { ChatMenu } from "./chat-menu";
 import { Space, Type } from "../../constants/theme";
 import type { Person } from "../../data/people";
+import { avatarSource } from "../../data/people";
 import { useTheme } from "../../hooks/use-theme";
 
 export const THREAD_NAV_H = 64;
@@ -49,7 +50,7 @@ export function ThreadHeader({
         }
         style={styles.center}
       >
-        <Avatar source={person.avatar} size={44} />
+        <Avatar source={avatarSource(person)} size={44} />
         <Text
           numberOfLines={1}
           style={[Type.caption, { color: theme.secondary, marginTop: 4 }]}

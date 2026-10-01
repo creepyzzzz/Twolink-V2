@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
 import { AndroidGlassToggle } from "expo-android-glass-view";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -18,15 +18,24 @@ import { SharedLinks } from "../components/ui/shared-links";
 import { SharedDocuments } from "../components/ui/shared-documents";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Accent, Radius, Space, Type } from "../constants/theme";
-import { messagesFor } from "../data/messages";
-import { PEOPLE_BY_ID } from "../data/people";
+import type { Message } from "../data/messages";
+import { avatarSource } from "../data/people";
 import { useFable } from "../data/store";
 import { useTheme } from "../hooks/use-theme";
-import { NotFound } from "../../NotFound";
+import { NotFound, LoadingRoute } from "../../NotFound";
 
 export default function ContactProfileRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  return PEOPLE_BY_ID[id] ? <ProfileScreen id={id} /> : <NotFound home="/fable" />;
+  const person = useFable((state) => state.people[id]);
+  const bootstrapped = useFable((state) => state.bootstrapped);
+  useEffect(() => {
+    if (!bootstrapped) void useFable.getState().bootstrap();
+  }, [bootstrapped]);
+  if (!person) {
+    if (!bootstrapped) return <LoadingRoute />;
+    return <NotFound home="/fable" />;
+  }
+  return <ProfileScreen id={id} />;
 }
 
 /**
@@ -34,23 +43,43 @@ export default function ContactProfileRoute() {
  * a real mute toggle and the thread's shared photos.
  */
 function ProfileScreen({ id }: { id: string }) {
-  const person = PEOPLE_BY_ID[id];
+  const person = useFable((state) => state.people[id]);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
-  const muted = useFable((state) => !!state.muted[id]);
+  // Live threads/mute are keyed by chat id; resolve this person's direct chat.
+  const directChat = useFable((state) =>
+    state.chats.find((c) => c.type === "direct" && c.otherUserId === id),
+  );
+  const chatId = directChat?.id ?? "";
+  const muted = useFable((state) => !!state.muted[chatId]);
   const toggleMute = useFable((state) => state.toggleMute);
-  const stored = useFable((state) => state.threads[id]);
-  const messages = stored ?? messagesFor(id, person.first);
-  const photos = useMemo(() => messages.filter((m) => m.photo), [messages]);
+  const stored = useFable((state) => state.threads[chatId]);
+  const stories = useFable((state) => state.stories);
+  const messages = useMemo(() => stored ?? [], [stored]);
+  const photos = useMemo(
+    () =>
+      messages.filter(
+        (m): m is Message & { photoUri: string } => !!m.photo && !!m.photoUri,
+      ),
+    [messages],
+  );
+  const latestStory = stories.find((s) => s.userId === id);
 
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+
+  if (!person) return null;
 
   const gap = 3;
   const cell = (width - Space[4] * 2 - gap * 2) / 3;
   const viewerPhoto =
     viewerIndex != null ? photos[viewerIndex] : undefined;
+  const storyCaption = latestStory
+    ? latestStory.ago === "Yesterday"
+      ? "Story yesterday"
+      : `Story ${latestStory.ago} ago`
+    : "No recent story";
 
   return (
     <Sheet detent={0.75}>
@@ -64,12 +93,12 @@ function ProfileScreen({ id }: { id: string }) {
         <View
           style={[styles.identityCard, { backgroundColor: theme.surface }]}
         >
-          <Avatar source={person.avatar} size={96} />
+          <Avatar source={avatarSource(person)} size={96} />
           <Text style={[styles.name, { color: theme.label }]}>
             {person.name}
           </Text>
           <Text style={[Type.caption, { color: theme.secondary, marginTop: 4 }]}>
-            {person.storyState === "none" ? "No recent story" : `Story ${person.storyAgo} ago`}
+            {storyCaption}
           </Text>
         </View>
 
@@ -79,7 +108,9 @@ function ProfileScreen({ id }: { id: string }) {
             <AndroidGlassToggle
               accessibilityLabel={`Mute ${person.first}`}
               value={muted}
-              onValueChange={() => toggleMute(id)}
+              onValueChange={() => {
+                void toggleMute(chatId);
+              }}
               accentColor={Accent}
             />
           </View>
@@ -101,7 +132,7 @@ function ProfileScreen({ id }: { id: string }) {
                 style={{ width: cell, height: cell }}
               >
                 <Image
-                  source={m.photoUri ? { uri: m.photoUri } : person.story}
+                  source={{ uri: m.photoUri }}
                   style={styles.thumb}
                   contentFit="cover"
                 />
@@ -120,9 +151,7 @@ function ProfileScreen({ id }: { id: string }) {
 
       {viewerPhoto && (
         <PhotoViewer
-          source={
-            viewerPhoto.photoUri ? { uri: viewerPhoto.photoUri } : person.story
-          }
+          source={{ uri: viewerPhoto.photoUri }}
           onClose={() => setViewerIndex(null)}
         />
       )}

@@ -82,7 +82,6 @@ const DRAG_MAX = 76;
 
 export const Bubble = memo(function Bubble({
   message,
-  person,
   first,
   last,
   animate,
@@ -213,11 +212,8 @@ export const Bubble = memo(function Bubble({
     </View>
   );
 
-  // A device photo when one was picked, otherwise the person's story art
-  // (the seed content for the mock thread).
-  const photoSource = message.photoUri
-    ? { uri: message.photoUri }
-    : person?.story;
+  // Photo messages carry their media URL from the backend.
+  const photoSource = message.photoUri ? { uri: message.photoUri } : undefined;
 
   // "Delete for everyone" leaves a centered italic tombstone — no bubble,
   // no gestures, no actions. Rendered at the call site so Bubble keeps its

@@ -10,7 +10,7 @@ import {
 import { SFIcon } from "../../../../ui/SFIcon";
 import { Avatar } from "../ui/avatar";
 import { Accent, Space, Type } from "../../constants/theme";
-import { PEOPLE_BY_ID } from "../../data/people";
+import { avatarSource } from "../../data/people";
 import { useFable, groupDisplayName, type Group } from "../../data/store";
 import { unreadCount } from "../../data/unread";
 import { scheduledLabel } from "../../data/scheduled";
@@ -27,6 +27,7 @@ export function GroupAvatar({
   size: number;
 }) {
   const theme = useTheme();
+  const people = useFable((s) => s.people);
   const shown = memberIds.slice(0, 3);
   if (shown.length === 0)
     return (
@@ -57,7 +58,7 @@ export function GroupAvatar({
   return (
     <View style={{ width: size, height: size }}>
       {shown.map((id, index) => {
-        const person = PEOPLE_BY_ID[id];
+        const person = people[id];
         if (!person) return null;
         return (
           <View
@@ -68,7 +69,7 @@ export function GroupAvatar({
               top: spots[index].top,
             }}
           >
-            <Avatar source={person.avatar} size={orb} />
+            <Avatar source={avatarSource(person)} size={orb} />
           </View>
         );
       })}
@@ -85,10 +86,13 @@ export const GroupRow = memo(function GroupRow({
   onLongPressRow: (id: string) => void;
 }) {
   const theme = useTheme();
+  const people = useFable((s) => s.people);
+  const myId = useFable((s) => s.myId);
   const stored = useFable((state) => state.threads[group.id]);
   const lastReadId = useFable((state) => state.lastRead[group.id]);
   const messages = stored ?? [];
   const last = messages.at(-1);
+  const name = groupDisplayName(group, people, myId);
   const muted = useFable((state) => !!state.muted[group.id]);
   const pinned = useFable((state) => state.pinned.includes(group.id));
   const n = unreadCount(messages, lastReadId);
@@ -102,7 +106,7 @@ export const GroupRow = memo(function GroupRow({
   );
   const senderName =
     last && last.from !== "me" && last.senderId
-      ? (PEOPLE_BY_ID[last.senderId]?.first ?? "")
+      ? (people[last.senderId]?.first ?? "")
       : "";
   const preview = last
     ? last.deletedForEveryone
@@ -119,7 +123,7 @@ export const GroupRow = memo(function GroupRow({
       <Pressable
           testID={`fable-group-${group.id}`}
           accessibilityRole="button"
-          accessibilityLabel={`${groupDisplayName(group)}${unread ? ", unread" : ""}${muted ? ", muted" : ""}${pinned ? ", pinned" : ""}. ${preview}`}
+          accessibilityLabel={`${name}${unread ? ", unread" : ""}${muted ? ", muted" : ""}${pinned ? ", pinned" : ""}. ${preview}`}
           onPress={() =>
             router.push({
               pathname: "/fable/chat/[id]",
@@ -136,7 +140,7 @@ export const GroupRow = memo(function GroupRow({
           <GroupAvatar memberIds={group.memberIds} size={ROW_AVATAR} />
           <View style={styles.body}>
             <Text numberOfLines={1} style={[Type.name, { color: theme.label }]}>
-              {groupDisplayName(group)}
+              {name}
             </Text>
             <Text
               numberOfLines={1}

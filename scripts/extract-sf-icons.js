@@ -1,4 +1,5 @@
 // Extracts SF Symbols path data from @bradleyhodges/sfsymbols into a TS module.
+/* global __dirname */
 const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");

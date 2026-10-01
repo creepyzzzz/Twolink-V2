@@ -32,15 +32,14 @@ import {
   NAV_H,
   STORIES_H,
   StoriesHeader,
+  type RailStory,
 } from "../components/chats/stories-header";
 import { EASE_OUT } from "../constants/motion";
 import { Accent, Space } from "../constants/theme";
-import { CHATS } from "../data/chats";
-import { messagesFor } from "../data/messages";
-import { PEOPLE_BY_ID, STORIES, type Person } from "../data/people";
+import { AVATAR_FACES } from "../data/people";
 import { unreadCount } from "../data/unread";
 import { openStory, pickAndPostStory } from "../data/story-state";
-import { useFable, groupDisplayName } from "../data/store";
+import { useFable } from "../data/store";
 import { useTheme } from "../hooks/use-theme";
 import { SFIcon } from "../../../ui/SFIcon";
 
@@ -177,21 +176,15 @@ export default function ChatsScreen() {
     );
   }, [listRef, lockedSV]);
 
-  const onPressStory = useCallback(
-    (person: Person) => {
-      // Your cell: with no posted stories the + tile goes straight to the
-      // library; once you've posted, it opens the viewer like everyone else.
-      if (
-        person.id === "me" &&
-        useFable.getState().myStories.length === 0
-      ) {
-        pickAndPostStory();
-        return;
-      }
-      openStory(person);
-    },
-    [],
-  );
+  const onPressStory = useCallback((item: RailStory) => {
+    // Your cell: with no posted stories the + tile goes straight to the
+    // library; once you've posted, it opens the viewer like everyone else.
+    if (item.isMe && !item.hasStory) {
+      void pickAndPostStory();
+      return;
+    }
+    openStory(item.userId);
+  }, []);
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"All" | "Unread" | "Groups">("All");
@@ -222,7 +215,7 @@ export default function ChatsScreen() {
           {
             text: "Delete",
             style: "destructive",
-            onPress: () => deleteThread(id),
+            onPress: () => void deleteThread(id),
           },
         ],
       });
@@ -231,74 +224,68 @@ export default function ChatsScreen() {
   );
   const threads = useFable((state) => state.threads);
   const lastRead = useFable((state) => state.lastRead);
-  /** Derived unread count for a person thread (mock seed + live messages). */
-  const unreadFor = useCallback(
-    (id: string, personId: string) => {
-      const person = PEOPLE_BY_ID[personId];
-      const messages =
-        threads[id] ?? (person ? messagesFor(id, person.first) : []);
-      return unreadCount(messages, lastRead[id]);
-    },
-    [threads, lastRead],
-  );
+  const chats = useFable((state) => state.chats);
+  const people = useFable((state) => state.people);
+  const myId = useFable((state) => state.myId);
+  const profile = useFable((state) => state.profile);
+  const stories = useFable((state) => state.stories);
   const groupsRecord = useFable((state) => state.groups);
-  const groups = useMemo(
-    () =>
-      Object.values(groupsRecord).sort((a, b) => b.createdAt - a.createdAt),
-    [groupsRecord],
-  );
-  const pinned = useFable((state) => state.pinned);
-  /** Pinned threads float to the top in pin order; everything else keeps its place. */
-  const pinSort = useMemo(() => {
-    const order = new Map(pinned.map((id, i) => [id, i]));
-    return <T extends { id: string }>(list: T[]) =>
-      [...list].sort((a, b) => {
-        const pa = order.has(a.id) ? order.get(a.id)! : Infinity;
-        const pb = order.has(b.id) ? order.get(b.id)! : Infinity;
-        return pa - pb;
+
+  /** Stories rail cells: you first, then one cell per person with a live story. */
+  const railStories = useMemo<RailStory[]>(() => {
+    const items: RailStory[] = [
+      {
+        userId: myId ?? "me",
+        first: "You",
+        isMe: true,
+        avatar: AVATAR_FACES[profile.face],
+        photoUrl: profile.photoUri ?? null,
+        state: "none",
+        hasStory:
+          myId != null && stories.some((s) => s.userId === myId),
+      },
+    ];
+    const seen = new Set<string>();
+    for (const s of stories) {
+      if (s.userId === myId || seen.has(s.userId)) continue;
+      seen.add(s.userId);
+      const person = people[s.userId];
+      if (!person) continue;
+      items.push({
+        userId: s.userId,
+        first: person.first,
+        isMe: false,
+        avatar: person.avatar,
+        photoUrl: person.photoUrl ?? null,
+        state: s.viewed ? "seen" : "unread",
+        hasStory: true,
       });
-  }, [pinned]);
-  const filteredGroups = useMemo(() => {
-    if (filter !== "Groups") return [];
-    const q = query.trim().toLowerCase();
-    return pinSort(
-      groups.filter(
-        (group) =>
-          !deleted.includes(group.id) &&
-          (!q || groupDisplayName(group).toLowerCase().includes(q)),
-      ),
-    );
-  }, [groups, query, filter, pinSort, deleted]);
+    }
+    return items;
+  }, [stories, people, profile, myId]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return pinSort(
-      CHATS.filter((chat) => {
-        if (deleted.includes(chat.id)) return false;
-        if (filter === "Groups") return false;
-        if (filter === "Unread" && unreadFor(chat.id, chat.personId) === 0)
-          return false;
-        const person = PEOPLE_BY_ID[chat.personId];
-        const name = person ? person.name.toLowerCase() : "";
-        return (
-          name.includes(q) || chat.preview.toLowerCase().includes(q)
-        );
-      }),
-    );
-  }, [query, filter, unreadFor, pinSort, deleted]);
+    return chats.filter((chat) => {
+      if (deleted.includes(chat.id)) return false;
+      if (filter === "Groups" && chat.type !== "group") return false;
+      if (filter === "Unread" && chat.unread === 0) return false;
+      if (!q) return true;
+      return (
+        chat.name.toLowerCase().includes(q) ||
+        chat.preview.toLowerCase().includes(q)
+      );
+    });
+  }, [chats, query, filter, deleted]);
 
   // The long-press menu mirrors the chat ••• menu: vertical icon + label
   // rows on the same native glass surface, with the same opening animation.
+  const pinned = useFable((state) => state.pinned);
   const menuPinned = menuId != null && pinned.includes(menuId);
   const menuMuted = menuId != null && !!muted[menuId];
   const menuMarkedRead =
     menuId != null &&
-    unreadCount(
-      threads[menuId] ??
-        (PEOPLE_BY_ID[menuId]
-          ? messagesFor(menuId, PEOPLE_BY_ID[menuId].first)
-          : []),
-      lastRead[menuId],
-    ) === 0;
+    unreadCount(threads[menuId] ?? [], lastRead[menuId]) === 0;
   const menuItems =
     menuId == null
       ? []
@@ -349,17 +336,12 @@ export default function ChatsScreen() {
         ];
   const onMenuSelect = (actionId: string) => {
     if (menuId == null) return;
-    if (actionId === "pin") togglePin(menuId);
-    else if (actionId === "mute") toggleMute(menuId);
-    else if (actionId === "read") toggleRead(menuId);
+    if (actionId === "pin") void togglePin(menuId);
+    else if (actionId === "mute") void toggleMute(menuId);
+    else if (actionId === "read") void toggleRead(menuId);
     else if (actionId === "delete") {
-      const group = groups.find((g) => g.id === menuId);
-      const chat = group ? undefined : CHATS.find((c) => c.id === menuId);
-      const person = chat ? PEOPLE_BY_ID[chat.personId] : undefined;
-      onDeletePress(
-        menuId,
-        group?.name ?? person?.first ?? person?.name ?? "this chat",
-      );
+      const chat = chats.find((c) => c.id === menuId);
+      onDeletePress(menuId, chat?.name ?? "this chat");
     }
   };
 
@@ -484,28 +466,10 @@ export default function ChatsScreen() {
             );
           })}
         </View>
-        {filteredGroups.map((group, i) => (
-          <Animated.View
-            key={group.id}
-            entering={FadeInDown.delay(Math.min(i, 8) * 34)
-              .duration(300)
-              .easing(EASE_OUT.factory())}
-          >
-            <View
-              ref={(v) => {
-                if (v) rowViews.current.set(group.id, v);
-                else rowViews.current.delete(group.id);
-              }}
-              collapsable={false}
-            >
-              <GroupRow group={group} onLongPressRow={openMenu} />
-            </View>
-          </Animated.View>
-        ))}
         {filtered.map((chat, i) => (
           <Animated.View
             key={chat.id}
-            entering={FadeInDown.delay(Math.min(i + filteredGroups.length, 8) * 34)
+            entering={FadeInDown.delay(Math.min(i, 8) * 34)
               .duration(300)
               .easing(EASE_OUT.factory())}
           >
@@ -516,11 +480,18 @@ export default function ChatsScreen() {
               }}
               collapsable={false}
             >
-              <ChatRow chat={chat} onLongPressRow={openMenu} />
+              {chat.type === "group" && groupsRecord[chat.id] ? (
+                <GroupRow
+                  group={groupsRecord[chat.id]}
+                  onLongPressRow={openMenu}
+                />
+              ) : (
+                <ChatRow chat={chat} onLongPressRow={openMenu} />
+              )}
             </View>
           </Animated.View>
         ))}
-        {filtered.length + filteredGroups.length === 0 ? (
+        {filtered.length === 0 ? (
           <Text style={[styles.empty, { color: theme.secondary }]}>
             {query.trim()
               ? `No chats match “${query.trim()}”.`
@@ -536,7 +507,7 @@ export default function ChatsScreen() {
       <StoriesHeader
         progress={progress}
         stretch={stretch}
-        stories={STORIES}
+        stories={railStories}
         width={width}
         insetTop={insets.top}
         isOpen={isOpen}

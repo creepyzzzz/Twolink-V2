@@ -1,4 +1,5 @@
 // Builds the tick + icon preview HTML. Run: node scripts/build-tick-preview.js
+/* global __dirname */
 const fs = require("fs");
 const path = require("path");
 

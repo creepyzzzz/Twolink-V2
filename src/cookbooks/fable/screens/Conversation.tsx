@@ -38,14 +38,12 @@ import {
 import { SearchBar } from "../components/thread/search-bar";
 import { THREAD_NAV_H, ThreadHeader } from "../components/thread/thread-header";
 import { GroupHeader } from "../components/thread/group-header";
-import { TypingBubble } from "../components/thread/typing";
 import { MenuCard } from "../components/ui/menu-card";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Avatar } from "../components/ui/avatar";
 import { SFIcon } from "../../../ui/SFIcon";
 import { Radius, Space, Type } from "../constants/theme";
-import { REPLIES, messagesFor, olderMessagesFor, type Message } from "../data/messages";
-import { mentionedIds } from "../data/mentions";
+import { type Message } from "../data/messages";
 import { copyText } from "../lib/clipboard";
 import {
   scheduledLabel,
@@ -54,34 +52,49 @@ import {
 import { ScheduledBubble } from "../components/thread/scheduled-bubble";
 import { firstUnreadId } from "../data/unread";
 import { atToDate, formatGapLabel, GAP_MS } from "../data/message-time";
-import { PEOPLE, PEOPLE_BY_ID, type Person } from "../data/people";
+import { avatarSource } from "../data/people";
 import { useTheme } from "../hooks/use-theme";
 
 import { useFable, getGroup, normalizeWallpaper } from "../data/store";
-import { NotFound } from "../../NotFound";
+import { NotFound, LoadingRoute } from "../../NotFound";
 
 export default function ConversationRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const chat = useFable((state) => state.chats.find((c) => c.id === id));
   const groups = useFable((state) => state.groups);
-  return PEOPLE_BY_ID[id] || getGroup(groups, id) ? (
-    <ThreadScreen key={id} id={id} />
-  ) : (
-    <NotFound home="/fable" />
-  );
+  const bootstrapped = useFable((state) => state.bootstrapped);
+  useEffect(() => {
+    // Deep link on a cold start: make sure the chat list is loading.
+    // bootstrap() is idempotent.
+    if (!bootstrapped) void useFable.getState().bootstrap();
+  }, [bootstrapped]);
+  if (!chat && !getGroup(groups, id)) {
+    // The chat list hasn't arrived yet — wait for it instead of flashing
+    // "not found" for a valid deep link.
+    if (!bootstrapped) return <LoadingRoute />;
+    return <NotFound home="/fable" />;
+  }
+  return <ThreadScreen key={id} id={id} />;
 }
 
 function ThreadScreen({ id }: { id: string }) {
-  const person = PEOPLE_BY_ID[id];
+  const chat = useFable((state) => state.chats.find((c) => c.id === id));
+  const chats = useFable((state) => state.chats);
+  const people = useFable((state) => state.people);
+  const person =
+    chat?.type === "direct" && chat.otherUserId
+      ? people[chat.otherUserId]
+      : undefined;
   const groups = useFable((state) => state.groups);
   const group = getGroup(groups, id);
   const mentionNames = useMemo(
     () =>
       group
         ? group.memberIds
-            .map((m) => PEOPLE_BY_ID[m]?.first)
+            .map((m) => people[m]?.first)
             .filter((f): f is string => !!f)
         : [],
-    [group],
+    [group, people],
   );
   const selfFirst = useFable((st) => st.profile.name.split(" ")[0] ?? "");
   const theme = useTheme();
@@ -90,33 +103,42 @@ function ThreadScreen({ id }: { id: string }) {
   const stored = useFable((state) => state.threads[id]);
   const wallpaperRaw = useFable((state) => state.wallpapers[id]);
   const wallpaper = normalizeWallpaper(wallpaperRaw);
-  const initial = useMemo(
-    () => (person ? messagesFor(person.id, person.first) : []),
-    [person],
+  const threadLoaded = useFable((state) => state.threadsLoaded[id] ?? false);
+  const historyExhausted = useFable(
+    (state) => state.historyExhausted[id] ?? false,
   );
-  const messages = stored ?? initial;
+  const messages = useMemo(() => stored ?? [], [stored]);
   // Capture the first unread message before markRead clears it, so opening
   // a thread with unread messages lands there instead of at the bottom.
-  const [jumpToUnreadId] = useState(() => {
-    const s = useFable.getState();
-    const msgs =
-      s.threads[id] ?? (person ? messagesFor(person.id, person.first) : []);
-    return firstUnreadId(msgs, s.lastRead[id]);
-  });
+  // On a deep link the thread may not be loaded at mount — the effect below
+  // re-captures after ensureThread resolves, still before markRead runs.
+  const [jumpToUnreadId, setJumpToUnreadId] = useState<string | undefined>(
+    () => {
+      const s = useFable.getState();
+      return firstUnreadId(s.threads[id] ?? [], s.lastRead[id]);
+    },
+  );
   useEffect(() => {
     const s = useFable.getState();
     s.setOpenThread(id);
     s.sweepExpired();
-    s.markRead(id);
+    // Load the live thread, capture the unread target, then mark it read
+    // once messages are in.
+    void s.ensureThread(id).then(() => {
+      const st = useFable.getState();
+      setJumpToUnreadId(
+        (prev) => prev ?? firstUnreadId(st.threads[id] ?? [], st.lastRead[id]),
+      );
+      st.markRead(id);
+    });
     return () => {
       if (useFable.getState().openThreadId === id)
         useFable.getState().setOpenThread(null);
     };
   }, [id]);
-  const [typing, setTyping] = useState(false);
-  /** Group threads: which member is "typing" / replying. */
-  const [typingPerson, setTypingPerson] = useState<Person | null>(null);
-  const [mountedCount] = useState(messages.length);
+  // Scroll-up pagination: older history from the server until exhausted.
+  const hasEarlier = threadLoaded && !historyExhausted;
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
   // Long-press reaction target: { message, bubble window rect }.
   const [reaction, setReaction] = useState<{
     message: Message;
@@ -141,18 +163,14 @@ function ThreadScreen({ id }: { id: string }) {
   >(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const positioned = useRef(false);
+  // Messages newer than this screen's mount animate in; history (including
+  // paginated older pages) appears instantly.
+  const [mountedAt] = useState(() => Date.now());
   const initialFrame = useRef<number | null>(null);
   const listRef = useAnimatedRef<Animated.ScrollView>();
   const [composerHeight, setComposerHeight] = useState(0);
   // Row top offsets (content coordinates) for scrolling to search matches.
   const rowTops = useRef(new Map<string, number>());
-  // Scroll-up pagination: how many older-history pages are already in.
-  const historyPage = useFable((state) => state.historyPage[id] ?? 0);
-  // Groups have no paginated mock history — the thread starts at creation.
-  const hasEarlier = person
-    ? olderMessagesFor(id, person.first, historyPage).length > 0
-    : false;
-  const [loadingEarlier, setLoadingEarlier] = useState(false);
   // Geometry bookkeeping so prepending history doesn't move the viewport.
   const contentHeight = useRef(0);
   const scrollY = useRef(0);
@@ -185,11 +203,10 @@ function ThreadScreen({ id }: { id: string }) {
     if (loadingEarlier) return;
     setLoadingEarlier(true);
     prependAdjust.current = contentHeight.current;
-    const t = setTimeout(() => {
-      useFable.getState().loadEarlier(id);
-      setLoadingEarlier(false);
-    }, 700);
-    timers.current.push(t);
+    void useFable
+      .getState()
+      .loadEarlier(id)
+      .finally(() => setLoadingEarlier(false));
   }, [id, loadingEarlier]);
 
   const handleScroll = useCallback(
@@ -252,7 +269,9 @@ function ThreadScreen({ id }: { id: string }) {
   const onPickReaction = useCallback(
     (emoji: string) => {
       if (reaction)
-        useFable.getState().toggleReaction(id, reaction.message.id, emoji);
+        void useFable
+          .getState()
+          .toggleReaction(id, reaction.message.id, emoji);
       setReaction(null);
     },
     [id, reaction],
@@ -324,7 +343,7 @@ function ThreadScreen({ id }: { id: string }) {
           {
             text: "Delete for me",
             style: "destructive",
-            onPress: () => store.deleteMessage(id, message.id, "me"),
+            onPress: () => void store.deleteMessage(id, message.id, "me"),
           },
         ],
       });
@@ -337,27 +356,23 @@ function ThreadScreen({ id }: { id: string }) {
         {
           text: "Delete for me",
           style: "default",
-          onPress: () => store.deleteMessage(id, message.id, "me"),
+          onPress: () => void store.deleteMessage(id, message.id, "me"),
         },
         {
           text: "Delete for everyone",
           style: "destructive",
-          onPress: () => store.deleteMessage(id, message.id, "everyone"),
+          onPress: () => void store.deleteMessage(id, message.id, "everyone"),
         },
       ],
     });
   }, [id, reaction]);
 
   const onPickForwardTarget = useCallback(
-    (personId: string) => {
+    (targetChatId: string) => {
       const message = forwarding;
       setForwarding(null);
-      if (!message || personId === id) return;
-      useFable
-        .getState()
-        .append(personId, message.text, "me", message.photo, {
-          photoUri: message.photoUri,
-        });
+      if (!message || targetChatId === id) return;
+      void useFable.getState().forwardMessage(targetChatId, message);
     },
     [forwarding, id],
   );
@@ -372,59 +387,18 @@ function ThreadScreen({ id }: { id: string }) {
             photo: replyTo.photo,
           }
         : undefined;
-      useFable.getState().append(id, text, "me", false, { replyTo: quote });
+      void useFable
+        .getState()
+        .append(id, text, "me", false, { replyTo: quote });
       setReplyTo(null);
       scrollToEnd();
-      // Group threads: a rotating member "replies", so their name and face
-      // show on the typing bubble and the reply.
-      const members = getGroup(useFable.getState().groups, id)?.memberIds;
-      const memberObjs = (members ?? [])
-        .map((m) => PEOPLE_BY_ID[m])
-        .filter((m): m is Person => !!m);
-      const mentioned = mentionedIds(
-        text,
-        memberObjs.map((m) => ({ id: m.id, first: m.first })),
-      );
-      // An @-mentioned member is "notified": they answer instead of the
-      // rotation.
-      const replier =
-        mentioned.length > 0
-          ? mentioned[0]
-          : members?.length
-            ? members[
-                (useFable.getState().threads[id]?.length ?? 0) %
-                  members.length
-              ]
-            : undefined;
-      const t1 = setTimeout(() => {
-        setTyping(true);
-        setTypingPerson(replier ? (PEOPLE_BY_ID[replier] ?? null) : person);
-        scrollToEnd();
-      }, 600);
-      const t2 = setTimeout(() => {
-        setTyping(false);
-        setTypingPerson(null);
-        const reply =
-          REPLIES[
-            (useFable.getState().threads[id]?.length ?? 0) % REPLIES.length
-          ];
-        useFable.getState().append(
-          id,
-          reply,
-          "them",
-          false,
-          replier ? { senderId: replier } : undefined,
-        );
-        scrollToEnd();
-      }, 1800);
-      timers.current.push(t1, t2);
     },
-    [scrollToEnd, id, replyTo, person],
+    [scrollToEnd, id, replyTo],
   );
 
   const onSaveEdit = useCallback(
     (messageId: string, text: string) => {
-      useFable.getState().editMessage(id, messageId, text);
+      void useFable.getState().editMessage(id, messageId, text);
       setEditing(null);
     },
     [id],
@@ -494,7 +468,7 @@ function ThreadScreen({ id }: { id: string }) {
           photo: replyTo.photo,
         }
       : undefined;
-    useFable
+    void useFable
       .getState()
       .append(id, "", "me", true, {
         photoUri: res.assets[0].uri,
@@ -547,7 +521,7 @@ function ThreadScreen({ id }: { id: string }) {
           photo: replyTo.photo,
         }
       : undefined;
-    useFable.getState().append(id, asset.name ?? "File", "me", false, {
+    void useFable.getState().append(id, asset.name ?? "File", "me", false, {
       document: {
         name: asset.name ?? "File",
         size: asset.size ?? 0,
@@ -560,28 +534,22 @@ function ThreadScreen({ id }: { id: string }) {
     scrollToEnd();
   }, [id, replyTo, scrollToEnd]);
 
-  const onOpenPhoto = useCallback(
-    (message: Message) => {
-      const src = message.photoUri
-        ? { uri: message.photoUri }
-        : person?.story;
-      if (src) setViewerSource(src);
-    },
-    [person],
-  );
+  const onOpenPhoto = useCallback((message: Message) => {
+    if (message.photoUri) setViewerSource({ uri: message.photoUri });
+  }, []);
 
   /** Display name for an incoming message — the sender in groups. */
   const senderName = useCallback(
     (m: Message) =>
-      group && m.senderId ? (PEOPLE_BY_ID[m.senderId]?.first ?? "") : "",
-    [group],
+      group && m.senderId ? (people[m.senderId]?.first ?? "") : "",
+    [group, people],
   );
 
   /** Avatar art for an incoming group message — shown left of the bubble. */
   const senderAvatar = useCallback(
     (m: Message) =>
-      group && m.senderId ? PEOPLE_BY_ID[m.senderId]?.avatar : undefined,
-    [group],
+      group && m.senderId ? people[m.senderId]?.avatar : undefined,
+    [group, people],
   );
 
   const replyPreview: ReplyPreview | null = replyTo
@@ -660,38 +628,36 @@ function ThreadScreen({ id }: { id: string }) {
     return at.includes(" ") ? at.split(" ")[0] : "Today";
   }, []);
 
-  const rows = useMemo(
-    () =>
-      messages.map((msg, i) => {
-        const prev = messages[i - 1];
-        const next = messages[i + 1];
-        // A run breaks when the side or (in groups) the sender changes —
-        // the avatar sits on the last message of each sender's run.
-        const runOf = (m?: Message) => (m ? `${m.from}:${m.senderId ?? ""}` : "");
-        const first = runOf(prev) !== runOf(msg);
-        const last = runOf(msg) !== runOf(next);
-        const label = dayOf(msg.at);
-        const dayBreak = !prev || dayOf(prev.at) !== label;
-        // iMessage shows a centered timestamp when a gap of an hour or
-        // more separates messages on the same day.
-        let gapLabel: string | null = null;
-        if (!dayBreak && prev) {
-          const a = atToDate(prev.at);
-          const b = atToDate(msg.at);
-          if (a && b && b.getTime() - a.getTime() >= GAP_MS)
-            gapLabel = formatGapLabel(b);
-        }
-        return {
-          msg,
-          first,
-          last,
-          label: dayBreak ? label : null,
-          gapLabel,
-          animate: i >= mountedCount,
-        };
-      }),
-    [messages, mountedCount, dayOf],
-  );
+  const rows = useMemo(() => {
+    return messages.map((msg, i) => {
+      const prev = messages[i - 1];
+      const next = messages[i + 1];
+      // A run breaks when the side or (in groups) the sender changes —
+      // the avatar sits on the last message of each sender's run.
+      const runOf = (m?: Message) => (m ? `${m.from}:${m.senderId ?? ""}` : "");
+      const first = runOf(prev) !== runOf(msg);
+      const last = runOf(msg) !== runOf(next);
+      const label = dayOf(msg.at);
+      const dayBreak = !prev || dayOf(prev.at) !== label;
+      // iMessage shows a centered timestamp when a gap of an hour or
+      // more separates messages on the same day.
+      let gapLabel: string | null = null;
+      if (!dayBreak && prev) {
+        const a = atToDate(prev.at);
+        const b = atToDate(msg.at);
+        if (a && b && b.getTime() - a.getTime() >= GAP_MS)
+          gapLabel = formatGapLabel(b);
+      }
+      return {
+        msg,
+        first,
+        last,
+        label: dayBreak ? label : null,
+        gapLabel,
+        animate: (msg.createdAtMs ?? 0) > mountedAt,
+      };
+    });
+  }, [messages, dayOf, mountedAt]);
 
   const panelTop = insets.top + THREAD_NAV_H + Space[1];
 
@@ -819,9 +785,6 @@ function ThreadScreen({ id }: { id: string }) {
               )}
             </View>
           ))}
-          {typing && (group ? typingPerson : person) && (
-            <TypingBubble person={(group ? typingPerson : person) as Person} />
-          )}
           {scheduled.map((item, i) => (
             <ScheduledBubble
               key={item.id}
@@ -829,8 +792,7 @@ function ThreadScreen({ id }: { id: string }) {
               // Same vertical rhythm as regular bubbles: a wide gap when the
               // sender changes, a tight one inside the sender's own run.
               first={
-                i === 0 &&
-                (typing || rows[rows.length - 1]?.msg.from !== "me")
+                i === 0 && rows[rows.length - 1]?.msg.from !== "me"
               }
               onCancel={() => cancelScheduled(item)}
             />
@@ -1043,20 +1005,31 @@ function ThreadScreen({ id }: { id: string }) {
             Forward to
           </Text>
           <SheetScrollView showsVerticalScrollIndicator={false}>
-            {PEOPLE.filter((person) => person.id !== id).map((person) => (
-              <Pressable
-                key={person.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Forward to ${person.name}`}
-                onPress={() => onPickForwardTarget(person.id)}
-                style={styles.forwardRow}
-              >
-                <Avatar source={person.avatar} size={48} />
-                <Text style={[styles.forwardName, { color: theme.label }]}>
-                  {person.name}
-                </Text>
-              </Pressable>
-            ))}
+            {chats
+              .filter(
+                (c) =>
+                  c.type === "direct" &&
+                  c.id !== id &&
+                  c.otherUserId != null &&
+                  people[c.otherUserId],
+              )
+              .map((target) => {
+                const targetPerson = people[target.otherUserId as string];
+                return (
+                  <Pressable
+                    key={target.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Forward to ${targetPerson.name}`}
+                    onPress={() => onPickForwardTarget(target.id)}
+                    style={styles.forwardRow}
+                  >
+                    <Avatar source={avatarSource(targetPerson)} size={48} />
+                    <Text style={[styles.forwardName, { color: theme.label }]}>
+                      {targetPerson.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
           </SheetScrollView>
         </Sheet>
       )}

@@ -1,23 +1,26 @@
+/**
+ * People directory — live profiles from Supabase, not mock data.
+ *
+ * `Person.avatar` stays a bundled Tapback face (the glass orb renders it
+ * exactly as before — zero UI change). Every user maps deterministically to
+ * a face from their user id, unless their `avatar_url` pins one
+ * ("face:<key>"). A real photo URL (`http…`) is exposed separately as
+ * `photoUrl` and renders as the same plain iOS circle MyAvatar uses.
+ */
+
 export type StoryState = "unread" | "seen" | "none";
 
 export type Person = {
+  /** Supabase auth user id (uuid). */
   id: string;
   name: string;
   first: string;
+  /** Bundled Tapback face asset for the glass orb. */
   avatar: number;
-  story: number;
-  storyState: StoryState;
-  storyAgo: string;
-};
-
-export const ME: Person = {
-  id: "me",
-  name: "You",
-  first: "My story",
-  avatar: require("../../../../assets/cookbooks/fable/avatars/me.webp"),
-  story: require("../../../../assets/cookbooks/fable/stories/me.jpg"),
-  storyState: "none",
-  storyAgo: "",
+  /** Remote photo URL, when the user set a real picture. */
+  photoUrl?: string | null;
+  username?: string | null;
+  about?: string | null;
 };
 
 /** Every bundled Tapback face, keyed so the user's pick can be persisted. */
@@ -40,134 +43,38 @@ export const AVATAR_FACES = {
 export type AvatarFace = keyof typeof AVATAR_FACES;
 export const AVATAR_FACE_IDS = Object.keys(AVATAR_FACES) as AvatarFace[];
 
-export const PEOPLE: Person[] = [
-  {
-    id: "mara",
-    name: "Mara Lindqvist",
-    first: "Mara",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/mara.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/mara.jpg"),
-    storyState: "unread",
-    storyAgo: "12m",
-  },
-  {
-    id: "theo",
-    name: "Theo Adeyemi",
-    first: "Theo",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/theo.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/theo.jpg"),
-    storyState: "unread",
-    storyAgo: "1h",
-  },
-  {
-    id: "elena",
-    name: "Elena Rossi",
-    first: "Elena",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/elena.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/elena.jpg"),
-    storyState: "unread",
-    storyAgo: "2h",
-  },
-  {
-    id: "jonas",
-    name: "Jonas Weber",
-    first: "Jonas",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/jonas.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/jonas.jpg"),
-    storyState: "seen",
-    storyAgo: "4h",
-  },
-  {
-    id: "sofia",
-    name: "Sofía Herrera",
-    first: "Sofía",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/sofia.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/sofia.jpg"),
-    storyState: "unread",
-    storyAgo: "5h",
-  },
-  {
-    id: "kenji",
-    name: "Kenji Mori",
-    first: "Kenji",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/kenji.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/kenji.jpg"),
-    storyState: "seen",
-    storyAgo: "8h",
-  },
-  {
-    id: "amara",
-    name: "Amara Okafor",
-    first: "Amara",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/amara.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/amara.jpg"),
-    storyState: "unread",
-    storyAgo: "9h",
-  },
-  {
-    id: "lucas",
-    name: "Lucas Moreau",
-    first: "Lucas",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/lucas.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/lucas.jpg"),
-    storyState: "seen",
-    storyAgo: "11h",
-  },
-  {
-    id: "zara",
-    name: "Zara Haddad",
-    first: "Zara",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/zara.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/zara.jpg"),
-    storyState: "unread",
-    storyAgo: "14h",
-  },
-  {
-    id: "elias",
-    name: "Elias Novak",
-    first: "Elias",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/elias.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/elias.jpg"),
-    storyState: "seen",
-    storyAgo: "18h",
-  },
-  {
-    id: "nia",
-    name: "Nia Bennett",
-    first: "Nia",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/nia.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/nia.jpg"),
-    storyState: "none",
-    storyAgo: "",
-  },
-  {
-    id: "rafael",
-    name: "Rafael Costa",
-    first: "Rafael",
-    avatar: require("../../../../assets/cookbooks/fable/avatars/rafael.webp"),
-    story: require("../../../../assets/cookbooks/fable/stories/rafael.jpg"),
-    storyState: "none",
-    storyAgo: "",
-  },
-];
+/** Deterministic bundled face for a user id — stable across devices. */
+export function faceForUserId(userId: string): number {
+  let h = 0;
+  for (let i = 0; i < userId.length; i++)
+    h = (Math.imul(h, 31) + userId.charCodeAt(i)) >>> 0;
+  return AVATAR_FACES[AVATAR_FACE_IDS[h % AVATAR_FACE_IDS.length]];
+}
 
-export const FABLE_TEAM: Person = {
-  id: "fable",
-  name: "Fable",
-  first: "Fable",
-  avatar: require("../../../../assets/cookbooks/fable/avatars/fable.webp"),
-  story: require("../../../../assets/cookbooks/fable/avatars/fable.webp"),
-  storyState: "none",
-  storyAgo: "",
-};
+/**
+ * `avatar_url` → bundled face. A "face:<key>" value pins the user's chosen
+ * Memoji everywhere; anything else falls back to the deterministic face.
+ */
+export function faceForAvatarUrl(
+  avatarUrl: string | null | undefined,
+  userId: string,
+): number {
+  if (avatarUrl?.startsWith("face:")) {
+    const key = avatarUrl.slice(5) as AvatarFace;
+    if (key in AVATAR_FACES) return AVATAR_FACES[key];
+  }
+  return faceForUserId(userId);
+}
 
-export const PEOPLE_BY_ID: Record<string, Person> = Object.create(null);
-for (const person of [ME, FABLE_TEAM, ...PEOPLE])
-  PEOPLE_BY_ID[person.id] = person;
+/** Real photo URL from `avatar_url`, or null when it's a face pin / empty. */
+export function photoForAvatarUrl(
+  avatarUrl: string | null | undefined,
+): string | null {
+  if (avatarUrl && avatarUrl.startsWith("http")) return avatarUrl;
+  return null;
+}
 
-/** Stories row order: me first, then people who have a story, unread before seen. */
-export const STORIES: Person[] = [
-  ME,
-  ...PEOPLE.filter((p) => p.storyState === "unread"),
-  ...PEOPLE.filter((p) => p.storyState === "seen"),
-];
+/** Avatar prop: a remote photo wins, otherwise the bundled face. */
+export function avatarSource(person: Person): number | { uri: string } {
+  return person.photoUrl ? { uri: person.photoUrl } : person.avatar;
+}
