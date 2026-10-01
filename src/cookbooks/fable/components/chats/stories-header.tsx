@@ -107,12 +107,15 @@ export function StoriesHeader({
   }));
 
   // The rail is a full-overlay-height ScrollView so avatars can travel up
-  // into the bar unclipped. Gate its touch-catching on the UI-thread
-  // progress value itself — not the lagging JS isOpen state — so the
-  // invisible overlay never swallows taps meant for the search, filter
-  // chips, or chat rows while the rail is (near-)closed.
+  // into the bar unclipped. It must never swallow taps on empty space —
+  // only the story circles themselves are touch targets. "box-none" when
+  // open (children receive, empty area passes through to the search,
+  // chips, and rows below), "none" when closed. Driven by the UI-thread
+  // progress value so it can never lag or disagree with what's on screen.
   const railTouchStyle = useAnimatedStyle(() => ({
-    pointerEvents: (progress.get() > 0.5 ? "auto" : "none") as "auto" | "none",
+    pointerEvents: (progress.get() > 0.5 ? "box-none" : "none") as
+      | "box-none"
+      | "none",
   }));
 
   return (

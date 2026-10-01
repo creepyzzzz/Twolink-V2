@@ -117,6 +117,11 @@ export default function ChatsScreen() {
         ? STORIES_H
         : 0;
     settling.set(true);
+    // Keep the position value honest: programmatic scrolls don't reliably
+    // emit onScroll, and progress (hence the rail's visuals and touch
+    // behavior) is derived from it. Set it to the commanded target now;
+    // a real onScroll will just confirm the same value.
+    y.set(target);
     scrollTo(listRef, 0, target, true);
   };
 
@@ -371,8 +376,12 @@ export default function ChatsScreen() {
         scrollIndicatorInsets={{ top: insets.top + NAV_H }}
         onContentSizeChange={(_, h) => {
           // Start closed. The contentOffset prop is clamped before content exists, so do it here, once.
+          // Set the shared position value directly too — a programmatic
+          // scrollTo doesn't reliably emit onScroll, and the rail's
+          // progress is derived from it. This keeps them from disagreeing.
           if (!positioned.current && h > 0) {
             positioned.current = true;
+            y.set(STORIES_H);
             listRef.current?.scrollTo({ x: 0, y: STORIES_H, animated: false });
           }
         }}
