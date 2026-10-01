@@ -1,15 +1,14 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { SFIcon } from "../../../../ui/SFIcon";
-import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
   Extrapolation,
   interpolate,
-  useAnimatedRef,
   useAnimatedStyle,
-  useScrollOffset,
+  useSharedValue,
   type SharedValue,
 } from "react-native-reanimated";
 
@@ -81,8 +80,11 @@ export function StoriesHeader({
   const myFace = useFable((state) => state.profile.face);
   const myPhotoUri = useFable((state) => state.profile.photoUri);
   const [titleWidth, setTitleWidth] = useState(48);
-  const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  const sx = useScrollOffset(scrollRef);
+  const scrollRef = useRef<ScrollView>(null);
+  // Horizontal rail offset, tracked on the JS thread (the rail is a plain
+  // ScrollView so pointerEvents definitely applies). Used by StoryItem to
+  // compute the travel target in screen coordinates.
+  const sx = useSharedValue(0);
 
   // Once tucked away, quietly rewind the rail so the cluster is always the first three.
   useEffect(() => {
@@ -139,14 +141,20 @@ export function StoriesHeader({
         }}
       />
 
-      {/* Stories rail — full overlay height so avatars can travel up into the bar unclipped. */}
-      <Animated.ScrollView
+      {/* Stories rail — full overlay height so avatars can travel up into the bar unclipped.
+          Plain ScrollView (not Animated): pointerEvents must take effect reliably,
+          and the diagnostic proved it was being ignored on the animated one. */}
+      <ScrollView
         ref={scrollRef}
         horizontal
         pointerEvents={isOpen ? "box-none" : "none"}
         scrollEnabled={isOpen}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          sx.value = e.nativeEvent.contentOffset.x;
+        }}
         onTouchStart={() => {
           if (__DEV__)
             console.log("[DIAG] rail overlay touched, isOpen:", isOpen);
@@ -173,7 +181,7 @@ export function StoriesHeader({
             onPress={() => onPressStory(item)}
           />
         ))}
-      </Animated.ScrollView>
+      </ScrollView>
 
       {/* Bar */}
       <View
