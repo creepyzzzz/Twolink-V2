@@ -362,6 +362,24 @@ export async function fetchChats(): Promise<ChatRow[]> {
 export async function getOrCreateDirectChat(otherUserId: string): Promise<string> {
   const supabase = getSupabase();
   const myId = await getMyUserId();
+  if (__DEV__) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    let sub: string | null = null;
+    try {
+      if (token) {
+        const payload = token.split(".")[1];
+        // base64url decode
+        const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+        sub = JSON.parse(
+          (globalThis as any).Buffer
+            ? (globalThis as any).Buffer.from(b64, "base64").toString()
+            : atob(b64)
+        ).sub ?? null;
+      }
+    } catch {}
+    console.log("[DIAG] getOrCreateDirectChat myId:", myId, "jwt sub:", sub, "match:", myId === sub);
+  }
   if (!myId) throw new Error("Not signed in");
 
   // Look for an existing direct chat sharing both members.
