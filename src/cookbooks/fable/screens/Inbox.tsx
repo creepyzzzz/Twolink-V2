@@ -1,10 +1,12 @@
 import { router } from "expo-router";
+import { Image } from "expo-image";
 import {
   AndroidGlassMenu,
   useMinimizeOnScrollHandler,
 } from "expo-android-glass-view";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -225,11 +227,23 @@ export default function ChatsScreen() {
   const threads = useFable((state) => state.threads);
   const lastRead = useFable((state) => state.lastRead);
   const chats = useFable((state) => state.chats);
+  const chatsLoaded = useFable((state) => state.chatsLoaded);
   const people = useFable((state) => state.people);
   const myId = useFable((state) => state.myId);
   const profile = useFable((state) => state.profile);
   const stories = useFable((state) => state.stories);
   const groupsRecord = useFable((state) => state.groups);
+
+  // Make sure the live chat list is loading (idempotent), and stop showing
+  // the spinner if the load stalls — the empty state takes over instead.
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
+  useEffect(() => {
+    const s = useFable.getState();
+    if (!s.bootstrapped) void s.bootstrap();
+    if (s.chatsLoaded) return;
+    const t = setTimeout(() => setLoadTimedOut(true), 15000);
+    return () => clearTimeout(t);
+  }, []);
 
   /** Stories rail cells: you first, then one cell per person with a live story. */
   const railStories = useMemo<RailStory[]>(() => {
@@ -492,15 +506,48 @@ export default function ChatsScreen() {
           </Animated.View>
         ))}
         {filtered.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.secondary }]}>
-            {query.trim()
-              ? `No chats match “${query.trim()}”.`
-              : filter === "Unread"
-                ? "You’re all caught up."
-                : filter === "Groups"
-                  ? "No groups yet. Create one from the compose button."
-                  : "No chats yet."}
-          </Text>
+          !chatsLoaded && !loadTimedOut ? (
+            <View style={styles.loading}>
+              <ActivityIndicator size="small" color={theme.tertiary} />
+            </View>
+          ) : query.trim() ? (
+            <Text style={[styles.empty, { color: theme.secondary }]}>
+              {`No chats match “${query.trim()}”.`}
+            </Text>
+          ) : filter === "Unread" ? (
+            <Text style={[styles.empty, { color: theme.secondary }]}>
+              You’re all caught up.
+            </Text>
+          ) : filter === "Groups" ? (
+            <Text style={[styles.empty, { color: theme.secondary }]}>
+              No groups yet. Create one from the compose button.
+            </Text>
+          ) : (
+            <View style={styles.emptyWrap}>
+              <Image
+                source={require("../../../../assets/cookbooks/fable/empty-whale.jpg")}
+                style={styles.emptyWhale}
+                contentFit="cover"
+              />
+              <Text style={[styles.emptyTitle, { color: theme.label }]}>
+                No chats yet
+              </Text>
+              <Text style={[styles.emptySub, { color: theme.secondary }]}>
+                Start a conversation — your chats will show up here.
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Start a chat"
+                onPress={() => router.push("/fable/compose")}
+                style={({ pressed }) => [
+                  styles.emptyCta,
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <Text style={styles.emptyCtaText}>Start a chat</Text>
+              </Pressable>
+            </View>
+          )
         ) : null}
       </Animated.ScrollView>
 
@@ -538,5 +585,45 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginTop: 32,
     paddingHorizontal: 40,
+  },
+  loading: {
+    alignItems: "center",
+    marginTop: 48,
+  },
+  emptyWrap: {
+    alignItems: "center",
+    marginTop: 40,
+    paddingHorizontal: 48,
+  },
+  emptyWhale: {
+    width: 148,
+    height: 148,
+    borderRadius: 74,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontFamily: "SFProText-Semibold",
+    marginTop: 20,
+  },
+  emptySub: {
+    fontSize: 15,
+    fontFamily: "SFProText-Regular",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 21,
+  },
+  emptyCta: {
+    marginTop: 20,
+    height: 48,
+    paddingHorizontal: 28,
+    borderRadius: 24,
+    backgroundColor: Accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyCtaText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "SFProText-Semibold",
   },
 });
