@@ -108,8 +108,8 @@
     "provenance": "Progressive-blur variant of docs/auth-exploration/login-trio-9x16.jpg (Tariq-supplied trio art, white gradient extension below y975): sharp until 32% height, smoothstep blur ramp (Gaussian radius 22) to 62%, fully blurred below. PIL + numpy composite, JPEG q90. Built Oct 1 2026 \u2014 login screen background, replaces the rectangular frosted panel with a full-screen blur gradient."
   },
   {
-    "path": "assets/cookbooks/fable/empty-whale.jpg",
-    "bytes": 39734,
-    "sha256": "f77fbc069f2ead569849ade245eaa98972b5b79bacd33fd5734eba555f24a6df"
+    "path": "assets/cookbooks/fable/empty-whale.png",
+    "bytes": 238374,
+    "sha256": "00ff980d63e533033711d9f5dc3ac6acc0483603fac6187a0d812e30f2e061a4"
   }
 ]

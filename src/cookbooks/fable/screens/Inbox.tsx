@@ -37,7 +37,7 @@ import {
   type RailStory,
 } from "../components/chats/stories-header";
 import { EASE_OUT } from "../constants/motion";
-import { Accent, Space } from "../constants/theme";
+import { Accent } from "../constants/theme";
 import { AVATAR_FACES } from "../data/people";
 import { unreadCount } from "../data/unread";
 import { openStory, pickAndPostStory } from "../data/story-state";
@@ -378,7 +378,9 @@ export default function ChatsScreen() {
         }}
         contentContainerStyle={{
           paddingTop: insets.top + NAV_H,
-          paddingBottom: insets.bottom + Space[6],
+          // Clear the floating tab bar (64pt + offset) so the last row —
+          // including the empty-state CTA — can scroll fully into view.
+          paddingBottom: insets.bottom + 120,
         }}
       >
         <View style={{ height: STORIES_H }} />
@@ -525,7 +527,7 @@ export default function ChatsScreen() {
           ) : (
             <View style={styles.emptyWrap}>
               <Image
-                source={require("../../../../assets/cookbooks/fable/empty-whale.jpg")}
+                source={require("../../../../assets/cookbooks/fable/empty-whale.png")}
                 style={styles.emptyWhale}
                 contentFit="cover"
               />
@@ -596,9 +598,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 48,
   },
   emptyWhale: {
-    width: 148,
-    height: 148,
-    borderRadius: 74,
+    width: 200,
+    aspectRatio: 651 / 522,
   },
   emptyTitle: {
     fontSize: 20,
