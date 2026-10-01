@@ -12,6 +12,7 @@ import { AdaptiveGlassView } from "../../ui/GlassView";
 import { ScreenBackground } from "../../ui/ScreenBackground";
 import { MyAvatar } from "../../cookbooks/fable/components/ui/my-avatar";
 import { useFable } from "../../cookbooks/fable/data/store";
+import { getSupabase, isSupabaseConfigured } from "../../lib/supabase";
 
 const ACCENT = "#3D92E9";
 const INK = "#17191B";
@@ -69,13 +70,14 @@ export default function SettingsScreen() {
   const { readReceipts, typingIndicators, notifications } = settings;
   const profileName = useFable((s) => s.profile.name);
   const appPin = useFable((s) => s.appPin);
+  const showAlert = useFable((s) => s.showAlert);
+  const setOnboarded = useFable((s) => s.setOnboarded);
   // Shrinks the tab bar to its compact pill while the settings scroll.
   const minimizeOnScroll = useMinimizeOnScrollHandler();
 
   // Enabling notifications requests the OS permission first; a denial
   // leaves the toggle off with an explanation instead of a dead switch.
-  const onToggleNotifications = (v: boolean) => {
-    if (!v) {
+  const onToggleNotifications = (v: boolean) => {    if (!v) {
       setSettings({ notifications: false });
       return;
     }
@@ -96,6 +98,32 @@ export default function SettingsScreen() {
         // Native module missing on the pre-batch dev build.
       });
   };
+
+  const doLogout = async () => {
+    try {
+      if (isSupabaseConfigured()) {
+        await getSupabase().auth.signOut();
+      }
+    } catch {
+      // Session cleanup is best-effort; local state still signs out.
+    }
+    setOnboarded(false);
+    router.replace("/onboarding/welcome");
+  };
+
+  const confirmLogout = () =>
+    showAlert({
+      title: "Log out?",
+      message: "You'll be signed out of Poffu on this device.",
+      actions: [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Log out",
+          style: "destructive",
+          onPress: () => void doLogout(),
+        },
+      ],
+    });
 
   return (
     <ScreenBackground>
@@ -189,6 +217,22 @@ export default function SettingsScreen() {
             <SFIcon name="chevron.right" size={20} color={INK_FAINT} />
           </Pressable>
         </Section>
+
+        <View style={styles.section}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Log out"
+            onPress={confirmLogout}
+          >
+            <AdaptiveGlassView
+              style={[styles.card, styles.logoutCard]}
+              tintColor="rgba(255,255,255,0.55)"
+              blurRadius={18}
+            >
+              <Text style={styles.logoutText}>Log out</Text>
+            </AdaptiveGlassView>
+          </Pressable>
+        </View>
       </ScrollView>
     </ScreenBackground>
   );
@@ -252,4 +296,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   rowValue: { fontSize: 14, color: INK_SOFT },
+  logoutCard: { paddingVertical: 15, alignItems: "center" },
+  logoutText: {
+    fontSize: 16,
+    fontFamily: "SFProText-Semibold",
+    color: "#FF3B30",
+  },
 });

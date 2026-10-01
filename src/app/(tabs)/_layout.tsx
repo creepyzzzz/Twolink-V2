@@ -5,6 +5,7 @@ import {
 } from "expo-android-glass-view";
 import { ScreenBackground } from "../../ui/ScreenBackground";
 import { GlassTabBar } from "../../ui/GlassTabBar";
+import { GlassAlertHost } from "../../cookbooks/fable/components/ui/glass-alert";
 
 /** Structural subset of the tab-bar props — avoids the vendored types. */
 type TabBarProps = {
@@ -36,6 +37,7 @@ export default function TabsLayout() {
             <Tabs.Screen name="settings" />
           </Tabs>
         </ScreenBackground>
+        <GlassAlertHost />
       </MinimizeOnScrollProvider>
     </AndroidGlassMenuProvider>
   );
