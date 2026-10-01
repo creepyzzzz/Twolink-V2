@@ -842,9 +842,10 @@ function ThreadScreen({ id }: { id: string }) {
             }
           }}
           onDecline={async () => {
+            // Navigate first so the deleted chat never renders NotFound.
+            router.replace("/fable");
             try {
               await declineRequest(chat.otherUserId!);
-              router.replace("/fable");
             } catch {
               useFable.getState().showAlert({
                 title: "Couldn't decline",
@@ -854,13 +855,16 @@ function ThreadScreen({ id }: { id: string }) {
             }
           }}
           onBlock={async () => {
+            // Navigate first so the deleted chat never renders NotFound.
+            router.replace("/fable");
             try {
               await blockUserAction(chat.otherUserId!);
-              router.replace("/fable");
-            } catch {
+            } catch (e) {
+              const detail =
+                e instanceof Error ? e.message : "Unknown error";
               useFable.getState().showAlert({
                 title: "Couldn't block",
-                message: "Please check your connection and try again.",
+                message: `Please check your connection and try again.\n\nDebug: ${detail}`,
                 actions: [{ text: "OK", style: "default" }],
               });
             }
