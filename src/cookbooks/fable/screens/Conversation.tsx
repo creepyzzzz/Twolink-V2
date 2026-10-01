@@ -3,7 +3,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import * as Sharing from "expo-sharing";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import {
   useCallback,
   useEffect,
@@ -30,6 +30,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Bubble } from "../components/thread/bubble";
 import { DeletedTombstone } from "../components/thread/tombstone";
 import { Composer, type ReplyPreview } from "../components/thread/composer";
+import { RequestActions } from "../components/thread/request-actions";
 import { PhotoViewer } from "../components/thread/photo-viewer";
 import {
   ReactionOverlay,
@@ -99,6 +100,15 @@ function ThreadScreen({ id }: { id: string }) {
   const selfFirst = useFable((st) => st.profile.name.split(" ")[0] ?? "");
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const incomingRequestIds = useFable((state) => state.incomingRequestIds);
+  const acceptRequest = useFable((state) => state.acceptRequest);
+  const declineRequest = useFable((state) => state.declineRequest);
+  const blockUserAction = useFable((state) => state.blockUser);
+  // This chat is an incoming friend request I haven't answered yet.
+  const isIncomingRequest =
+    chat?.type === "direct" &&
+    !!chat.otherUserId &&
+    incomingRequestIds.includes(chat.otherUserId);
 
   const stored = useFable((state) => state.threads[id]);
   const wallpaperRaw = useFable((state) => state.wallpapers[id]);
@@ -805,22 +815,39 @@ function ThreadScreen({ id }: { id: string }) {
         )}
       </View>
 
-      <Composer
-        key={editing ? `edit-${editing.messageId}` : "compose"}
-        threadId={id}
-        insetBottom={insets.bottom}
-        onSend={onSend}
-        onAttach={onAttach}
-        onAttachFile={onAttachFile}
-        onLayoutHeight={setComposerHeight}
-        replyPreview={replyPreview}
-        onCancelReply={() => setReplyTo(null)}
-        onSchedule={handleSchedule}
-        editPreview={editing}
-        initialText={editing?.text}
-        onSaveEdit={onSaveEdit}
-        onCancelEdit={() => setEditing(null)}
-      />
+      {isIncomingRequest && chat?.otherUserId ? (
+        <RequestActions
+          requesterId={chat.otherUserId}
+          requesterName={person?.first ?? "this person"}
+          insetBottom={insets.bottom}
+          onAccept={() => acceptRequest(chat.otherUserId!)}
+          onDecline={async () => {
+            await declineRequest(chat.otherUserId!);
+            router.back();
+          }}
+          onBlock={async () => {
+            await blockUserAction(chat.otherUserId!);
+            router.back();
+          }}
+        />
+      ) : (
+        <Composer
+          key={editing ? `edit-${editing.messageId}` : "compose"}
+          threadId={id}
+          insetBottom={insets.bottom}
+          onSend={onSend}
+          onAttach={onAttach}
+          onAttachFile={onAttachFile}
+          onLayoutHeight={setComposerHeight}
+          replyPreview={replyPreview}
+          onCancelReply={() => setReplyTo(null)}
+          onSchedule={handleSchedule}
+          editPreview={editing}
+          initialText={editing?.text}
+          onSaveEdit={onSaveEdit}
+          onCancelEdit={() => setEditing(null)}
+        />
+      )}
 
       {searchOpen && (
         <SearchBar
