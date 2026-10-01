@@ -106,6 +106,15 @@ export function StoriesHeader({
     opacity: progress.get() < 0.5 ? 1 : 0,
   }));
 
+  // The rail is a full-overlay-height ScrollView so avatars can travel up
+  // into the bar unclipped. Gate its touch-catching on the UI-thread
+  // progress value itself — not the lagging JS isOpen state — so the
+  // invisible overlay never swallows taps meant for the search, filter
+  // chips, or chat rows while the rail is (near-)closed.
+  const railTouchStyle = useAnimatedStyle(() => ({
+    pointerEvents: (progress.get() > 0.5 ? "auto" : "none") as const,
+  }));
+
   return (
     <View
       pointerEvents="box-none"
@@ -136,11 +145,10 @@ export function StoriesHeader({
       <Animated.ScrollView
         ref={scrollRef}
         horizontal
-        pointerEvents={isOpen ? "auto" : "none"}
         scrollEnabled={isOpen}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
-        style={[StyleSheet.absoluteFill]}
+        style={[StyleSheet.absoluteFill, railTouchStyle]}
         contentContainerStyle={{
           paddingTop: insetTop + NAV_H + 8,
           paddingHorizontal: PAD,
