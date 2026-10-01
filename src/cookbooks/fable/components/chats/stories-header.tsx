@@ -108,15 +108,10 @@ export function StoriesHeader({
 
   // The rail is a full-overlay-height ScrollView so avatars can travel up
   // into the bar unclipped. It must never swallow taps on empty space —
-  // only the story circles themselves are touch targets. "box-none" when
-  // open (children receive, empty area passes through to the search,
-  // chips, and rows below), "none" when closed. Driven by the UI-thread
-  // progress value so it can never lag or disagree with what's on screen.
-  const railTouchStyle = useAnimatedStyle(() => ({
-    pointerEvents: (progress.get() > 0.5 ? "box-none" : "none") as
-      | "box-none"
-      | "none",
-  }));
+  // only the story circles themselves are touch targets. A plain prop
+  // (not an animated style) so there's no doubt it applies: "box-none"
+  // when open (children receive, empty area passes through to the search,
+  // chips, and rows below), "none" when closed.
 
   return (
     <View
@@ -148,10 +143,15 @@ export function StoriesHeader({
       <Animated.ScrollView
         ref={scrollRef}
         horizontal
+        pointerEvents={isOpen ? "box-none" : "none"}
         scrollEnabled={isOpen}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
-        style={[StyleSheet.absoluteFill, railTouchStyle]}
+        onTouchStart={() => {
+          if (__DEV__)
+            console.log("[DIAG] rail overlay touched, isOpen:", isOpen);
+        }}
+        style={StyleSheet.absoluteFill}
         contentContainerStyle={{
           paddingTop: insetTop + NAV_H + 8,
           paddingHorizontal: PAD,

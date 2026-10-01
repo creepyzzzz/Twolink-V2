@@ -465,7 +465,10 @@ export default function ChatsScreen() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected }}
                 accessibilityLabel={`${tab} conversations`}
-                onPress={() => setFilter(tab)}
+                onPress={() => {
+                  if (__DEV__) console.log("[DIAG] filter chip pressed:", tab);
+                  setFilter(tab);
+                }}
                 style={{ height: 34 }}
               >
                 <Glass
