@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useVideoPlayer, VideoView } from "expo-video";
+import { Image } from "expo-image";
 import {
   Pressable,
   StyleSheet,
@@ -9,6 +9,14 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
+import { useEffect } from "react";
 import { SvgXml } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -65,9 +73,9 @@ function AuthButton({
 }
 
 /**
- * Screen 2 — top half: underwater video with the sea-creature trio.
- * Bottom half: Google + email sign-in in the app's iOS style, with a
- * gradient melting the video into the auth area (no hard boundary).
+ * Screen 2 — top half: the cheering sea-creature trio, gently animated in a
+ * slow seamless loop. Bottom half: Google + email sign-in in the app's iOS
+ * style, with a gradient melting the art into the auth area (no hard boundary).
  * Email sign-in is wired through Supabase OTP; Google is still UI-only.
  */
 export default function Login() {
@@ -77,14 +85,24 @@ export default function Login() {
   const showAlert = useFable((s) => s.showAlert);
   const setOnboarded = useFable((s) => s.setOnboarded);
 
-  const player = useVideoPlayer(
-    require("../../../assets/auth/underwater-trio.mp4"),
-    (p) => {
-      p.loop = true;
-      p.muted = true;
-      void p.play();
-    },
-  );
+  // Slow-mo seamless loop for the hero art: a gentle zoom + upward drift
+  // that reverses forever. Runs on the UI thread at the display's refresh
+  // rate (120fps on 120Hz phones).
+  const zoom = useSharedValue(1);
+  const drift = useSharedValue(0);
+  const artStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: zoom.get() }, { translateY: drift.get() }],
+  }));
+
+  useEffect(() => {
+    const ease = Easing.inOut(Easing.ease);
+    zoom.set(
+      withRepeat(withTiming(1.06, { duration: 10000, easing: ease }), -1, true),
+    );
+    drift.set(
+      withRepeat(withTiming(-12, { duration: 10000, easing: ease }), -1, true),
+    );
+  }, [drift, zoom]);
 
   const comingSoon = (method: string) =>
     showAlert({
@@ -112,18 +130,20 @@ export default function Login() {
     router.replace("/(tabs)/chats");
   };
 
-  const videoHeight = Math.round(height * 0.5);
+  const artHeight = Math.round(height * 0.5);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
       <StatusBar style="dark" />
-      <View style={[styles.videoWrap, { height: videoHeight }]}>
-        <VideoView
-          player={player}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          nativeControls={false}
-        />
+      <View style={[styles.artWrap, { height: artHeight }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, artStyle]}>
+          <Image
+            source={require("../../../assets/auth/login-trio.jpg")}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            accessibilityLabel="Poffu and friends cheering"
+          />
+        </Animated.View>
         <LinearGradient
           colors={["transparent", theme.bg]}
           style={styles.fade}
@@ -167,7 +187,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  videoWrap: {
+  artWrap: {
     width: "100%",
     overflow: "hidden",
   },

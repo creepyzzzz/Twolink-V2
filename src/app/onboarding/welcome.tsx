@@ -10,7 +10,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { Glass } from "../../cookbooks/fable/components/ui/glass";
 import { EASE_OUT, PRESS_MS } from "../../cookbooks/fable/constants/motion";
-import { Ink } from "../../cookbooks/fable/constants/theme";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -51,7 +50,11 @@ export default function Welcome() {
           }
           style={[styles.pillSize, animatedStyle]}
         >
-          <Glass interactive style={styles.pill}>
+          <Glass
+            interactive
+            tint="rgba(23,25,27,0.62)"
+            style={styles.pill}
+          >
             <Text style={styles.pillText}>Continue</Text>
           </Glass>
         </AnimatedPressable>
@@ -84,6 +87,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontFamily: "SFProText-Semibold",
     letterSpacing: -0.2,
-    color: Ink,
+    color: "#FFFFFF",
   },
 });
