@@ -2,18 +2,23 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
-import Animated, { FadeInDown, FadeOutUp } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  FadeOutUp,
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { SvgXml } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -92,11 +97,15 @@ function BackLink({ onPress }: { onPress: () => void }) {
  * three states (no new pages): provider buttons -> email+password form ->
  * 6-digit code entry. Email+password is real Supabase auth: existing accounts
  * sign in, new addresses create an account. Google is still UI-only.
+ *
+ * Keyboard handling: the hero video collapses in sync with the keyboard
+ * (UI-thread, via useAnimatedKeyboard) so the focused input is never
+ * covered; the form area also scrolls as a safety net on small screens.
  */
 export default function Login() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
+  const { height: windowHeight } = useWindowDimensions();
   const showAlert = useFable((s) => s.showAlert);
   const setOnboarded = useFable((s) => s.setOnboarded);
 
@@ -107,6 +116,14 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
+
+  // Full screen height captured before any keyboard opens (the window
+  // resizes under adjustResize, so a live reading would double-count).
+  const fullHeightRef = useRef(windowHeight);
+  const keyboard = useAnimatedKeyboard();
+  const artStyle = useAnimatedStyle(() => ({
+    height: Math.max(0, fullHeightRef.current * 0.5 - keyboard.height.value),
+  }));
 
   const player = useVideoPlayer(
     require("../../../assets/auth/login-trio.mp4"),
@@ -149,6 +166,11 @@ export default function Login() {
       return;
     }
     setStep("form");
+  };
+
+  const goBack = (to: Step) => {
+    Keyboard.dismiss();
+    setStep(to);
   };
 
   const submit = async () => {
@@ -215,12 +237,10 @@ export default function Login() {
     }
   };
 
-  const artHeight = Math.round(height * 0.5);
-
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
       <StatusBar style="dark" />
-      <View style={[styles.artWrap, { height: artHeight }]}>
+      <Animated.View style={[styles.artWrap, artStyle]}>
         <VideoView
           player={player}
           style={StyleSheet.absoluteFill}
@@ -232,10 +252,12 @@ export default function Login() {
           style={styles.fade}
           pointerEvents="none"
         />
-      </View>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      </Animated.View>
+      <ScrollView
         style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View
           style={[styles.content, { paddingBottom: insets.bottom + Space[4] }]}
@@ -345,7 +367,7 @@ export default function Login() {
                   {busy ? "Signing in…" : "Continue"}
                 </Text>
               </Pressable>
-              <BackLink onPress={() => setStep("idle")} />
+              <BackLink onPress={() => goBack("idle")} />
             </Animated.View>
           ) : (
             <Animated.View
@@ -388,11 +410,11 @@ export default function Login() {
                   {verifying ? "Verifying…" : "Verify"}
                 </Text>
               </Pressable>
-              <BackLink onPress={() => setStep("form")} />
+              <BackLink onPress={() => goBack("form")} />
             </Animated.View>
           )}
         </View>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </View>
   );
 }
@@ -414,6 +436,9 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: 140,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
