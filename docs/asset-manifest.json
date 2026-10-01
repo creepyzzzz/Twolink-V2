@@ -162,9 +162,9 @@
   },
   {
     "path": "assets/auth/poffu-whale.webp",
-    "bytes": 93288,
-    "sha256": "f58a8667c3a7713497c77e6972b79e259e5439bb3add9910a0bd7bf7ccf5de6d",
-    "source": "Whale mascot picked by Tariq (chat, 2026-10-01); used as-is on the welcome screen"
+    "bytes": 185348,
+    "sha256": "93ecfb497673d5f2b7b48d6276a0be43ceec253d12a1e7daed95d31805dcf165",
+    "source": "Plush whale mascot picked by Tariq (chat, 2026-10-01, corrected pick); used as-is on the welcome screen"
   },
   {
     "path": "assets/auth/underwater-trio.mp4",
