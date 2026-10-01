@@ -112,7 +112,7 @@ export function StoriesHeader({
   // invisible overlay never swallows taps meant for the search, filter
   // chips, or chat rows while the rail is (near-)closed.
   const railTouchStyle = useAnimatedStyle(() => ({
-    pointerEvents: (progress.get() > 0.5 ? "auto" : "none") as const,
+    pointerEvents: (progress.get() > 0.5 ? "auto" : "none") as "auto" | "none",
   }));
 
   return (
