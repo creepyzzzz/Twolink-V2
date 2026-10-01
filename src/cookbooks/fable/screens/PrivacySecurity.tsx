@@ -3,12 +3,15 @@ import {
   ActivityIndicator,
   Pressable,
   ScrollView,
-  Switch,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
 import { Stack } from "expo-router";
-import { useTheme } from "../hooks/use-theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AndroidGlassToggle } from "expo-android-glass-view";
+import { AdaptiveGlassView } from "../../../ui/GlassView";
+import { ScreenBackground } from "../../../ui/ScreenBackground";
 import {
   getAllowMessageRequests,
   getBlockedUsers,
@@ -17,14 +20,33 @@ import {
   type DbProfile,
 } from "../../../lib/chat";
 
+const ACCENT = "#3D92E9";
+const INK = "#17191B";
+const INK_SOFT = "rgba(23,25,27,0.55)";
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <AdaptiveGlassView
+        style={styles.card}
+        tintColor="rgba(255,255,255,0.55)"
+        blurRadius={18}
+      >
+        {children}
+      </AdaptiveGlassView>
+    </View>
+  );
+}
+
 /**
  * Privacy & Security settings: message-request toggle + blocked users.
+ * Matches the bottom-tab Settings glass design.
  */
 export default function PrivacySecurity() {
-  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [allow, setAllow] = useState(true);
   const [loaded, setLoaded] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [blocked, setBlocked] = useState<DbProfile[]>([]);
   const [blockedLoaded, setBlockedLoaded] = useState(false);
   const [unblocking, setUnblocking] = useState<string | null>(null);
@@ -57,15 +79,12 @@ export default function PrivacySecurity() {
   }, []);
 
   const onToggle = async (value: boolean) => {
+    const prev = allow;
     setAllow(value);
-    setSaving(true);
     try {
       await setAllowMessageRequests(value);
     } catch {
-      // Revert on failure.
-      setAllow(!value);
-    } finally {
-      setSaving(false);
+      setAllow(prev);
     }
   };
 
@@ -82,137 +101,136 @@ export default function PrivacySecurity() {
   };
 
   return (
-    <>
+    <ScreenBackground>
       <Stack.Screen
-        options={{ title: "Privacy & Security", headerBackTitle: "Settings" }}
+        options={{
+          title: "Privacy & Security",
+          headerBackTitle: "Settings",
+        }}
       />
       <ScrollView
-        style={{ flex: 1, backgroundColor: theme.bg }}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12 }}
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 24 },
+        ]}
       >
-        <Text
-          style={{
-            fontSize: 13,
-            color: theme.secondary,
-            marginBottom: 8,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-          }}
-        >
-          Message requests
-        </Text>
-        <View
-          style={{
-            backgroundColor: theme.surface,
-            borderRadius: 14,
-            paddingHorizontal: 16,
-            paddingVertical: 14,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text style={{ color: theme.label, fontSize: 16 }}>
-              Allow message requests
-            </Text>
-            <Text
-              style={{
-                color: theme.secondary,
-                fontSize: 13,
-                marginTop: 4,
-                lineHeight: 18,
-              }}
-            >
-              {allow
-                ? "Anyone can find you in search and send you a message request."
-                : "You are hidden from search. Only your friends can message you."}
-            </Text>
+        <Section title="Message requests">
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.rowLabel}>Allow message requests</Text>
+              <Text style={styles.rowHint}>
+                {allow
+                  ? "Anyone can find you in search and send you a message request."
+                  : "You are hidden from search. Only your friends can message you."}
+              </Text>
+            </View>
+            {loaded ? (
+              <AndroidGlassToggle
+                value={allow}
+                onValueChange={onToggle}
+                accentColor={ACCENT}
+              />
+            ) : (
+              <ActivityIndicator size="small" color={INK_SOFT} />
+            )}
           </View>
-          {loaded ? (
-            <Switch
-              value={allow}
-              onValueChange={onToggle}
-              disabled={saving}
-              trackColor={{ true: "#3394FA" }}
-            />
-          ) : (
-            <ActivityIndicator size="small" color={theme.secondary} />
-          )}
-        </View>
-        <Text
-          style={{
-            marginTop: 12,
-            fontSize: 13,
-            lineHeight: 18,
-            color: theme.secondary,
-          }}
-        >
-          When this is off, new people can’t discover you or send you requests.
+        </Section>
+
+        <Text style={styles.footnote}>
+          When this is off, new people can&apos;t discover you or send you requests.
           Your existing chats and friends are unaffected.
         </Text>
 
-        <Text
-          style={{
-            fontSize: 13,
-            color: theme.secondary,
-            marginTop: 28,
-            marginBottom: 8,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-          }}
-        >
-          Blocked
-        </Text>
-        {!blockedLoaded ? (
-          <ActivityIndicator size="small" color={theme.secondary} />
-        ) : blocked.length === 0 ? (
-          <Text style={{ fontSize: 14, color: theme.secondary }}>
-            No blocked users.
-          </Text>
-        ) : (
-          <View
-            style={{
-              backgroundColor: theme.surface,
-              borderRadius: 14,
-              overflow: "hidden",
-            }}
-          >
-            {blocked.map((p, i) => (
+        <Section title="Blocked">
+          {!blockedLoaded ? (
+            <View style={styles.row}>
+              <ActivityIndicator size="small" color={INK_SOFT} />
+            </View>
+          ) : blocked.length === 0 ? (
+            <View style={styles.row}>
+              <Text style={styles.rowHint}>No blocked users.</Text>
+            </View>
+          ) : (
+            blocked.map((p, i) => (
               <View
                 key={p.id}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  borderTopWidth: i === 0 ? 0 : 0.5,
-                  borderTopColor: theme.hairline,
-                }}
+                style={[styles.row, i < blocked.length - 1 && styles.rowDivider]}
               >
-                <Text style={{ flex: 1, fontSize: 16, color: theme.label }}>
-                  {p.display_name || "Unknown"}
-                </Text>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowLabel}>
+                    {p.display_name || "Unknown"}
+                  </Text>
+                </View>
                 <Pressable
                   onPress={() => onUnblock(p.id)}
                   disabled={unblocking === p.id}
                   accessibilityLabel={`Unblock ${p.display_name || "user"}`}
+                  hitSlop={8}
                 >
                   <Text
-                    style={{
-                      fontSize: 15,
-                      color: "#3394FA",
-                      opacity: unblocking === p.id ? 0.5 : 1,
-                    }}
+                    style={[
+                      styles.unblock,
+                      unblocking === p.id && styles.unblockDisabled,
+                    ]}
                   >
                     {unblocking === p.id ? "Unblocking…" : "Unblock"}
                   </Text>
                 </Pressable>
               </View>
-            ))}
-          </View>
-        )}
+            ))
+          )}
+        </Section>
       </ScrollView>
-    </>
+    </ScreenBackground>
   );
 }
+
+const styles = StyleSheet.create({
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 16, paddingTop: 12 },
+  section: { marginTop: 22 },
+  sectionTitle: {
+    fontSize: 13,
+    fontFamily: "SFProText-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    color: INK_SOFT,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  card: { borderRadius: 22, paddingHorizontal: 16, overflow: "hidden" },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 13,
+  },
+  rowDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(23,25,27,0.08)",
+  },
+  rowText: { flex: 1, paddingRight: 12 },
+  rowLabel: { fontSize: 16, fontFamily: "SFProText-Semibold", color: INK },
+  rowHint: {
+    fontSize: 13,
+    fontFamily: "SFProText-Regular",
+    color: INK_SOFT,
+    marginTop: 3,
+    lineHeight: 18,
+  },
+  footnote: {
+    fontSize: 13,
+    fontFamily: "SFProText-Regular",
+    color: INK_SOFT,
+    lineHeight: 18,
+    marginTop: 10,
+    marginLeft: 4,
+    marginRight: 4,
+  },
+  unblock: {
+    fontSize: 15,
+    fontFamily: "SFProText-Semibold",
+    color: ACCENT,
+  },
+  unblockDisabled: { opacity: 0.5 },
+});
