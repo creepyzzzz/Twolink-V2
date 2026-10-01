@@ -10,7 +10,7 @@ export default function Settings() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.bg }}
-      contentContainerStyle={{ padding: 24, paddingTop: 28, paddingBottom: 48 }}
+      contentContainerStyle={{ padding: 24, paddingTop: 28, paddingBottom: 140 }}
     >
       <View
         style={{
