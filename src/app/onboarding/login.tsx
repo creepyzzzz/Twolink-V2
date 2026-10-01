@@ -136,7 +136,7 @@ export default function Login() {
         <Text style={[styles.title, { color: theme.label }]}>
           Welcome to Poffu
         </Text>
-        <Text style={[Type.body, { color: theme.secondary, marginTop: 6 }]}>
+        <Text style={[styles.subtitle, { color: theme.secondary }]}>
           Chat with the people who matter.
         </Text>
         <View style={styles.buttons}>
@@ -186,13 +186,21 @@ const styles = StyleSheet.create({
     paddingTop: Space[2],
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontFamily: "SFProText-Bold",
     letterSpacing: -0.5,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 15,
+    fontFamily: "SFProText-Regular",
+    letterSpacing: -0.2,
+    textAlign: "center",
+    marginTop: 4,
   },
   buttons: {
-    marginTop: Space[6],
-    gap: Space[3],
+    marginTop: Space[4],
+    gap: Space[2],
   },
   button: {
     height: 52,
@@ -212,7 +220,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   skip: {
-    marginTop: Space[5],
+    marginTop: Space[3],
     alignSelf: "center",
     paddingVertical: Space[2],
     paddingHorizontal: Space[4],
