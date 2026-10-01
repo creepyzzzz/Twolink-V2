@@ -14,7 +14,7 @@
     Your Poffu verification code: {{ .Token }}
 
     {{ .Token }} = the 6-digit code the app's code box verifies.
-    {{ .ConfirmationURL }} = fallback "tap to confirm" link.
+    Code-only template: no confirmation link is included, by design.
   -->
   <style>
     @media only screen and (max-width: 600px) {
@@ -60,15 +60,8 @@
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding-bottom:12px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:400;color:#6e6e73;">
-              Prefer a link instead?
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding-bottom:40px;">
-              <a href="{{ .ConfirmationURL }}" style="display:inline-block;background-color:#3394FA;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:26px;">
-                Confirm email
-              </a>
+            <td align="center" style="padding-bottom:40px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:400;color:#6e6e73;">
+              Enter this code in the Poffu app to verify your email.
             </td>
           </tr>
           <tr>
