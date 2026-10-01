@@ -627,9 +627,9 @@ export const useFable = create<State>()(
                     : {}),
                 },
               });
+              await get().refreshRequests().catch(() => {});
               await get().refreshChats();
               await get().refreshStories();
-              await get().refreshRequests().catch(() => {});
               const sched = await fetchScheduledDb().catch(
                 () => [] as DbScheduled[],
               );
