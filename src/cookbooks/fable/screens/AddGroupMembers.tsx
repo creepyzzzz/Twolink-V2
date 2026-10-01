@@ -15,7 +15,7 @@ import { MenuCard } from "../components/ui/menu-card";
 import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { avatarSource, type Person } from "../data/people";
 import { dbProfileToPerson, getGroup, groupDisplayName, useFable } from "../data/store";
-import { searchUsers } from "../../../lib/chat";
+import { searchFriends } from "../../../lib/chat";
 import { Accent, Space, Type } from "../constants/theme";
 import { useTheme } from "../hooks/use-theme";
 import { NotFound, LoadingRoute } from "../../NotFound";
@@ -48,11 +48,12 @@ function AddMembersScreen({ id }: { id: string }) {
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const memberIds = group?.memberIds ?? [];
-  // Live user search; current members are filtered out.
+  // Live friend search; current members are filtered out.
+  // Only friends can be added to groups.
   useEffect(() => {
     if (debounce.current) clearTimeout(debounce.current);
     debounce.current = setTimeout(() => {
-      void searchUsers(query)
+      void searchFriends(query)
         .then((found) =>
           setResults(
             found

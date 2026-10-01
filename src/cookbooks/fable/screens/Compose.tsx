@@ -8,7 +8,7 @@ import { Glass } from "../components/ui/glass";
 import { GlassButton } from "../components/ui/glass-button";
 import { avatarSource, type Person } from "../data/people";
 import { dbProfileToPerson, useFable } from "../data/store";
-import { getOrCreateDirectChat, searchUsers } from "../../../lib/chat";
+import { getOrCreateDirectChat, searchFriends, searchUsers } from "../../../lib/chat";
 import { Accent, Type } from "../constants/theme";
 import { useTheme } from "../hooks/use-theme";
 
@@ -23,17 +23,19 @@ export default function Compose() {
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Live user search against profiles (debounced).
+  // Group mode only searches friends — groups are friends-only.
   useEffect(() => {
     if (debounce.current) clearTimeout(debounce.current);
     debounce.current = setTimeout(() => {
-      void searchUsers(query)
+      const search = groupMode ? searchFriends : searchUsers;
+      void search(query)
         .then((found) => setResults(found.map(dbProfileToPerson)))
         .catch(() => setResults([]));
     }, 250);
     return () => {
       if (debounce.current) clearTimeout(debounce.current);
     };
-  }, [query]);
+  }, [query, groupMode]);
 
   const toggleMember = (id: string) =>
     setSelected((prev) =>

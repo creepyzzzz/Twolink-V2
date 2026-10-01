@@ -1200,3 +1200,40 @@ export async function deleteStoryDb(storyId: string): Promise<void> {
   const supabase = getSupabase();
   await supabase.from("stories").delete().eq("id", storyId);
 }
+
+/* ---- Friends (for group member picker) ---- */
+
+/** Search only among my friends. */
+export async function searchFriends(query: string): Promise<DbProfile[]> {
+  const supabase = getSupabase();
+  const myId = await getMyUserId();
+  const q = query.trim();
+  if (!q || !myId) return [];
+  const friendIds = await getFriendIds().catch(() => [] as string[]);
+  if (friendIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
+    .in("id", friendIds)
+    .neq("id", myId)
+    .limit(20);
+  if (error) throw error;
+  return (data ?? []) as DbProfile[];
+}
+
+/** Get full profiles for my friends. */
+export async function getFriendProfiles(): Promise<DbProfile[]> {
+  const supabase = getSupabase();
+  const myId = await getMyUserId();
+  if (!myId) return [];
+  const friendIds = await getFriendIds().catch(() => [] as string[]);
+  if (friendIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .in("id", friendIds)
+    .limit(100);
+  if (error) throw error;
+  return (data ?? []) as DbProfile[];
+}
