@@ -308,6 +308,24 @@ export default function ChatsScreen() {
     });
   }, [chats, query, filter, deleted, incomingRequestIds]);
 
+  /** Unread badges for the filter tabs. */
+  const tabBadges = useMemo(() => {
+    const requestSet = new Set(incomingRequestIds);
+    let all = 0;
+    let groups = 0;
+    for (const chat of chats) {
+      if (deleted.includes(chat.id)) continue;
+      const isIncomingRequest =
+        chat.type === "direct" &&
+        !!chat.otherUserId &&
+        requestSet.has(chat.otherUserId);
+      if (isIncomingRequest) continue;
+      if (chat.type === "group") groups += chat.unread;
+      else all += chat.unread;
+    }
+    return { all, groups, requests: incomingRequestIds.length };
+  }, [chats, deleted, incomingRequestIds]);
+
   // The long-press menu mirrors the chat ••• menu: vertical icon + label
   // rows on the same native glass surface, with the same opening animation.
   const pinned = useFable((state) => state.pinned);
@@ -470,12 +488,18 @@ export default function ChatsScreen() {
         >
           {(["All", "Requests", "Groups"] as const).map((tab) => {
             const selected = tab === filter;
+            const badgeCount =
+              tab === "All"
+                ? tabBadges.all
+                : tab === "Requests"
+                  ? tabBadges.requests
+                  : tabBadges.groups;
             return (
               <Pressable
                 key={tab}
                 accessibilityRole="tab"
                 accessibilityState={{ selected }}
-                accessibilityLabel={`${tab} conversations`}
+                accessibilityLabel={`${tab} conversations${badgeCount > 0 ? `, ${badgeCount} unread` : ""}`}
                 onPress={() => {
                   if (__DEV__) console.log("[DIAG] filter chip pressed:", tab);
                   setFilter(tab);
@@ -492,17 +516,49 @@ export default function ChatsScreen() {
                     justifyContent: "center",
                   }}
                 >
-                  <Text
+                  <View
                     style={{
-                      fontSize: 14,
-                      fontFamily: selected
-                        ? "SFProText-Semibold"
-                        : "SFProText-Medium",
-                      color: selected ? Accent : theme.secondary,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
                     }}
                   >
-                    {tab}
-                  </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontFamily: selected
+                          ? "SFProText-Semibold"
+                          : "SFProText-Medium",
+                        color: selected ? Accent : theme.secondary,
+                      }}
+                    >
+                      {tab}
+                    </Text>
+                    {badgeCount > 0 && (
+                      <View
+                        style={{
+                          minWidth: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          backgroundColor: Accent,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          paddingHorizontal: 6,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#fff",
+                            fontSize: 12,
+                            fontWeight: "600",
+                            fontVariant: ["tabular-nums"],
+                          }}
+                        >
+                          {badgeCount > 99 ? "99+" : badgeCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </Glass>
               </Pressable>
             );
