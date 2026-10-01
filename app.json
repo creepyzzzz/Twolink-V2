@@ -7,14 +7,6 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "icon": "./assets/images/icon.png",
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.poffu.chat",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "CADisableMinimumFrameDurationOnPhone": true
-      }
-    },
     "android": {
       "package": "com.poffu.chat",
       "adaptiveIcon": {
@@ -38,14 +30,6 @@
           }
         }
       ],
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "deploymentTarget": "26.0"
-          }
-        }
-      ],
       "expo-font",
       [
         "expo-image-picker",
@@ -58,8 +42,7 @@
       "expo-video"
     ],
     "platforms": [
-      "android",
-      "ios"
+      "android"
     ],
     "experiments": {
       "typedRoutes": true

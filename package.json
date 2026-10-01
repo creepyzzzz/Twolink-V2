@@ -36,7 +36,6 @@
     "expo-symbols": "~57.0.3",
     "expo-video": "~57.0.5",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-keyboard-controller": "1.21.9",
@@ -46,7 +45,6 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
-    "react-native-web": "^0.21.2",
     "react-native-worklets": "0.10.1",
     "zustand": "^5.0.15"
   },
@@ -63,13 +61,10 @@
   },
   "scripts": {
     "start": "expo start",
-    "ios": "expo run:ios",
-    "ios:release": "expo run:ios --configuration Release",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs tests/*.test.cjs",
     "verify": "npm run typecheck && npm run lint && npm test",
-    "test:ios": "bash scripts/test-ios.sh",
     "postinstall": "patch-package"
   },
   "private": true,
@@ -78,7 +73,7 @@
       "IOS_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
     }
   },
-  "description": "Two native Liquid Glass chat UI cookbooks for React Native and Expo: Fable and Astra.",
+  "description": "Poffu — private chat app with liquid-glass UI, built with React Native and Expo for Android.",
   "license": "MIT",
   "author": {
     "name": "Appllama",

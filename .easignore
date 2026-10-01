@@ -77,8 +77,6 @@ GEMINI*
 .mcp.json
 
 # --- Non-essential directories excluded from EAS build context ---
-docs/
-prompts/
 scripts/
 tests/
 supabase/
