@@ -179,6 +179,19 @@ export default function SettingsScreen() {
               <SFIcon name="chevron.right" size={20} color={INK_FAINT} />
             </View>
           </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Privacy and security settings"
+            onPress={() => router.push("/fable/privacy")}
+            style={[styles.row, styles.rowDivider]}
+          >
+            <View style={styles.rowText}>
+              <Text style={styles.rowLabel}>Privacy & Security</Text>
+            </View>
+            <View style={styles.linkRight}>
+              <SFIcon name="chevron.right" size={20} color={INK_FAINT} />
+            </View>
+          </Pressable>
           <ToggleRow
             label="Read receipts"
             hint="Let others see when you've read their messages"
