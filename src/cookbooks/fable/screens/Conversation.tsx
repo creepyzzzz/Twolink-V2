@@ -830,14 +830,40 @@ function ThreadScreen({ id }: { id: string }) {
           requesterName={person?.first ?? "this person"}
           insetBottom={insets.bottom}
           onLayoutHeight={setActionsHeight}
-          onAccept={() => acceptRequest(chat.otherUserId!)}
+          onAccept={async () => {
+            try {
+              await acceptRequest(chat.otherUserId!);
+            } catch {
+              useFable.getState().showAlert({
+                title: "Couldn't accept",
+                message: "Please check your connection and try again.",
+                actions: [{ label: "OK", style: "default" }],
+              });
+            }
+          }}
           onDecline={async () => {
-            await declineRequest(chat.otherUserId!);
-            router.replace("/fable");
+            try {
+              await declineRequest(chat.otherUserId!);
+              router.replace("/fable");
+            } catch {
+              useFable.getState().showAlert({
+                title: "Couldn't decline",
+                message: "Please check your connection and try again.",
+                actions: [{ label: "OK", style: "default" }],
+              });
+            }
           }}
           onBlock={async () => {
-            await blockUserAction(chat.otherUserId!);
-            router.replace("/fable");
+            try {
+              await blockUserAction(chat.otherUserId!);
+              router.replace("/fable");
+            } catch {
+              useFable.getState().showAlert({
+                title: "Couldn't block",
+                message: "Please check your connection and try again.",
+                actions: [{ label: "OK", style: "default" }],
+              });
+            }
           }}
         />
       ) : (

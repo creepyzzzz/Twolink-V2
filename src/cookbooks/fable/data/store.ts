@@ -866,8 +866,9 @@ export const useFable = create<State>()(
         set({ incomingRequestIds: ids });
       },
       acceptRequest: async (requesterId) => {
-        // If the request is already gone (handled elsewhere), still clean up locally.
-        await acceptFriendRequest(requesterId).catch(() => {});
+        // Let RPC errors propagate — the UI shows them instead of
+        // pretending the action succeeded.
+        await acceptFriendRequest(requesterId);
         set((s) => ({
           incomingRequestIds: s.incomingRequestIds.filter((id) => id !== requesterId),
         }));
@@ -875,16 +876,20 @@ export const useFable = create<State>()(
         await get().refreshChats().catch(() => {});
       },
       declineRequest: async (requesterId) => {
-        await declineFriendRequest(requesterId).catch(() => {});
+        await declineFriendRequest(requesterId);
         set((s) => ({
           incomingRequestIds: s.incomingRequestIds.filter((id) => id !== requesterId),
+          // Drop the chat immediately; refreshChats() confirms from the DB.
+          chats: s.chats.filter((c) => c.otherUserId !== requesterId),
         }));
         await get().refreshChats().catch(() => {});
       },
       blockUser: async (userId) => {
-        await blockUserDb(userId).catch(() => {});
+        await blockUserDb(userId);
         set((s) => ({
           incomingRequestIds: s.incomingRequestIds.filter((id) => id !== userId),
+          // Drop the chat immediately; refreshChats() confirms from the DB.
+          chats: s.chats.filter((c) => c.otherUserId !== userId),
         }));
         await get().refreshChats().catch(() => {});
       },
