@@ -837,7 +837,7 @@ function ThreadScreen({ id }: { id: string }) {
               useFable.getState().showAlert({
                 title: "Couldn't accept",
                 message: "Please check your connection and try again.",
-                actions: [{ label: "OK", style: "default" }],
+                actions: [{ text: "OK", style: "default" }],
               });
             }
           }}
@@ -849,7 +849,7 @@ function ThreadScreen({ id }: { id: string }) {
               useFable.getState().showAlert({
                 title: "Couldn't decline",
                 message: "Please check your connection and try again.",
-                actions: [{ label: "OK", style: "default" }],
+                actions: [{ text: "OK", style: "default" }],
               });
             }
           }}
@@ -861,7 +861,7 @@ function ThreadScreen({ id }: { id: string }) {
               useFable.getState().showAlert({
                 title: "Couldn't block",
                 message: "Please check your connection and try again.",
-                actions: [{ label: "OK", style: "default" }],
+                actions: [{ text: "OK", style: "default" }],
               });
             }
           }}
