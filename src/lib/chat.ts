@@ -366,19 +366,24 @@ export async function getOrCreateDirectChat(otherUserId: string): Promise<string
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     let sub: string | null = null;
+    let exp: number | null = null;
+    let expired: boolean | null = null;
     try {
       if (token) {
         const payload = token.split(".")[1];
         // base64url decode
         const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-        sub = JSON.parse(
+        const decoded = JSON.parse(
           (globalThis as any).Buffer
             ? (globalThis as any).Buffer.from(b64, "base64").toString()
             : atob(b64)
-        ).sub ?? null;
+        );
+        sub = decoded.sub ?? null;
+        exp = decoded.exp ?? null;
+        expired = exp ? Date.now() / 1000 > exp : null;
       }
     } catch {}
-    console.log("[DIAG] getOrCreateDirectChat myId:", myId, "jwt sub:", sub, "match:", myId === sub);
+    console.log("[DIAG] getOrCreateDirectChat myId:", myId, "jwt sub:", sub, "match:", myId === sub, "expired:", expired);
   }
   if (!myId) throw new Error("Not signed in");
 
