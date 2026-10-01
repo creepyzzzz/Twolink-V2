@@ -5,6 +5,8 @@ import { Space, Type } from "../../constants/theme";
 import type { Message } from "../../data/messages";
 import { useTheme } from "../../hooks/use-theme";
 
+import { Image } from "expo-image";
+
 /** "12 bytes", "340 KB", "1.2 MB". */
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return "";
@@ -15,27 +17,30 @@ export function formatBytes(bytes: number): string {
   return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
 }
 
-function getDocStyle(mimeType: string, name: string) {
+function getDocIconSource(mimeType: string, name: string) {
   const ext = name.toLowerCase().split('.').pop() ?? '';
   if (mimeType === "application/pdf" || ext === "pdf") {
-    return { bg: "#FF3B30", color: "#FFFFFF", icon: "doc.text.fill" };
+    return require("../../../../../assets/icons/docs/pdf-color.svg");
   }
   if (mimeType.includes("spreadsheet") || mimeType.includes("excel") || ext === "xls" || ext === "xlsx" || ext === "csv") {
-    return { bg: "#34C759", color: "#FFFFFF", icon: "tablecells.fill" };
+    return require("../../../../../assets/icons/docs/excel-color.svg");
   }
   if (mimeType.includes("presentation") || mimeType.includes("powerpoint") || ext === "ppt" || ext === "pptx") {
-    return { bg: "#FF9500", color: "#FFFFFF", icon: "play.rectangle.fill" };
+    return require("../../../../../assets/icons/docs/ppt-color.svg");
   }
   if (mimeType.includes("word") || ext === "doc" || ext === "docx") {
-    return { bg: "#007AFF", color: "#FFFFFF", icon: "doc.text.fill" };
+    return require("../../../../../assets/icons/docs/word-color.svg");
   }
   if (mimeType.includes("video") || ext === "mp4" || ext === "mov") {
-    return { bg: "#AF52DE", color: "#FFFFFF", icon: "play.rectangle.fill" };
+    return require("../../../../../assets/icons/docs/video-color.svg");
+  }
+  if (mimeType.includes("audio") || ext === "mp3" || ext === "wav" || ext === "m4a") {
+    return require("../../../../../assets/icons/docs/audio-color.svg");
   }
   if (mimeType.includes("zip") || mimeType.includes("tar") || ext === "zip" || ext === "rar" || ext === "7z") {
-    return { bg: "#8E8E93", color: "#FFFFFF", icon: "doc.zipper" };
+    return require("../../../../../assets/icons/docs/zip-color.svg");
   }
-  return null;
+  return require("../../../../../assets/icons/docs/default-color.svg");
 }
 
 /**
@@ -54,20 +59,17 @@ export function DocumentContent({
   const theme = useTheme();
   const doc = message.document;
   if (!doc) return null;
-  const docStyle = getDocStyle(doc.mimeType, doc.name);
-  const bg = docStyle ? docStyle.bg : (mine ? "rgba(255,255,255,0.28)" : "rgba(120,120,128,0.16)");
-  const iconColor = docStyle ? docStyle.color : (mine ? "#FFFFFF" : theme.label);
-  const iconName = docStyle ? docStyle.icon : "doc.fill";
+  const docSource = getDocIconSource(doc.mimeType, doc.name);
 
   return (
     <View style={styles.content}>
-      <View style={[styles.iconWrap, { backgroundColor: bg }]}>
+      <View style={[styles.iconWrap, { backgroundColor: "transparent" }]}>
         {mine && message.status === "sending" ? (
-          <ActivityIndicator color={iconColor} />
+          <ActivityIndicator color={mine ? "#FFFFFF" : theme.label} />
         ) : mine && message.status === "failed" ? (
           <SFIcon name="exclamationmark.circle" size={24} color="#FF6B6B" />
         ) : (
-          <SFIcon name={iconName} size={24} color={iconColor} />
+          <Image source={docSource} style={{ width: 44, height: 44 }} contentFit="contain" />
         )}
       </View>
       <View style={styles.meta}>

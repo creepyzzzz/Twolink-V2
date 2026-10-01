@@ -16,7 +16,35 @@ import type { ChatRow as ChatRowData } from "../../../../lib/chat";
 import { scheduledLabel } from "../../data/scheduled";
 import { useTheme } from "../../hooks/use-theme";
 
+import { Image } from "expo-image";
+
 export const ROW_AVATAR = 60;
+
+function getRowIconSource(mimeType: string, name: string) {
+  const ext = name.toLowerCase().split('.').pop() ?? '';
+  if (mimeType === "application/pdf" || ext === "pdf") {
+    return require("../../../../../assets/icons/docs/pdf.svg");
+  }
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel") || ext === "xls" || ext === "xlsx" || ext === "csv") {
+    return require("../../../../../assets/icons/docs/excel.svg");
+  }
+  if (mimeType.includes("presentation") || mimeType.includes("powerpoint") || ext === "ppt" || ext === "pptx") {
+    return require("../../../../../assets/icons/docs/ppt.svg");
+  }
+  if (mimeType.includes("word") || ext === "doc" || ext === "docx") {
+    return require("../../../../../assets/icons/docs/word.svg");
+  }
+  if (mimeType.includes("video") || ext === "mp4" || ext === "mov") {
+    return require("../../../../../assets/icons/docs/video.svg");
+  }
+  if (mimeType.includes("audio") || ext === "mp3" || ext === "wav" || ext === "m4a") {
+    return require("../../../../../assets/icons/docs/audio.svg");
+  }
+  if (mimeType.includes("zip") || mimeType.includes("tar") || ext === "zip" || ext === "rar" || ext === "7z") {
+    return require("../../../../../assets/icons/docs/zip.svg");
+  }
+  return require("../../../../../assets/icons/docs/default.svg");
+}
 
 /** Avatar, name, preview, and an unread indicator. Long-press offers pinning. */
 export const ChatRow = memo(function ChatRow({
@@ -63,7 +91,7 @@ export const ChatRow = memo(function ChatRow({
           : last.text
     : chat.preview;
   const isPhoto = last ? !!last.photo : preview === "Photo";
-  const isDoc = last ? !!last.document : (preview !== "Photo" && preview !== last?.text && preview !== "This message was deleted" && preview !== "You deleted this message" && preview !== "");
+  const isDoc = last ? !!last.document : false;
   const fromMe = last ? last.from === "me" : chat.previewFromMe;
 
   return (
@@ -90,39 +118,33 @@ export const ChatRow = memo(function ChatRow({
             <Text numberOfLines={1} style={[Type.name, { color: theme.label }]}>
               {person.name}
             </Text>
-            <Text
-              numberOfLines={1}
-              style={[
-                Type.preview,
-                { color: unread ? theme.label : theme.secondary },
-              ]}
-            >
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
               {draftText ? (
-                <>
+                <Text numberOfLines={1} style={[Type.preview, { color: theme.secondary, flex: 1 }]}>
                   <Text style={{ color: Accent }}>Draft: </Text>
-                  <Text style={{ color: theme.secondary }}>{draftText}</Text>
-                </>
+                  {draftText}
+                </Text>
               ) : scheduledNext ? (
-                <>
+                <Text numberOfLines={1} style={[Type.preview, { color: theme.secondary, flex: 1 }]}>
                   <Text style={{ color: Accent }}>Scheduled: </Text>
-                  <Text style={{ color: theme.secondary }}>
-                    {scheduledLabel(scheduledNext.at)}
-                  </Text>
-                </>
+                  {scheduledLabel(scheduledNext.at)}
+                </Text>
               ) : (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
-                  {fromMe ? <Text style={{ color: theme.secondary }}>You: </Text> : null}
+                <>
+                  {fromMe ? <Text style={[Type.preview, { color: theme.secondary }]}>You: </Text> : null}
                   {isPhoto ? (
-                    <SFIcon name="camera.fill" size={12} color={theme.secondary} />
+                    <Image source={require("../../../../../assets/icons/docs/image.svg")} style={{ width: 14, height: 14, tintColor: theme.secondary, marginRight: 4 }} contentFit="contain" />
+                  ) : isDoc && last?.document ? (
+                    <Image source={getRowIconSource(last.document.mimeType, last.document.name)} style={{ width: 14, height: 14, tintColor: theme.secondary, marginRight: 4 }} contentFit="contain" />
                   ) : isDoc ? (
-                    <SFIcon name="doc.fill" size={12} color={theme.secondary} />
+                    <Image source={require("../../../../../assets/icons/docs/default.svg")} style={{ width: 14, height: 14, tintColor: theme.secondary, marginRight: 4 }} contentFit="contain" />
                   ) : null}
-                  <Text numberOfLines={1} style={{ flex: 1, color: unread ? theme.label : theme.secondary }}>
+                  <Text numberOfLines={1} style={[Type.preview, { flex: 1, color: unread ? theme.label : theme.secondary }]}>
                     {preview}
                   </Text>
-                </View>
+                </>
               )}
-            </Text>
+            </View>
           </View>
           <View style={styles.meta}>
             {pinned && (

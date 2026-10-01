@@ -2,20 +2,20 @@ import { create } from "zustand";
 import * as ImagePicker from "expo-image-picker";
 import { Alert } from "react-native";
 
-import { markStoryViewed, postStoryDb } from "../../../lib/chat";
+import { markStoryViewed, postStoryDb, uploadStoryMedia } from "../../../lib/chat";
 import { useFable } from "./store";
 
 type StoryState = {
   /** The user whose stories are open in the viewer, or null. */
   activeUserId: string | null;
   liked: string[];
-  uploading: boolean;
+  uploadingUri: string | null;
 };
 
 const useStories = create<StoryState>(() => ({
   activeUserId: null,
   liked: [],
-  uploading: false,
+  uploadingUri: null,
 }));
 
 /** Mark one story viewed locally (server flag set by the viewer too). */
@@ -47,8 +47,8 @@ export function toggleStoryLike(id: string) {
       : [...state.liked, id],
   }));
 }
-export function useStoryUploading() {
-  return useStories((state) => state.uploading);
+export function useStoryUploadingUri() {
+  return useStories((state) => state.uploadingUri);
 }
 
 /** Posts a photo-library picture to your story. Shared by the rail cell and the viewer. */
@@ -64,8 +64,9 @@ export async function pickAndPostStory() {
   });
   if (res.canceled || res.assets.length === 0) return;
   try {
-    useStories.setState({ uploading: true });
-    await postStoryDb(res.assets[0].uri);
+    useStories.setState({ uploadingUri: res.assets[0].uri });
+    const publicUrl = await uploadStoryMedia(res.assets[0].uri);
+    await postStoryDb(publicUrl);
     await useFable.getState().refreshStories();
   } catch {
     useFable.getState().showAlert({
@@ -74,6 +75,6 @@ export async function pickAndPostStory() {
       actions: [{ text: "OK", style: "default" }],
     });
   } finally {
-    useStories.setState({ uploading: false });
+    useStories.setState({ uploadingUri: null });
   }
 }

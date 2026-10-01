@@ -8,6 +8,7 @@
  */
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { AppState, type NativeEventSubscription } from "react-native";
 import { createMMKV } from "react-native-mmkv";
 import {
   type DocumentAttachment,
@@ -82,6 +83,7 @@ export type { StoryItem } from "../../../lib/chat";
 
 const storage = createMMKV({ id: "fable-local-v1" });
 let sequence = 0;
+let appStateListener: NativeEventSubscription | null = null;
 
 /** Maps a live profile row to the UI Person shape. */
 export function dbProfileToPerson(p: DbProfile): Person {
@@ -239,7 +241,7 @@ type State = {
   threadsLoaded: Record<string, boolean>;
   historyExhausted: Record<string, boolean>;
   /** Loads a chat's messages on demand (no-op when already loaded). */
-  ensureThread: (id: string) => Promise<void>;
+  ensureThread: (id: string, force?: boolean) => Promise<void>;
   /** Prepends the next older page; no-op when exhausted. */
   loadEarlier: (id: string) => Promise<void>;
   /** Tracks who is typing in each thread */
@@ -691,6 +693,18 @@ export const useFable = create<State>()(
                 onTyping: (chatId, userId, isTyping) =>
                   get().setTyping(chatId, userId, isTyping),
               });
+              if (!appStateListener) {
+                appStateListener = AppState.addEventListener("change", (nextState) => {
+                  if (nextState === "active") {
+                    void get().refreshChats();
+                    void get().refreshStories();
+                    const openThreadId = get().openThreadId;
+                    if (openThreadId) {
+                      void get().ensureThread(openThreadId, true);
+                    }
+                  }
+                });
+              }
               set({ bootstrapped: true });
               startSweeper();
             } finally {
@@ -704,6 +718,10 @@ export const useFable = create<State>()(
         if (liveUnsub) {
           liveUnsub();
           liveUnsub = null;
+        }
+        if (appStateListener) {
+          appStateListener.remove();
+          appStateListener = null;
         }
         if (sweeperInterval) {
           clearInterval(sweeperInterval);
@@ -784,9 +802,9 @@ export const useFable = create<State>()(
       threads: {},
       threadsLoaded: {},
       historyExhausted: {},
-      ensureThread: async (id) => {
+      ensureThread: async (id, force = false) => {
         const st = get();
-        if (st.threadsLoaded[id] || !st.myId) return;
+        if ((st.threadsLoaded[id] && !force) || !st.myId) return;
         set((s) => ({
           threadsLoaded: { ...s.threadsLoaded, [id]: true },
         }));

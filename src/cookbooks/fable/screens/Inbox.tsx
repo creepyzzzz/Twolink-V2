@@ -40,7 +40,7 @@ import { EASE_OUT } from "../constants/motion";
 import { Accent } from "../constants/theme";
 import { AVATAR_FACES } from "../data/people";
 import { unreadCount } from "../data/unread";
-import { openStory, pickAndPostStory } from "../data/story-state";
+import { openStory, pickAndPostStory, useStoryUploadingUri } from "../data/story-state";
 import { useFable } from "../data/store";
 import { useTheme } from "../hooks/use-theme";
 import { SFIcon } from "../../../ui/SFIcon";
@@ -183,7 +183,14 @@ export default function ChatsScreen() {
     );
   }, [listRef, lockedSV]);
 
+  const uploadingUri = useStoryUploadingUri();
+
   const onPressStory = useCallback((item: RailStory) => {
+    // If it's actively uploading, tapping shouldn't open the viewer (since it's not on the server yet)
+    // nor should it trigger a second upload.
+    if (item.isMe && uploadingUri != null) {
+      return;
+    }
     // Your cell: with no posted stories the + tile goes straight to the
     // library; once you've posted, it opens the viewer like everyone else.
     if (item.isMe && !item.hasStory) {
@@ -191,7 +198,7 @@ export default function ChatsScreen() {
       return;
     }
     openStory(item.userId);
-  }, []);
+  }, [uploadingUri]);
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"All" | "Requests" | "Groups">("All");
@@ -262,7 +269,7 @@ export default function ChatsScreen() {
         photoUrl: profile.photoUri ?? null,
         state: "none",
         hasStory:
-          myId != null && stories.some((s) => s.userId === myId),
+          myId != null && (stories.some((s) => s.userId === myId) || uploadingUri != null),
       },
     ];
     const seen = new Set<string>();
@@ -282,7 +289,7 @@ export default function ChatsScreen() {
       });
     }
     return items;
-  }, [stories, people, profile, myId]);
+  }, [stories, people, profile, myId, uploadingUri]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

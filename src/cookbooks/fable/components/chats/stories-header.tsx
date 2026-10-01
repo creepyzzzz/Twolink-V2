@@ -20,7 +20,7 @@ import { OrbButton } from "../ui/orb-button";
 import { Accent, Type } from "../../constants/theme";
 import { AVATAR_FACES } from "../../data/people";
 import { useFable } from "../../data/store";
-import { useStoryUploading } from "../../data/story-state";
+import { useStoryUploadingUri } from "../../data/story-state";
 import { useTheme } from "../../hooks/use-theme";
 
 /** Geometry — every number here is shared with the list screen. */
@@ -282,7 +282,7 @@ function StoryItem({
   onPress,
 }: ItemProps) {
   const theme = useTheme();
-  const uploading = useStoryUploading();
+  const uploadingUri = useStoryUploadingUri();
   const isMe = index === 0;
   const clusterK = index - 1; // 0..2 for the three that tuck into the title
   const inCluster = clusterK >= 0 && clusterK < CLUSTER_COUNT;
@@ -344,7 +344,7 @@ function StoryItem({
     };
   });
 
-  const hasMyStories = isMe && person.hasStory;
+  const hasMyStories = isMe && (person.hasStory || uploadingUri != null);
   // Your cell: unread ring once you've posted; the seen logic is for others.
   const state = isMe ? (hasMyStories ? "unread" : "none") : person.state;
   const ringColor =
@@ -359,17 +359,17 @@ function StoryItem({
 
   const rotate = useSharedValue(0);
   useEffect(() => {
-    if (isMe && uploading) {
+    if (isMe && uploadingUri != null) {
       rotate.set(
         withRepeat(
-          withTiming(360, { duration: 1200, easing: Easing.linear }),
+          withTiming(360, { duration: 2500, easing: Easing.linear }),
           -1,
         )
       );
     } else {
       rotate.set(0);
     }
-  }, [isMe, uploading]);
+  }, [isMe, uploadingUri]);
 
   const uploadRingStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotate.get()}deg` }],
@@ -409,9 +409,9 @@ function StoryItem({
                 uploadRingStyle,
                 {
                   position: 'absolute',
-                  borderColor: isMe && uploading ? Accent : ringColor,
+                  borderColor: isMe && uploadingUri != null ? Accent : ringColor,
                   borderWidth: ringWidth,
-                  borderStyle: isMe && uploading ? 'dashed' : 'solid',
+                  borderStyle: isMe && uploadingUri != null ? 'dashed' : 'solid',
                   width: AV,
                   height: AV,
                   borderRadius: AV / 2,

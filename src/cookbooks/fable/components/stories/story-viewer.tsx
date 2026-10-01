@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -271,6 +272,11 @@ export function StoryViewer({ item, person, isMe, open, onClose }: Props) {
           transition={0}
           onLoad={() => setLoaded(true)}
         />
+        {!loaded && (
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', zIndex: 10 }]}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+          </View>
+        )}
         {/* Gesture surface sits under the controls so the buttons stay ordinary pressables. */}
         <GestureDetector gesture={surface}>
           <Animated.View
