@@ -194,13 +194,14 @@ export default function ChatsScreen() {
   }, []);
 
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"All" | "Unread" | "Groups">("All");
+  const [filter, setFilter] = useState<"All" | "Requests" | "Groups">("All");
   /** Long-press context menu on a row: the same native glass menu as the
       chat ••• button — vertical icon + label rows, same opening animation. */
   const [menuId, setMenuId] = useState<string | null>(null);
   const menuAnchorRef = useRef<View | null>(null);
   const rowViews = useRef(new Map<string, View | null>());
   const deleted = useFable((state) => state.deleted);
+  const incomingRequestIds = useFable((state) => state.incomingRequestIds);
   const togglePin = useFable((state) => state.togglePin);
   const toggleMute = useFable((state) => state.toggleMute);
   const toggleRead = useFable((state) => state.toggleRead);
@@ -285,17 +286,22 @@ export default function ChatsScreen() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const requestSet = new Set(incomingRequestIds);
     return chats.filter((chat) => {
       if (deleted.includes(chat.id)) return false;
       if (filter === "Groups" && chat.type !== "group") return false;
-      if (filter === "Unread" && chat.unread === 0) return false;
+      if (filter === "Requests") {
+        // Only direct chats with an incoming pending request.
+        if (chat.type !== "direct") return false;
+        if (!chat.otherUserId || !requestSet.has(chat.otherUserId)) return false;
+      }
       if (!q) return true;
       return (
         chat.name.toLowerCase().includes(q) ||
         chat.preview.toLowerCase().includes(q)
       );
     });
-  }, [chats, query, filter, deleted]);
+  }, [chats, query, filter, deleted, incomingRequestIds]);
 
   // The long-press menu mirrors the chat ••• menu: vertical icon + label
   // rows on the same native glass surface, with the same opening animation.
@@ -457,7 +463,7 @@ export default function ChatsScreen() {
             paddingBottom: 4,
           }}
         >
-          {(["All", "Unread", "Groups"] as const).map((tab) => {
+          {(["All", "Requests", "Groups"] as const).map((tab) => {
             const selected = tab === filter;
             return (
               <Pressable
@@ -531,9 +537,9 @@ export default function ChatsScreen() {
             <Text style={[styles.empty, { color: theme.secondary }]}>
               {`No chats match “${query.trim()}”.`}
             </Text>
-          ) : filter === "Unread" ? (
+          ) : filter === "Requests" ? (
             <Text style={[styles.empty, { color: theme.secondary }]}>
-              You’re all caught up.
+              No requests. When someone new messages you, they’ll appear here.
             </Text>
           ) : filter === "Groups" ? (
             <Text style={[styles.empty, { color: theme.secondary }]}>

@@ -64,6 +64,10 @@ import {
   uploadChatMedia,
   uploadStoryMedia,
   formatMessageTime,
+  acceptFriendRequest,
+  declineFriendRequest,
+  blockUser as blockUserDb,
+  getIncomingRequestIds,
   type ChatRow,
   type DbMessage,
   type DbProfile,
@@ -243,6 +247,14 @@ type State = {
   refreshStories: () => Promise<void>;
   postStory: (uri: string) => Promise<void>;
   removeStory: (id: string) => Promise<void>;
+
+  /* ---- friend requests ---- */
+  /** User IDs with incoming pending friend requests. */
+  incomingRequestIds: string[];
+  refreshRequests: () => Promise<void>;
+  acceptRequest: (requesterId: string) => Promise<void>;
+  declineRequest: (requesterId: string) => Promise<void>;
+  blockUser: (userId: string) => Promise<void>;
 
   /* ---- the rest (same names as before) ---- */
   lastRead: Record<string, string>;
@@ -616,6 +628,7 @@ export const useFable = create<State>()(
               });
               await get().refreshChats();
               await get().refreshStories();
+              await get().refreshRequests().catch(() => {});
               const sched = await fetchScheduledDb().catch(
                 () => [] as DbScheduled[],
               );
@@ -842,6 +855,34 @@ export const useFable = create<State>()(
       removeStory: async (id) => {
         await deleteStoryDb(id).catch(() => {});
         set((s) => ({ stories: s.stories.filter((x) => x.id !== id) }));
+      },
+
+      incomingRequestIds: [],
+      refreshRequests: async () => {
+        const ids = await getIncomingRequestIds().catch(() => [] as string[]);
+        set({ incomingRequestIds: ids });
+      },
+      acceptRequest: async (requesterId) => {
+        await acceptFriendRequest(requesterId);
+        set((s) => ({
+          incomingRequestIds: s.incomingRequestIds.filter((id) => id !== requesterId),
+        }));
+        // Refresh chats so the accepted chat moves to the main list.
+        await get().refreshChats().catch(() => {});
+      },
+      declineRequest: async (requesterId) => {
+        await declineFriendRequest(requesterId);
+        set((s) => ({
+          incomingRequestIds: s.incomingRequestIds.filter((id) => id !== requesterId),
+        }));
+        await get().refreshChats().catch(() => {});
+      },
+      blockUser: async (userId) => {
+        await blockUserDb(userId);
+        set((s) => ({
+          incomingRequestIds: s.incomingRequestIds.filter((id) => id !== userId),
+        }));
+        await get().refreshChats().catch(() => {});
       },
 
       lastRead: {},
