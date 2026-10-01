@@ -74,6 +74,20 @@ export default function Settings() {
       </Pressable>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Privacy and security settings"
+        onPress={() => router.push("/fable/privacy")}
+        style={{
+          paddingVertical: 24,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text style={{ color: theme.label, fontSize: 15 }}>Privacy & Security</Text>
+        <Text style={{ color: theme.secondary, fontSize: 15 }}>›</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
         onPress={() =>
           Alert.alert(
             "Start fresh?",
