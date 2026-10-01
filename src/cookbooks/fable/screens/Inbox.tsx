@@ -290,10 +290,15 @@ export default function ChatsScreen() {
     return chats.filter((chat) => {
       if (deleted.includes(chat.id)) return false;
       if (filter === "Groups" && chat.type !== "group") return false;
+      // Incoming requests live only in the Requests tab, never in All.
+      const isIncomingRequest =
+        chat.type === "direct" &&
+        !!chat.otherUserId &&
+        requestSet.has(chat.otherUserId);
       if (filter === "Requests") {
-        // Only direct chats with an incoming pending request.
-        if (chat.type !== "direct") return false;
-        if (!chat.otherUserId || !requestSet.has(chat.otherUserId)) return false;
+        if (!isIncomingRequest) return false;
+      } else if (isIncomingRequest) {
+        return false;
       }
       if (!q) return true;
       return (
