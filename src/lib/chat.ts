@@ -489,7 +489,7 @@ export async function declineFriendRequest(requesterId: string): Promise<void> {
 
 export async function blockUser(userId: string): Promise<void> {
   const supabase = getSupabase();
-  const { error } = await supabase.rpc("block_user", { blocked_id: userId });
+  const { error } = await supabase.rpc("block_user", { target_id: userId });
   if (error) throw error;
 }
 
@@ -511,7 +511,7 @@ export async function hasBlockWith(otherUserId: string): Promise<boolean> {
 
 export async function unblockUser(userId: string): Promise<void> {
   const supabase = getSupabase();
-  const { error } = await supabase.rpc("unblock_user", { blocked_id: userId });
+  const { error } = await supabase.rpc("unblock_user", { target_id: userId });
   if (error) throw error;
 }
 
