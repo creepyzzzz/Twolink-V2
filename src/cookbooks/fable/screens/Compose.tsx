@@ -59,7 +59,8 @@ export default function Compose() {
     try {
       const id = await getOrCreateDirectChat(person.id);
       router.replace({ pathname: "/fable/chat/[id]", params: { id } });
-    } catch {
+    } catch (e) {
+      if (__DEV__) console.log("[DIAG] openDirect failed:", JSON.stringify(e, null, 2));
       useFable.getState().showAlert({
         title: "Couldn't open chat",
         message: "Check your connection and try again.",
