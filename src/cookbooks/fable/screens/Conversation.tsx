@@ -24,14 +24,8 @@ import {
   type NativeSyntheticEvent,
 } from "react-native";
 import { KeyboardChatScrollView } from "react-native-keyboard-controller";
-import Animated, {
-  FadeInUp,
-  FadeOut,
-  SlideOutDown,
-  useAnimatedRef,
-} from "react-native-reanimated";
+import Animated, { useAnimatedRef } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { EASE_OUT } from "../constants/motion";
 
 import { Bubble } from "../components/thread/bubble";
 import { DeletedTombstone } from "../components/thread/tombstone";
@@ -831,38 +825,23 @@ function ThreadScreen({ id }: { id: string }) {
       </View>
 
       {isIncomingRequest && chat?.otherUserId ? (
-        <Animated.View
-          key="request-actions"
-          exiting={FadeOut.duration(220).easing(EASE_OUT.factory())}
-        >
-          <Animated.View
-            exiting={SlideOutDown.duration(280).easing(EASE_OUT.factory())}
-          >
-            <RequestActions
-              requesterId={chat.otherUserId}
-              requesterName={person?.first ?? "this person"}
-              insetBottom={insets.bottom}
-              onLayoutHeight={setActionsHeight}
-              onAccept={() => acceptRequest(chat.otherUserId!)}
-              onDecline={async () => {
-                await declineRequest(chat.otherUserId!);
-                router.replace("/fable");
-              }}
-              onBlock={async () => {
-                await blockUserAction(chat.otherUserId!);
-                router.replace("/fable");
-              }}
-            />
-          </Animated.View>
-        </Animated.View>
+        <RequestActions
+          requesterId={chat.otherUserId}
+          requesterName={person?.first ?? "this person"}
+          insetBottom={insets.bottom}
+          onLayoutHeight={setActionsHeight}
+          onAccept={() => acceptRequest(chat.otherUserId!)}
+          onDecline={async () => {
+            await declineRequest(chat.otherUserId!);
+            router.replace("/fable");
+          }}
+          onBlock={async () => {
+            await blockUserAction(chat.otherUserId!);
+            router.replace("/fable");
+          }}
+        />
       ) : (
-        <Animated.View
-          key="composer"
-          entering={FadeInUp.duration(340)
-            .delay(140)
-            .easing(EASE_OUT.factory())}
-        >
-          <Composer
+        <Composer
             key={editing ? `edit-${editing.messageId}` : "compose"}
             threadId={id}
             insetBottom={insets.bottom}
@@ -878,7 +857,6 @@ function ThreadScreen({ id }: { id: string }) {
             onSaveEdit={onSaveEdit}
             onCancelEdit={() => setEditing(null)}
           />
-        </Animated.View>
       )}
 
       {searchOpen && (
