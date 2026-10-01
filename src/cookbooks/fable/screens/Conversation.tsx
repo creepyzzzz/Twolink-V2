@@ -64,15 +64,22 @@ export default function ConversationRoute() {
   const chat = useFable((state) => state.chats.find((c) => c.id === id));
   const groups = useFable((state) => state.groups);
   const bootstrapped = useFable((state) => state.bootstrapped);
+  const leavingThread = useFable((state) => state.leavingThread);
   useEffect(() => {
     // Deep link on a cold start: make sure the chat list is loading.
     // bootstrap() is idempotent.
     if (!bootstrapped) void useFable.getState().bootstrap();
   }, [bootstrapped]);
+  // Clear the leaving flag when navigating to a different thread.
+  useEffect(() => {
+    useFable.setState({ leavingThread: false });
+  }, [id]);
   if (!chat && !getGroup(groups, id)) {
     // The chat list hasn't arrived yet — wait for it instead of flashing
     // "not found" for a valid deep link.
     if (!bootstrapped) return <LoadingRoute />;
+    // Intentionally leaving after decline/block — don't flash NotFound.
+    if (leavingThread) return <LoadingRoute />;
     return <NotFound home="/fable" />;
   }
   return <ThreadScreen key={id} id={id} />;
@@ -842,11 +849,14 @@ function ThreadScreen({ id }: { id: string }) {
             }
           }}
           onDecline={async () => {
-            // Navigate first so the deleted chat never renders NotFound.
-            router.replace("/fable");
+            // Mark as leaving so the Conversation doesn't flash NotFound
+            // when the chat is removed from state before navigation completes.
+            useFable.setState({ leavingThread: true });
             try {
               await declineRequest(chat.otherUserId!);
+              router.replace("/fable");
             } catch {
+              useFable.setState({ leavingThread: false });
               useFable.getState().showAlert({
                 title: "Couldn't decline",
                 message: "Please check your connection and try again.",
@@ -855,13 +865,20 @@ function ThreadScreen({ id }: { id: string }) {
             }
           }}
           onBlock={async () => {
-            // Navigate first so the deleted chat never renders NotFound.
-            router.replace("/fable");
+            // Mark as leaving so the Conversation doesn't flash NotFound
+            // when the chat is removed from state before navigation completes.
+            useFable.setState({ leavingThread: true });
             try {
               await blockUserAction(chat.otherUserId!);
+              router.replace("/fable");
             } catch (e) {
+              useFable.setState({ leavingThread: false });
               const detail =
-                e instanceof Error ? e.message : "Unknown error";
+                e instanceof Error
+                  ? e.message
+                  : typeof e === "object" && e !== null
+                    ? JSON.stringify(e)
+                    : String(e);
               useFable.getState().showAlert({
                 title: "Couldn't block",
                 message: `Please check your connection and try again.\n\nDebug: ${detail}`,

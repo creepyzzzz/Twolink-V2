@@ -261,6 +261,8 @@ type State = {
   lastRead: Record<string, string>;
   openThreadId: string | null;
   setOpenThread: (id: string | null) => void;
+  /** True while decline/block is intentionally removing the open thread. */
+  leavingThread: boolean;
   muted: Record<string, boolean>;
   pinned: string[];
   deleted: string[];
@@ -896,6 +898,7 @@ export const useFable = create<State>()(
 
       lastRead: {},
       openThreadId: null,
+      leavingThread: false,
       setOpenThread: (id) => {
         set({ openThreadId: id });
         if (id) void get().ensureThread(id).catch(() => {});
