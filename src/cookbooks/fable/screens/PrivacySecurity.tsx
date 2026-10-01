@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   Switch,
   Text,
@@ -10,17 +11,23 @@ import { Stack } from "expo-router";
 import { useTheme } from "../hooks/use-theme";
 import {
   getAllowMessageRequests,
+  getBlockedUsers,
   setAllowMessageRequests,
+  unblockUser,
+  type DbProfile,
 } from "../../../lib/chat";
 
 /**
- * Privacy & Security settings. For now: who can send me message requests.
+ * Privacy & Security settings: message-request toggle + blocked users.
  */
 export default function PrivacySecurity() {
   const theme = useTheme();
   const [allow, setAllow] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [blocked, setBlocked] = useState<DbProfile[]>([]);
+  const [blockedLoaded, setBlockedLoaded] = useState(false);
+  const [unblocking, setUnblocking] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +40,16 @@ export default function PrivacySecurity() {
       })
       .catch(() => {
         if (!cancelled) setLoaded(true);
+      });
+    getBlockedUsers()
+      .then((users) => {
+        if (!cancelled) {
+          setBlocked(users);
+          setBlockedLoaded(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setBlockedLoaded(true);
       });
     return () => {
       cancelled = true;
@@ -49,6 +66,18 @@ export default function PrivacySecurity() {
       setAllow(!value);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const onUnblock = async (userId: string) => {
+    setUnblocking(userId);
+    try {
+      await unblockUser(userId);
+      setBlocked((list) => list.filter((p) => p.id !== userId));
+    } catch {
+      // Keep the row on failure.
+    } finally {
+      setUnblocking(null);
     }
   };
 
@@ -122,6 +151,67 @@ export default function PrivacySecurity() {
           When this is off, new people can’t discover you or send you requests.
           Your existing chats and friends are unaffected.
         </Text>
+
+        <Text
+          style={{
+            fontSize: 13,
+            color: theme.secondary,
+            marginTop: 28,
+            marginBottom: 8,
+            textTransform: "uppercase",
+            letterSpacing: 0.5,
+          }}
+        >
+          Blocked
+        </Text>
+        {!blockedLoaded ? (
+          <ActivityIndicator size="small" color={theme.secondary} />
+        ) : blocked.length === 0 ? (
+          <Text style={{ fontSize: 14, color: theme.secondary }}>
+            No blocked users.
+          </Text>
+        ) : (
+          <View
+            style={{
+              backgroundColor: theme.surface,
+              borderRadius: 14,
+              overflow: "hidden",
+            }}
+          >
+            {blocked.map((p, i) => (
+              <View
+                key={p.id}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderTopWidth: i === 0 ? 0 : 0.5,
+                  borderTopColor: theme.hairline,
+                }}
+              >
+                <Text style={{ flex: 1, fontSize: 16, color: theme.label }}>
+                  {p.display_name || "Unknown"}
+                </Text>
+                <Pressable
+                  onPress={() => onUnblock(p.id)}
+                  disabled={unblocking === p.id}
+                  accessibilityLabel={`Unblock ${p.display_name || "user"}`}
+                >
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      color: "#3394FA",
+                      opacity: unblocking === p.id ? 0.5 : 1,
+                    }}
+                  >
+                    {unblocking === p.id ? "Unblocking…" : "Unblock"}
+                  </Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </>
   );

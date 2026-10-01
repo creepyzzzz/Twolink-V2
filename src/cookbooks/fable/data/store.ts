@@ -68,6 +68,7 @@ import {
   declineFriendRequest,
   blockUser as blockUserDb,
   getIncomingRequestIds,
+  hasBlockWith,
   type ChatRow,
   type DbMessage,
   type DbProfile,
@@ -640,6 +641,8 @@ export const useFable = create<State>()(
                 onMessageUpdate: (row) => void handleMessageUpdate(row),
                 onReceipt: (r) => void handleReceipt(r),
                 onChatChange: () => scheduleChatRefresh(),
+                onFriendshipChange: () =>
+                  void get().refreshRequests().catch(() => {}),
               });
               set({ bootstrapped: true });
             } finally {
@@ -863,7 +866,8 @@ export const useFable = create<State>()(
         set({ incomingRequestIds: ids });
       },
       acceptRequest: async (requesterId) => {
-        await acceptFriendRequest(requesterId);
+        // If the request is already gone (handled elsewhere), still clean up locally.
+        await acceptFriendRequest(requesterId).catch(() => {});
         set((s) => ({
           incomingRequestIds: s.incomingRequestIds.filter((id) => id !== requesterId),
         }));
@@ -871,14 +875,14 @@ export const useFable = create<State>()(
         await get().refreshChats().catch(() => {});
       },
       declineRequest: async (requesterId) => {
-        await declineFriendRequest(requesterId);
+        await declineFriendRequest(requesterId).catch(() => {});
         set((s) => ({
           incomingRequestIds: s.incomingRequestIds.filter((id) => id !== requesterId),
         }));
         await get().refreshChats().catch(() => {});
       },
       blockUser: async (userId) => {
-        await blockUserDb(userId);
+        await blockUserDb(userId).catch(() => {});
         set((s) => ({
           incomingRequestIds: s.incomingRequestIds.filter((id) => id !== userId),
         }));
@@ -1035,6 +1039,22 @@ export const useFable = create<State>()(
         const st = get();
         if (!st.myId || from !== "me") return;
         if (!photo && !text.trim() && !opts?.document) return;
+        // Guard: can't send into a chat that's an incoming request.
+        const chat = st.chats.find((c) => c.id === id);
+        if (
+          chat?.type === "direct" &&
+          chat.otherUserId &&
+          st.incomingRequestIds.includes(chat.otherUserId)
+        ) {
+          return;
+        }
+        // Guard: can't send across a block in either direction.
+        if (chat?.type === "direct" && chat.otherUserId) {
+          const blocked = await hasBlockWith(chat.otherUserId).catch(
+            () => false,
+          );
+          if (blocked) return;
+        }
         const tempId = `pending-${Date.now()}-${++sequence}`;
         const lifetime =
           st.chats.find((c) => c.id === id)?.disappearingMs ?? 0;

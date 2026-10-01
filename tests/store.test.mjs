@@ -164,6 +164,7 @@ function makeChatFake() {
     signedMediaUrl: async (p) => `https://signed.test/${p}`,
     formatMessageTime: () => "now",
     subscribeToChatEvents: () => () => {},
+    hasBlockWith: async () => false,
     fetchStories: async () => [],
     postStoryDb: async () => ({ id: nextId("story") }),
     deleteStoryDb: async () => {},

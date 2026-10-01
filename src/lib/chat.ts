@@ -493,6 +493,45 @@ export async function blockUser(userId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** True if I blocked them or they blocked me. */
+export async function hasBlockWith(otherUserId: string): Promise<boolean> {
+  const supabase = getSupabase();
+  const myId = await getMyUserId();
+  if (!myId) return false;
+  const { data, error } = await supabase
+    .from("blocks")
+    .select("blocker_id")
+    .or(
+      `and(blocker_id.eq.${myId},blocked_id.eq.${otherUserId}),and(blocker_id.eq.${otherUserId},blocked_id.eq.${myId})`,
+    )
+    .limit(1);
+  if (error) return false;
+  return (data?.length ?? 0) > 0;
+}
+
+export async function unblockUser(userId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc("unblock_user", { blocked_id: userId });
+  if (error) throw error;
+}
+
+/** Users I have blocked, with profiles for display. */
+export async function getBlockedUsers(): Promise<DbProfile[]> {
+  const supabase = getSupabase();
+  const myId = await getMyUserId();
+  if (!myId) return [];
+  const { data, error } = await supabase
+    .from("blocks")
+    .select("blocked_id")
+    .eq("blocker_id", myId);
+  if (error) return [];
+  const ids = ((data ?? []) as { blocked_id: string }[]).map(
+    (r) => r.blocked_id,
+  );
+  if (ids.length === 0) return [];
+  return fetchProfiles(ids);
+}
+
 /** Privacy toggle: can strangers send me message requests? */
 export async function getAllowMessageRequests(): Promise<boolean> {
   const supabase = getSupabase();
@@ -835,6 +874,7 @@ export type ChatEventHandlers = {
   onMessageUpdate?: (msg: DbMessage) => void;
   onReceipt?: (receipt: DbReceipt) => void;
   onChatChange?: () => void;
+  onFriendshipChange?: () => void;
 };
 
 /**
@@ -872,6 +912,11 @@ export function subscribeToChatEvents(handlers: ChatEventHandlers): () => void {
       "postgres_changes",
       { event: "*", schema: "public", table: "chat_members" },
       () => handlers.onChatChange?.(),
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "friendships" },
+      () => handlers.onFriendshipChange?.(),
     )
     .subscribe();
   return () => {

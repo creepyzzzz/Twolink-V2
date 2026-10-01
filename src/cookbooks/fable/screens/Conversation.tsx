@@ -823,11 +823,11 @@ function ThreadScreen({ id }: { id: string }) {
           onAccept={() => acceptRequest(chat.otherUserId!)}
           onDecline={async () => {
             await declineRequest(chat.otherUserId!);
-            router.back();
+            router.replace("/fable");
           }}
           onBlock={async () => {
             await blockUserAction(chat.otherUserId!);
-            router.back();
+            router.replace("/fable");
           }}
         />
       ) : (
