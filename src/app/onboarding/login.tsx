@@ -1,12 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useRef, useState } from "react";
 import {
   Keyboard,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -239,7 +239,11 @@ export default function Login() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
-      <StatusBar style="dark" translucent backgroundColor="transparent" />
+      <StatusBar
+        barStyle="dark-content"
+        translucent
+        backgroundColor="transparent"
+      />
       <Animated.View style={[styles.artWrap, artStyle]}>
         <VideoView
           player={player}
