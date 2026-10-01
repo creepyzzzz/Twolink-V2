@@ -1,6 +1,5 @@
-import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useVideoPlayer, VideoView } from "expo-video";
 import { useRef, useState } from "react";
 import {
   Keyboard,
@@ -92,13 +91,14 @@ function BackLink({ onPress }: { onPress: () => void }) {
 }
 
 /**
- * Screen 2 — top half: the cheering sea-creature trio, animated with real
- * body movement in a slow seamless loop. Bottom half morphs in place through
- * three states (no new pages): provider buttons -> email+password form ->
- * 6-digit code entry. Email+password is real Supabase auth: existing accounts
- * sign in, new addresses create an account. Google is still UI-only.
+ * Screen 2 — the trio artwork (9:16, extended with a white fade) fills the
+ * screen edge-to-edge like the welcome page. The auth content sits on the
+ * white lower part and morphs in place through three states (no new pages):
+ * provider buttons -> email+password form -> 6-digit code entry.
+ * Email+password is real Supabase auth: existing accounts sign in, new
+ * addresses create an account. Google is still UI-only.
  *
- * Keyboard handling: the hero video collapses in sync with the keyboard
+ * Keyboard handling: the content block slides up in sync with the keyboard
  * (UI-thread, via useAnimatedKeyboard) so the focused input is never
  * covered; the form area also scrolls as a safety net on small screens.
  */
@@ -121,18 +121,11 @@ export default function Login() {
   // resizes under adjustResize, so a live reading would double-count).
   const fullHeightRef = useRef(windowHeight);
   const keyboard = useAnimatedKeyboard();
-  const artStyle = useAnimatedStyle(() => ({
-    height: Math.max(0, fullHeightRef.current * 0.5 - keyboard.height.value),
+  // Content rests on the white part of the artwork (~52% down) and rides
+  // up as the keyboard appears.
+  const contentShift = useAnimatedStyle(() => ({
+    paddingTop: Math.max(0, fullHeightRef.current * 0.52 - keyboard.height.value),
   }));
-
-  const player = useVideoPlayer(
-    require("../../../assets/auth/login-trio.mp4"),
-    (p) => {
-      p.loop = true;
-      p.muted = true;
-      void p.play();
-    },
-  );
 
   const valid = EMAIL_RE.test(email.trim()) && password.length >= 6;
 
@@ -238,187 +231,181 @@ export default function Login() {
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.bg }]}>
+    <View style={styles.root}>
       <StatusBar
         barStyle="dark-content"
         translucent
         backgroundColor="transparent"
       />
-      <Animated.View style={[styles.artWrap, artStyle]}>
-        <VideoView
-          player={player}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          nativeControls={false}
-        />
-        <LinearGradient
-          colors={["transparent", theme.bg]}
-          style={styles.fade}
-          pointerEvents="none"
-        />
-      </Animated.View>
-      <ScrollView
-        style={styles.flex}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View
-          style={[styles.content, { paddingBottom: insets.bottom + Space[4] }]}
+      <Image
+        source={require("../../../assets/auth/login-trio-9x16.jpg")}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+      />
+      <Animated.View style={[styles.contentWrap, contentShift]}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {step === "idle" ? (
-            <Animated.View
-              key="idle"
-              entering={FadeInDown.duration(220)}
-              exiting={FadeOutUp.duration(180)}
-            >
-              <Text style={[styles.title, { color: theme.label }]}>
-                Welcome to Poffu
-              </Text>
-              <Text style={[styles.subtitle, { color: theme.secondary }]}>
-                Chat with the people who matter.
-              </Text>
-              <View style={styles.buttons}>
-                <AuthButton
-                  label="Continue with Google"
-                  icon={<SvgXml xml={GOOGLE_G} width={20} height={20} />}
-                  onPress={comingSoon}
-                />
-                <AuthButton
-                  label="Continue with Email"
-                  primary
-                  icon={<SvgXml xml={ENVELOPE} width={20} height={20} />}
-                  onPress={startEmail}
-                />
-              </View>
-            </Animated.View>
-          ) : step === "form" ? (
-            <Animated.View
-              key="form"
-              entering={FadeInDown.duration(220)}
-              exiting={FadeOutUp.duration(180)}
-            >
-              <Text style={[styles.title, { color: theme.label }]}>
-                Continue with Email
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.hairline,
-                    color: theme.label,
-                  },
-                ]}
-                placeholder="Email"
-                placeholderTextColor={theme.secondary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoFocus
-                textContentType="emailAddress"
-                returnKeyType="next"
-              />
-              <View
-                style={[
-                  styles.input,
-                  styles.passwordRow,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.hairline,
-                  },
-                ]}
+          <View
+            style={[styles.content, { paddingBottom: insets.bottom + Space[4] }]}
+          >
+            {step === "idle" ? (
+              <Animated.View
+                key="idle"
+                entering={FadeInDown.duration(220)}
+                exiting={FadeOutUp.duration(180)}
               >
+                <Text style={[styles.title, { color: theme.label }]}>
+                  Welcome to Poffu
+                </Text>
+                <Text style={[styles.subtitle, { color: theme.secondary }]}>
+                  Chat with the people who matter.
+                </Text>
+                <View style={styles.buttons}>
+                  <AuthButton
+                    label="Continue with Google"
+                    icon={<SvgXml xml={GOOGLE_G} width={20} height={20} />}
+                    onPress={comingSoon}
+                  />
+                  <AuthButton
+                    label="Continue with Email"
+                    primary
+                    icon={<SvgXml xml={ENVELOPE} width={20} height={20} />}
+                    onPress={startEmail}
+                  />
+                </View>
+              </Animated.View>
+            ) : step === "form" ? (
+              <Animated.View
+                key="form"
+                entering={FadeInDown.duration(220)}
+                exiting={FadeOutUp.duration(180)}
+              >
+                <Text style={[styles.title, { color: theme.label }]}>
+                  Continue with Email
+                </Text>
                 <TextInput
-                  style={[styles.passwordInput, { color: theme.label }]}
-                  placeholder="Password (6+ characters)"
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.hairline,
+                      color: theme.label,
+                    },
+                  ]}
+                  placeholder="Email"
                   placeholderTextColor={theme.secondary}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  textContentType="password"
-                  returnKeyType="go"
-                  onSubmitEditing={() => void submit()}
+                  autoFocus
+                  textContentType="emailAddress"
+                  returnKeyType="next"
+                />
+                <View
+                  style={[
+                    styles.input,
+                    styles.passwordRow,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.hairline,
+                    },
+                  ]}
+                >
+                  <TextInput
+                    style={[styles.passwordInput, { color: theme.label }]}
+                    placeholder="Password (6+ characters)"
+                    placeholderTextColor={theme.secondary}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    textContentType="password"
+                    returnKeyType="go"
+                    onSubmitEditing={() => void submit()}
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                    onPress={() => setShowPassword((s) => !s)}
+                    style={styles.showToggle}
+                  >
+                    <Text style={[styles.showText, { color: Accent }]}>
+                      {showPassword ? "Hide" : "Show"}
+                    </Text>
+                  </Pressable>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Continue"
+                  onPress={() => void submit()}
+                  disabled={!valid || busy}
+                  style={({ pressed }) => [
+                    styles.button,
+                    styles.primaryButton,
+                    { opacity: !valid || busy ? 0.4 : 1 },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
+                    {busy ? "Signing in…" : "Continue"}
+                  </Text>
+                </Pressable>
+                <BackLink onPress={() => goBack("idle")} />
+              </Animated.View>
+            ) : (
+              <Animated.View
+                key="code"
+                entering={FadeInDown.duration(220)}
+                exiting={FadeOutUp.duration(180)}
+              >
+                <Text style={[styles.title, { color: theme.label }]}>
+                  Check your email
+                </Text>
+                <Text style={[styles.subtitle, { color: theme.secondary }]}>
+                  Enter the 6-digit code we sent to{"\n"}
+                  <Text style={{ color: theme.label }}>{email.trim()}</Text>
+                </Text>
+                <TextInput
+                  style={[styles.codeInput, { color: theme.label }]}
+                  value={code}
+                  onChangeText={onCodeChange}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  autoFocus
+                  textAlign="center"
+                  placeholder="••••••"
+                  placeholderTextColor={theme.secondary}
+                  editable={!verifying}
                 />
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-                  onPress={() => setShowPassword((s) => !s)}
-                  style={styles.showToggle}
+                  accessibilityLabel="Verify code"
+                  onPress={() => void verifyCode(code)}
+                  disabled={code.length !== 6 || verifying}
+                  style={({ pressed }) => [
+                    styles.button,
+                    styles.primaryButton,
+                    { opacity: code.length !== 6 || verifying ? 0.4 : 1 },
+                    pressed && styles.pressed,
+                  ]}
                 >
-                  <Text style={[styles.showText, { color: Accent }]}>
-                    {showPassword ? "Hide" : "Show"}
+                  <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
+                    {verifying ? "Verifying…" : "Verify"}
                   </Text>
                 </Pressable>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Continue"
-                onPress={() => void submit()}
-                disabled={!valid || busy}
-                style={({ pressed }) => [
-                  styles.button,
-                  styles.primaryButton,
-                  { opacity: !valid || busy ? 0.4 : 1 },
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
-                  {busy ? "Signing in…" : "Continue"}
-                </Text>
-              </Pressable>
-              <BackLink onPress={() => goBack("idle")} />
-            </Animated.View>
-          ) : (
-            <Animated.View
-              key="code"
-              entering={FadeInDown.duration(220)}
-              exiting={FadeOutUp.duration(180)}
-            >
-              <Text style={[styles.title, { color: theme.label }]}>
-                Check your email
-              </Text>
-              <Text style={[styles.subtitle, { color: theme.secondary }]}>
-                Enter the 6-digit code we sent to{"\n"}
-                <Text style={{ color: theme.label }}>{email.trim()}</Text>
-              </Text>
-              <TextInput
-                style={[styles.codeInput, { color: theme.label }]}
-                value={code}
-                onChangeText={onCodeChange}
-                keyboardType="number-pad"
-                maxLength={6}
-                autoFocus
-                textAlign="center"
-                placeholder="••••••"
-                placeholderTextColor={theme.secondary}
-                editable={!verifying}
-              />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Verify code"
-                onPress={() => void verifyCode(code)}
-                disabled={code.length !== 6 || verifying}
-                style={({ pressed }) => [
-                  styles.button,
-                  styles.primaryButton,
-                  { opacity: code.length !== 6 || verifying ? 0.4 : 1 },
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
-                  {verifying ? "Verifying…" : "Verify"}
-                </Text>
-              </Pressable>
-              <BackLink onPress={() => goBack("form")} />
-            </Animated.View>
-          )}
-        </View>
-      </ScrollView>
+                <BackLink onPress={() => goBack("form")} />
+              </Animated.View>
+            )}
+          </View>
+        </ScrollView>
+      </Animated.View>
     </View>
   );
 }
@@ -426,20 +413,13 @@ export default function Login() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: "#FFFFFF",
   },
   flex: {
     flex: 1,
   },
-  artWrap: {
-    width: "100%",
-    overflow: "hidden",
-  },
-  fade: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 140,
+  contentWrap: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
