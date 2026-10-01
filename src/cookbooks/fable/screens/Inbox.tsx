@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
   },
   emptyWhale: {
     width: 140,
-    aspectRatio: 771 / 642,
+    aspectRatio: 731 / 631,
   },
   emptyTitle: {
     fontSize: 20,
