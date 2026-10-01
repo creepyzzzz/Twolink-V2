@@ -58,6 +58,8 @@ export default function Compose() {
   const openDirect = async (person: Person) => {
     try {
       const id = await getOrCreateDirectChat(person.id);
+      // Make sure the new chat is in the store before navigating to it.
+      await useFable.getState().refreshChats().catch(() => {});
       router.replace({ pathname: "/fable/chat/[id]", params: { id } });
     } catch (e) {
       if (__DEV__) console.log("[DIAG] openDirect failed:", JSON.stringify(e, null, 2));
