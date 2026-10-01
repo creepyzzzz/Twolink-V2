@@ -11,7 +11,6 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AndroidGlassToggle } from "expo-android-glass-view";
 import { AdaptiveGlassView } from "../../../ui/GlassView";
-import { ScreenBackground } from "../../../ui/ScreenBackground";
 import {
   getAllowMessageRequests,
   getBlockedUsers,
@@ -101,7 +100,7 @@ export default function PrivacySecurity() {
   };
 
   return (
-    <ScreenBackground>
+    <View style={styles.root}>
       <Stack.Screen
         options={{
           title: "Privacy & Security",
@@ -119,11 +118,6 @@ export default function PrivacySecurity() {
           <View style={styles.row}>
             <View style={styles.rowText}>
               <Text style={styles.rowLabel}>Allow message requests</Text>
-              <Text style={styles.rowHint}>
-                {allow
-                  ? "Anyone can find you in search and send you a message request."
-                  : "You are hidden from search. Only your friends can message you."}
-              </Text>
             </View>
             {loaded ? (
               <AndroidGlassToggle
@@ -137,11 +131,6 @@ export default function PrivacySecurity() {
           </View>
         </Section>
 
-        <Text style={styles.footnote}>
-          When this is off, new people can&apos;t discover you or send you requests.
-          Your existing chats and friends are unaffected.
-        </Text>
-
         <Section title="Blocked">
           {!blockedLoaded ? (
             <View style={styles.row}>
@@ -149,7 +138,7 @@ export default function PrivacySecurity() {
             </View>
           ) : blocked.length === 0 ? (
             <View style={styles.row}>
-              <Text style={styles.rowHint}>No blocked users.</Text>
+              <Text style={styles.rowLabel}>No blocked users</Text>
             </View>
           ) : (
             blocked.map((p, i) => (
@@ -182,11 +171,12 @@ export default function PrivacySecurity() {
           )}
         </Section>
       </ScrollView>
-    </ScreenBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#F2F3F5" },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 12 },
   section: { marginTop: 22 },
@@ -211,22 +201,6 @@ const styles = StyleSheet.create({
   },
   rowText: { flex: 1, paddingRight: 12 },
   rowLabel: { fontSize: 16, fontFamily: "SFProText-Semibold", color: INK },
-  rowHint: {
-    fontSize: 13,
-    fontFamily: "SFProText-Regular",
-    color: INK_SOFT,
-    marginTop: 3,
-    lineHeight: 18,
-  },
-  footnote: {
-    fontSize: 13,
-    fontFamily: "SFProText-Regular",
-    color: INK_SOFT,
-    lineHeight: 18,
-    marginTop: 10,
-    marginLeft: 4,
-    marginRight: 4,
-  },
   unblock: {
     fontSize: 15,
     fontFamily: "SFProText-Semibold",
