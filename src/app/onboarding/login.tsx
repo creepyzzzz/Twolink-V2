@@ -239,7 +239,7 @@ export default function Login() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
-      <StatusBar style="dark" />
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
       <Animated.View style={[styles.artWrap, artStyle]}>
         <VideoView
           player={player}
