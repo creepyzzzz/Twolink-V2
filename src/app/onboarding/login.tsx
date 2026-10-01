@@ -37,6 +37,7 @@ const GOOGLE_G = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><p
 
 const ENVELOPE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4.5 7.5 7.5 6 7.5-6"/></svg>`;
 
+const POFFU_BLUE = "#3394FA";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Step = "idle" | "form" | "code";
@@ -45,47 +46,57 @@ function AuthButton({
   label,
   icon,
   primary,
+  onPress,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  primary?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        {
+          backgroundColor: primary ? POFFU_BLUE : theme.surface,
+          borderColor: primary ? "transparent" : theme.hairline,
+        },
+        pressed && styles.pressed,
+      ]}
+    >
+      {icon}
+      <Text
+        style={[
+          styles.buttonText,
+          { color: primary ? "#FFFFFF" : theme.label },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+/**
+ * Liquid-glass primary CTA (form Continue + code Verify only): Poffu-blue
+ * tinted native glass, same blur-14 recipe as the MenuCard menus. The frost
+ * layer stretches to fill the whole pill — no inner/outer double edge.
+ */
+function GlassButton({
+  label,
   disabled,
   style,
   onPress,
 }: {
   label: string;
-  icon?: React.ReactNode;
-  primary?: boolean;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   onPress: () => void;
 }) {
-  const theme = useTheme();
-  if (primary) {
-    // Liquid-glass primary CTA: Poffu-blue tinted native glass, same blur
-    // recipe as the MenuCard menus. Reads solid blue over the white part
-    // of the artwork, frosted blue over the characters when the keyboard
-    // is open.
-    return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        onPress={onPress}
-        disabled={disabled}
-        style={({ pressed }) => [
-          styles.button,
-          { opacity: disabled ? 0.4 : 1 },
-          pressed && styles.pressed,
-          style,
-        ]}
-      >
-        <AdaptiveGlassView
-          tintColor="rgba(51,148,250,0.55)"
-          blurRadius={14}
-          style={styles.glassButtonFill}
-        >
-          {icon}
-          <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>{label}</Text>
-        </AdaptiveGlassView>
-      </Pressable>
-    );
-  }
   return (
     <Pressable
       accessibilityRole="button"
@@ -94,17 +105,19 @@ function AuthButton({
       disabled={disabled}
       style={({ pressed }) => [
         styles.button,
-        {
-          backgroundColor: theme.surface,
-          borderColor: theme.hairline,
-          opacity: disabled ? 0.4 : 1,
-        },
+        styles.glassButton,
+        { opacity: disabled ? 0.4 : 1 },
         pressed && styles.pressed,
         style,
       ]}
     >
-      {icon}
-      <Text style={[styles.buttonText, { color: theme.label }]}>{label}</Text>
+      <AdaptiveGlassView
+        tintColor="rgba(51,148,250,0.55)"
+        blurRadius={14}
+        style={styles.glassButtonFill}
+      >
+        <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>{label}</Text>
+      </AdaptiveGlassView>
     </Pressable>
   );
 }
@@ -371,8 +384,7 @@ export default function Login() {
                     </Text>
                   </Pressable>
                 </MenuCard>
-                <AuthButton
-                  primary
+                <GlassButton
                   label={busy ? "Signing in…" : "Continue"}
                   disabled={!valid || busy}
                   onPress={() => void submit()}
@@ -405,8 +417,7 @@ export default function Login() {
                   placeholderTextColor={theme.secondary}
                   editable={!verifying}
                 />
-                <AuthButton
-                  primary
+                <GlassButton
                   label={verifying ? "Verifying…" : "Verify"}
                   disabled={code.length !== 6 || verifying}
                   onPress={() => void verifyCode(code)}
@@ -467,12 +478,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
   },
+  // Outer Pressable carries no border of its own — the frost layer is
+  // the button's edge. alignSelf stretch is what lets the glass fill the
+  // pill vertically (the row's alignItems:center would otherwise leave it
+  // floating as a smaller inner pill).
+  glassButton: {
+    borderWidth: 0,
+  },
   glassButtonFill: {
     flex: 1,
-    flexDirection: "row",
+    alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
     borderRadius: 26,
     overflow: "hidden",
   },
