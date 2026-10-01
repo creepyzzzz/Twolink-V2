@@ -14,6 +14,14 @@ export default function OnboardingLayout() {
           name="login"
           options={{ animation: "slide_from_right" }}
         />
+        <Stack.Screen
+          name="email"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="verify"
+          options={{ animation: "slide_from_right" }}
+        />
       </Stack>
       <GlassAlertHost />
     </>

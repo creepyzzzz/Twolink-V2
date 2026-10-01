@@ -19,6 +19,7 @@ import {
 } from "../../cookbooks/fable/constants/theme";
 import { useFable } from "../../cookbooks/fable/data/store";
 import { useTheme } from "../../cookbooks/fable/hooks/use-theme";
+import { isSupabaseConfigured } from "../../lib/supabase";
 
 const GOOGLE_G = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>`;
 
@@ -67,7 +68,7 @@ function AuthButton({
  * Screen 2 — top half: underwater video with the sea-creature trio.
  * Bottom half: Google + email sign-in in the app's iOS style, with a
  * gradient melting the video into the auth area (no hard boundary).
- * Auth is UI-only for now; the real wiring lands later.
+ * Email sign-in is wired through Supabase OTP; Google is still UI-only.
  */
 export default function Login() {
   const theme = useTheme();
@@ -92,6 +93,19 @@ export default function Login() {
         "Auth isn't wired up yet. Skip for now to look around — sign-in lands next.",
       actions: [{ text: "OK", style: "cancel" }],
     });
+
+  const continueWithEmail = () => {
+    if (!isSupabaseConfigured()) {
+      showAlert({
+        title: "Email sign-in",
+        message:
+          "Email sign-in isn't set up in this build yet — the Supabase keys are missing. Add them to .env and reload.",
+        actions: [{ text: "OK", style: "cancel" }],
+      });
+      return;
+    }
+    router.push("/onboarding/email");
+  };
 
   const skip = () => {
     setOnboarded(true);
@@ -133,7 +147,7 @@ export default function Login() {
             label="Continue with Email"
             dark
             icon={<SvgXml xml={ENVELOPE} width={20} height={20} />}
-            onPress={() => comingSoon("Email")}
+            onPress={continueWithEmail}
           />
         </View>
         <Pressable
