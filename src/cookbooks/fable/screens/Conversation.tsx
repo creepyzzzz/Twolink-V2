@@ -138,6 +138,9 @@ function ThreadScreen({ id }: { id: string }) {
     const s = useFable.getState();
     s.setOpenThread(id);
     s.sweepExpired();
+    // Refresh request state so the bottom bar (actions vs composer) is
+    // correct even if a Realtime friendship event was missed.
+    void s.refreshRequests().catch(() => {});
     // Load the live thread, capture the unread target, then mark it read
     // once messages are in.
     void s.ensureThread(id).then(() => {
