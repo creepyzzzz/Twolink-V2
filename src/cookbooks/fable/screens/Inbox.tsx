@@ -516,50 +516,46 @@ export default function ChatsScreen() {
                     justifyContent: "center",
                   }}
                 >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontFamily: selected
+                        ? "SFProText-Semibold"
+                        : "SFProText-Medium",
+                      color: selected ? Accent : theme.secondary,
+                    }}
+                  >
+                    {tab}
+                  </Text>
+                </Glass>
+                {badgeCount > 0 && (
                   <View
                     style={{
-                      flexDirection: "row",
+                      position: "absolute",
+                      top: -7,
+                      right: -7,
+                      minWidth: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      backgroundColor: Accent,
                       alignItems: "center",
-                      gap: 6,
+                      justifyContent: "center",
+                      paddingHorizontal: 6,
+                      zIndex: 10,
                     }}
                   >
                     <Text
                       style={{
-                        fontSize: 14,
-                        fontFamily: selected
-                          ? "SFProText-Semibold"
-                          : "SFProText-Medium",
-                        color: selected ? Accent : theme.secondary,
+                        color: "#fff",
+                        fontSize: 12,
+                        fontWeight: "600",
+                        fontVariant: ["tabular-nums"],
                       }}
                     >
-                      {tab}
+                      {badgeCount > 99 ? "99+" : badgeCount}
                     </Text>
-                    {badgeCount > 0 && (
-                      <View
-                        style={{
-                          minWidth: 20,
-                          height: 20,
-                          borderRadius: 10,
-                          backgroundColor: Accent,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          paddingHorizontal: 6,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: "#fff",
-                            fontSize: 12,
-                            fontWeight: "600",
-                            fontVariant: ["tabular-nums"],
-                          }}
-                        >
-                          {badgeCount > 99 ? "99+" : badgeCount}
-                        </Text>
-                      </View>
-                    )}
                   </View>
-                </Glass>
+                )}
               </Pressable>
             );
           })}
