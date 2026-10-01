@@ -302,7 +302,7 @@ function signedIn() {
   });
 }
 
-test("append: sends through the backend, swaps the optimistic id", async () => {
+test("append: sends through the backend, keeps stable id", async () => {
   fresh();
   signedIn();
   await s().append("chat-1", "  hello world  ");
@@ -311,7 +311,10 @@ test("append: sends through the backend, swaps the optimistic id", async () => {
   assert.equal(msgs[0].text, "hello world");
   assert.equal(msgs[0].from, "me");
   assert.equal(msgs[0].status, "sent");
-  assert.ok(!msgs[0].id.startsWith("pending-"));
+  // The temp id stays as the React key (no re-animation); the real db id
+  // is stashed in serverId for backend ops.
+  assert.ok(msgs[0].id.startsWith("pending-"));
+  assert.ok(msgs[0].serverId && !msgs[0].serverId.startsWith("pending-"));
   // Inbox preview follows immediately.
   assert.equal(s().chats[0].preview, "hello world");
   assert.equal(s().chats[0].previewFromMe, true);

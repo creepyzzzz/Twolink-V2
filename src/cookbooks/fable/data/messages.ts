@@ -60,7 +60,22 @@ export type Message = {
    * removing the row, so the thread keeps its shape.
    */
   deletedForEveryone?: boolean;
+  /**
+   * The real database ID for an optimistically-sent message. `id` stays as
+   * the temp ID so React keys remain stable and the enter animation doesn't
+   * replay when the server confirms. Backend ops use `serverId ?? id`.
+   */
+  serverId?: string;
 };
 
 /** Delivery state for outgoing messages (WhatsApp-style ticks). */
 export type MessageStatus = "sent" | "delivered" | "read";
+
+/**
+ * The ID to use for backend operations (delete, edit, reactions).
+ * Optimistic messages keep their temp `id` for stable React keys;
+ * the real database ID lives in `serverId` once confirmed.
+ */
+export function serverIdOf(msg: Pick<Message, "id" | "serverId">): string {
+  return msg.serverId ?? msg.id;
+}

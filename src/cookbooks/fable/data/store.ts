@@ -467,6 +467,8 @@ async function handleIncomingMessage(row: DbMessage) {
 
   if (row.sender_id === myId) {
     // My own echo: replace the optimistic pending bubble when found.
+    // Keep the temp id as the React key (stable, no re-animation); stash the
+    // real id in serverId for backend ops.
     useFable.setState((s) => {
       const current = [...(s.threads[row.chat_id] ?? [])];
       const pendIdx = current.findIndex(
@@ -475,8 +477,15 @@ async function handleIncomingMessage(row: DbMessage) {
           m.text === mapped.text &&
           m.from === "me",
       );
-      if (pendIdx >= 0) current[pendIdx] = { ...mapped, status: current[pendIdx].status ?? "sent" };
-      else current.push(mapped);
+      if (pendIdx >= 0) {
+        const pending = current[pendIdx];
+        current[pendIdx] = {
+          ...mapped,
+          id: pending.id,
+          serverId: row.id,
+          status: pending.status ?? "sent",
+        };
+      } else current.push(mapped);
       return {
         threads: { ...s.threads, [row.chat_id]: current },
       };
@@ -545,7 +554,9 @@ async function handleReceipt(r: DbReceipt) {
   const myId = st.myId;
   if (!myId || r.user_id === myId) return;
   for (const [chatId, list] of Object.entries(st.threads)) {
-    const m = list.find((x) => x.id === r.message_id && x.from === "me");
+    const m = list.find(
+      (x) => (x.id === r.message_id || x.serverId === r.message_id) && x.from === "me",
+    );
     if (!m) continue;
     const chat = st.chats.find((c) => c.id === chatId);
     const rollup = await fetchReceiptRollup(
@@ -1053,7 +1064,12 @@ export const useFable = create<State>()(
           set((state) => {
             const list = (state.threads[id] ?? []).map((m) =>
               m.id === tempId
-                ? { ...(mapped ?? m), id: row.id, status: "sent" as const }
+                ? {
+                    ...(mapped ?? m),
+                    id: tempId,
+                    serverId: row.id,
+                    status: "sent" as const,
+                  }
                 : m,
             );
             const lastRead =
@@ -1151,13 +1167,18 @@ export const useFable = create<State>()(
         void get().refreshChats().catch(() => {});
       },
       toggleReaction: async (id, messageId, emoji) => {
+        // Resolve temp id -> server id for the DB call.
+        const msg = (get().threads[id] ?? []).find(
+          (m) => m.id === messageId || m.serverId === messageId,
+        );
+        const dbId = msg?.serverId ?? messageId;
         try {
-          const added = await toggleReactionDb(messageId, emoji);
+          const added = await toggleReactionDb(dbId, emoji);
           set((state) => ({
             threads: {
               ...state.threads,
               [id]: (state.threads[id] ?? []).map((m) =>
-                m.id === messageId
+                m.id === messageId || m.serverId === messageId
                   ? {
                       ...m,
                       reactions: added
@@ -1179,9 +1200,14 @@ export const useFable = create<State>()(
       },
       setTheme: (theme) => set({ theme }),
       deleteMessage: async (id, messageId, scope) => {
+        // Resolve temp id -> server id for the DB call.
+        const msg = (get().threads[id] ?? []).find(
+          (m) => m.id === messageId || m.serverId === messageId,
+        );
+        const dbId = msg?.serverId ?? messageId;
         try {
-          if (scope === "everyone") await deleteMessageForEveryoneDb(messageId);
-          else await hideMessageDb(messageId);
+          if (scope === "everyone") await deleteMessageForEveryoneDb(dbId);
+          else await hideMessageDb(dbId);
         } catch {
           get().showAlert({
             title: "Couldn't delete",
@@ -1192,13 +1218,15 @@ export const useFable = create<State>()(
         }
         set((state) => {
           const current = state.threads[id] ?? [];
+          const matches = (m: { id: string; serverId?: string }) =>
+            m.id === messageId || m.serverId === messageId;
           return {
             threads: {
               ...state.threads,
               [id]:
                 scope === "everyone"
                   ? current.map((m) =>
-                      m.id === messageId
+                      matches(m)
                         ? {
                             ...m,
                             text: "",
@@ -1211,7 +1239,7 @@ export const useFable = create<State>()(
                           }
                         : m,
                     )
-                  : current.filter((m) => m.id !== messageId),
+                  : current.filter((m) => !matches(m)),
             },
           };
         });
@@ -1219,8 +1247,13 @@ export const useFable = create<State>()(
       editMessage: async (id, messageId, text) => {
         const trimmed = text.trim();
         if (!trimmed) return;
+        // Resolve temp id -> server id for the DB call.
+        const msg = (get().threads[id] ?? []).find(
+          (m) => m.id === messageId || m.serverId === messageId,
+        );
+        const dbId = msg?.serverId ?? messageId;
         try {
-          await editMessageDb(messageId, trimmed);
+          await editMessageDb(dbId, trimmed);
         } catch {
           get().showAlert({
             title: "Couldn't edit",
@@ -1233,7 +1266,9 @@ export const useFable = create<State>()(
           threads: {
             ...state.threads,
             [id]: (state.threads[id] ?? []).map((m) =>
-              m.id === messageId ? { ...m, text: trimmed, edited: true } : m,
+              m.id === messageId || m.serverId === messageId
+                ? { ...m, text: trimmed, edited: true }
+                : m,
             ),
           },
         }));

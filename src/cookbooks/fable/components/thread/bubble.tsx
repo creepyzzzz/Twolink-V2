@@ -440,6 +440,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 26,
     overflow: "hidden",
+    backgroundColor: "#E9E9EB",
   },
   photoQuoteWrap: {
     position: "absolute",

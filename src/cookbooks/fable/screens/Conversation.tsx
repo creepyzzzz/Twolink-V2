@@ -43,7 +43,7 @@ import { Sheet, SheetScrollView } from "../components/ui/sheet";
 import { Avatar } from "../components/ui/avatar";
 import { SFIcon } from "../../../ui/SFIcon";
 import { Radius, Space, Type } from "../constants/theme";
-import { type Message } from "../data/messages";
+import { type Message, serverIdOf } from "../data/messages";
 import { copyText } from "../lib/clipboard";
 import {
   scheduledLabel,
@@ -271,7 +271,7 @@ function ThreadScreen({ id }: { id: string }) {
       if (reaction)
         void useFable
           .getState()
-          .toggleReaction(id, reaction.message.id, emoji);
+          .toggleReaction(id, serverIdOf(reaction.message), emoji);
       setReaction(null);
     },
     [id, reaction],
@@ -326,7 +326,7 @@ function ThreadScreen({ id }: { id: string }) {
       message.deletedForEveryone
     )
       return;
-    setEditing({ messageId: message.id, text: message.text });
+    setEditing({ messageId: serverIdOf(message), text: message.text });
   }, [reaction]);
 
   const onDeleteMessage = useCallback(() => {
@@ -343,7 +343,7 @@ function ThreadScreen({ id }: { id: string }) {
           {
             text: "Delete for me",
             style: "destructive",
-            onPress: () => void store.deleteMessage(id, message.id, "me"),
+            onPress: () => void store.deleteMessage(id, serverIdOf(message), "me"),
           },
         ],
       });
@@ -356,12 +356,12 @@ function ThreadScreen({ id }: { id: string }) {
         {
           text: "Delete for me",
           style: "default",
-          onPress: () => void store.deleteMessage(id, message.id, "me"),
+          onPress: () => void store.deleteMessage(id, serverIdOf(message), "me"),
         },
         {
           text: "Delete for everyone",
           style: "destructive",
-          onPress: () => void store.deleteMessage(id, message.id, "everyone"),
+          onPress: () => void store.deleteMessage(id, serverIdOf(message), "everyone"),
         },
       ],
     });
