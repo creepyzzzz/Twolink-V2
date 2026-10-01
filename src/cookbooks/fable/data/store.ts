@@ -1196,7 +1196,13 @@ export const useFable = create<State>()(
         const state = get();
         const last = threadMessages(state, id).at(-1);
         if (last && state.lastRead[id] !== last.id) {
-          set({ lastRead: { ...state.lastRead, [id]: last.id } });
+          set({
+            lastRead: { ...state.lastRead, [id]: last.id },
+            // Clear the row badge immediately; don't wait for a refresh.
+            chats: state.chats.map((c) =>
+              c.id === id ? { ...c, unread: 0 } : c,
+            ),
+          });
           void markChatRead(id).catch(() => {});
         }
       },
