@@ -297,7 +297,15 @@ export default function Login() {
           <View
             style={[styles.content, { paddingBottom: insets.bottom + Space[4] }]}
           >
-            {step === "idle" ? (
+            {/* Frosted wash behind the text + buttons/inputs. Lives inside
+                the keyboard-shifted container, so it rides up with the
+                content and frosts the characters when the keyboard opens. */}
+            <AdaptiveGlassView
+              tintColor="rgba(255,255,255,0.45)"
+              blurRadius={20}
+              style={styles.contentPanel}
+            >
+              {step === "idle" ? (
               <Animated.View
                 key="idle"
                 entering={FadeInDown.duration(220)}
@@ -346,6 +354,7 @@ export default function Login() {
                     autoCorrect={false}
                     autoFocus
                     textContentType="emailAddress"
+                    importantForAutofill="no"
                     returnKeyType="next"
                   />
                 </MenuCard>
@@ -371,6 +380,7 @@ export default function Login() {
                     autoCapitalize="none"
                     autoCorrect={false}
                     textContentType="password"
+                    importantForAutofill="no"
                     returnKeyType="go"
                     onSubmitEditing={() => void submit()}
                   />
@@ -413,7 +423,6 @@ export default function Login() {
                   keyboardType="number-pad"
                   maxLength={6}
                   autoFocus
-                  textAlign="center"
                   placeholder="••••••"
                   placeholderTextColor={theme.secondary}
                   editable={!verifying}
@@ -426,7 +435,8 @@ export default function Login() {
                 />
                 <BackLink onPress={() => goBack("form")} />
               </Animated.View>
-            )}
+              )}
+            </AdaptiveGlassView>
           </View>
         </ScrollView>
       </Animated.View>
@@ -452,6 +462,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Space[6],
     paddingTop: Space[2],
+  },
+  // Frosted wash behind the step content (title, inputs, buttons). No
+  // border — the frost edge alone defines it; nearly invisible over the
+  // white part of the art, proper frost over the characters.
+  contentPanel: {
+    borderRadius: 28,
+    padding: Space[5],
+    paddingBottom: Space[6],
   },
   title: {
     fontSize: 22,
@@ -542,12 +560,15 @@ const styles = StyleSheet.create({
     fontFamily: "SFProText-Medium",
   },
   codeInput: {
+    // Tight box sized to the 6 digits, digits run left to right: the
+    // cursor now sits at the beginning (where the first digit goes)
+    // instead of floating in the middle of a full-width field.
+    width: 208,
+    alignSelf: "center",
     fontSize: 32,
     fontFamily: "SFProText-Medium",
     letterSpacing: 12,
     marginTop: Space[6],
-    paddingLeft: 12, // recenter: letterSpacing adds trailing space
-    textAlign: "center",
   },
   backLink: {
     marginTop: Space[3],
