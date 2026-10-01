@@ -362,11 +362,12 @@ export default function Login() {
                       styles.passwordInput,
                       { color: theme.label },
                     ]}
-                    placeholder="Password (6+ characters)"
+                    placeholder="Password"
                     placeholderTextColor={theme.secondary}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
+                    multiline={false}
                     autoCapitalize="none"
                     autoCorrect={false}
                     textContentType="password"
