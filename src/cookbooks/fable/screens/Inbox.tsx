@@ -62,7 +62,7 @@ const LOCK_BELOW = STORIES_H + 40;
 export default function ChatsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const listRef = useAnimatedRef<Animated.ScrollView>();
   const [isOpen, setIsOpen] = useState(false);
   const positioned = useRef(false);
@@ -378,6 +378,10 @@ export default function ChatsScreen() {
         }}
         contentContainerStyle={{
           paddingTop: insets.top + NAV_H,
+          // The rail's closed rest position is y=STORIES_H. Short content
+          // (e.g. the empty state) can't scroll that far, which left the
+          // rail stuck half-open. Guarantee the range always exists.
+          minHeight: height + STORIES_H,
           // Clear the floating tab bar (64pt + offset) so the last row —
           // including the empty-state CTA — can scroll fully into view.
           paddingBottom: insets.bottom + 120,
@@ -385,10 +389,9 @@ export default function ChatsScreen() {
       >
         <View style={{ height: STORIES_H }} />
         {/* Search sits at the top of the list flow, just under the title at
-            rest — the iOS pattern. It scrolls with the list. The 28pt top
-            margin clears the header's 28pt fade tail, so the pill's top edge
-            is never washed out by it. */}
-        <View style={{ paddingHorizontal: 20, marginTop: 28 }}>
+            rest — the iOS pattern. It scrolls with the list. The 12pt top
+            margin keeps it tucked right under the header. */}
+        <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
           <Glass
             style={{
               height: 44,
