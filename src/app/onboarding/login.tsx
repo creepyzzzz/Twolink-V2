@@ -11,6 +11,8 @@ import {
   TextInput,
   View,
   useWindowDimensions,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import Animated, {
   FadeInDown,
@@ -28,13 +30,13 @@ import {
 import { useFable } from "../../cookbooks/fable/data/store";
 import { useTheme } from "../../cookbooks/fable/hooks/use-theme";
 import { MenuCard } from "../../cookbooks/fable/components/ui/menu-card";
+import { AdaptiveGlassView } from "../../ui/GlassView";
 import { getSupabase, isSupabaseConfigured } from "../../lib/supabase";
 
 const GOOGLE_G = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>`;
 
 const ENVELOPE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4.5 7.5 7.5 6 7.5-6"/></svg>`;
 
-const POFFU_BLUE = "#3394FA";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Step = "idle" | "form" | "code";
@@ -43,37 +45,66 @@ function AuthButton({
   label,
   icon,
   primary,
+  disabled,
+  style,
   onPress,
 }: {
   label: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   primary?: boolean;
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
   onPress: () => void;
 }) {
   const theme = useTheme();
+  if (primary) {
+    // Liquid-glass primary CTA: Poffu-blue tinted native glass, same blur
+    // recipe as the MenuCard menus. Reads solid blue over the white part
+    // of the artwork, frosted blue over the characters when the keyboard
+    // is open.
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onPress}
+        disabled={disabled}
+        style={({ pressed }) => [
+          styles.button,
+          { opacity: disabled ? 0.4 : 1 },
+          pressed && styles.pressed,
+          style,
+        ]}
+      >
+        <AdaptiveGlassView
+          tintColor="rgba(51,148,250,0.55)"
+          blurRadius={14}
+          style={styles.glassButtonFill}
+        >
+          {icon}
+          <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>{label}</Text>
+        </AdaptiveGlassView>
+      </Pressable>
+    );
+  }
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.button,
         {
-          backgroundColor: primary ? POFFU_BLUE : theme.surface,
-          borderColor: primary ? "transparent" : theme.hairline,
+          backgroundColor: theme.surface,
+          borderColor: theme.hairline,
+          opacity: disabled ? 0.4 : 1,
         },
         pressed && styles.pressed,
+        style,
       ]}
     >
       {icon}
-      <Text
-        style={[
-          styles.buttonText,
-          { color: primary ? "#FFFFFF" : theme.label },
-        ]}
-      >
-        {label}
-      </Text>
+      <Text style={[styles.buttonText, { color: theme.label }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -340,22 +371,13 @@ export default function Login() {
                     </Text>
                   </Pressable>
                 </MenuCard>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Continue"
-                  onPress={() => void submit()}
+                <AuthButton
+                  primary
+                  label={busy ? "Signing in…" : "Continue"}
                   disabled={!valid || busy}
-                  style={({ pressed }) => [
-                    styles.button,
-                    styles.primaryButton,
-                    { opacity: !valid || busy ? 0.4 : 1 },
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
-                    {busy ? "Signing in…" : "Continue"}
-                  </Text>
-                </Pressable>
+                  onPress={() => void submit()}
+                  style={styles.primarySpacing}
+                />
                 <BackLink onPress={() => goBack("idle")} />
               </Animated.View>
             ) : (
@@ -383,22 +405,13 @@ export default function Login() {
                   placeholderTextColor={theme.secondary}
                   editable={!verifying}
                 />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Verify code"
-                  onPress={() => void verifyCode(code)}
+                <AuthButton
+                  primary
+                  label={verifying ? "Verifying…" : "Verify"}
                   disabled={code.length !== 6 || verifying}
-                  style={({ pressed }) => [
-                    styles.button,
-                    styles.primaryButton,
-                    { opacity: code.length !== 6 || verifying ? 0.4 : 1 },
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
-                    {verifying ? "Verifying…" : "Verify"}
-                  </Text>
-                </Pressable>
+                  onPress={() => void verifyCode(code)}
+                  style={styles.primarySpacing}
+                />
                 <BackLink onPress={() => goBack("form")} />
               </Animated.View>
             )}
@@ -454,9 +467,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
   },
-  primaryButton: {
-    backgroundColor: POFFU_BLUE,
-    borderColor: "transparent",
+  glassButtonFill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    borderRadius: 26,
+    overflow: "hidden",
+  },
+  primarySpacing: {
     marginTop: Space[4],
   },
   pressed: {
