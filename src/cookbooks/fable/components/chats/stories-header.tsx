@@ -142,22 +142,22 @@ export function StoriesHeader({
       />
 
       {/* Stories rail — full overlay height so avatars can travel up into the bar unclipped.
-          Plain ScrollView (not Animated): pointerEvents must take effect reliably,
-          and the diagnostic proved it was being ignored on the animated one. */}
+          Plain ScrollView (not Animated). The wrapper View's pointerEvents
+          gates the entire subtree: "none" when closed (taps fall through to
+          search/chips/rows), "box-none" when open (stories get touches). */}
+      <View
+        pointerEvents={isOpen ? "box-none" : "none"}
+        style={StyleSheet.absoluteFill}
+      >
       <ScrollView
         ref={scrollRef}
         horizontal
-        pointerEvents={isOpen ? "box-none" : "none"}
         scrollEnabled={isOpen}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
         scrollEventThrottle={16}
         onScroll={(e) => {
           sx.value = e.nativeEvent.contentOffset.x;
-        }}
-        onTouchStart={() => {
-          if (__DEV__)
-            console.log("[DIAG] rail overlay touched, isOpen:", isOpen);
         }}
         style={StyleSheet.absoluteFill}
         contentContainerStyle={{
@@ -182,6 +182,7 @@ export function StoriesHeader({
           />
         ))}
       </ScrollView>
+      </View>
 
       {/* Bar */}
       <View
