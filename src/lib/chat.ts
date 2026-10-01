@@ -361,62 +361,12 @@ export async function fetchChats(): Promise<ChatRow[]> {
 /** Returns the existing direct chat with a user, or creates one. */
 export async function getOrCreateDirectChat(otherUserId: string): Promise<string> {
   const supabase = getSupabase();
-  const myId = await getMyUserId();
-  if (__DEV__) {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    let sub: string | null = null;
-    let exp: number | null = null;
-    let expired: boolean | null = null;
-    try {
-      if (token) {
-        const payload = token.split(".")[1];
-        // base64url decode
-        const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-        const decoded = JSON.parse(
-          (globalThis as any).Buffer
-            ? (globalThis as any).Buffer.from(b64, "base64").toString()
-            : atob(b64)
-        );
-        sub = decoded.sub ?? null;
-        exp = decoded.exp ?? null;
-        expired = exp ? Date.now() / 1000 > exp : null;
-      }
-    } catch {}
-    console.log("[DIAG] getOrCreateDirectChat myId:", myId, "jwt sub:", sub, "match:", myId === sub, "expired:", expired);
-  }
-  if (!myId) throw new Error("Not signed in");
-
-  // Look for an existing direct chat sharing both members.
-  const { data: mine } = await supabase
-    .from("chat_members")
-    .select("chat_id, chats!inner(id, type)")
-    .eq("user_id", myId);
-  const directIds = ((mine ?? []) as unknown as { chat_id: string; chats: { type: string } }[])
-    .filter((r) => r.chats.type === "direct")
-    .map((r) => r.chat_id);
-  if (directIds.length > 0) {
-    const { data: shared } = await supabase
-      .from("chat_members")
-      .select("chat_id")
-      .eq("user_id", otherUserId)
-      .in("chat_id", directIds)
-      .limit(1);
-    if ((shared ?? []).length > 0) return (shared as { chat_id: string }[])[0].chat_id;
-  }
-
-  const { data: chat, error: chatErr } = await supabase
-    .from("chats")
-    .insert({ type: "direct", created_by: myId })
-    .select("id")
-    .single();
-  if (chatErr) throw chatErr;
-  const { error: memErr } = await supabase.from("chat_members").insert([
-    { chat_id: (chat as { id: string }).id, user_id: myId, role: "creator" },
-    { chat_id: (chat as { id: string }).id, user_id: otherUserId, role: "member" },
-  ]);
-  if (memErr) throw memErr;
-  return (chat as { id: string }).id;
+  const { data, error } = await supabase.rpc("get_or_create_direct_chat", {
+    other_user_id: otherUserId,
+  });
+  if (error) throw error;
+  if (!data) throw new Error("Failed to create chat");
+  return data as string;
 }
 
 export async function createGroupChat(
