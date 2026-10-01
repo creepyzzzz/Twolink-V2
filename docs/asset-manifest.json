@@ -161,9 +161,9 @@
     "sha256": "fef7eb65390a41bdd247b012a0e018750afd52143c29892b821a6a5796516aca"
   },
   {
-    "path": "assets/auth/welcome-whale.png",
-    "bytes": 49205,
-    "sha256": "92b8d811326682e1a423287dbdde906f3c499706b9e0cbaf3183e2b3e8b03879",
+    "path": "assets/auth/welcome-whale.jpg",
+    "bytes": 76520,
+    "sha256": "f7a9fab699d51a15af01c7ec7e30c96a63face142f202a7006e4e29e0c3c66db",
     "source": "Full-screen 9:16 whale artwork picked by Tariq (chat, 2026-10-01); used as-is on the welcome screen"
   },
   {
