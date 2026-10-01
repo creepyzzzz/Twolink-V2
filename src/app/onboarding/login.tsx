@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -136,9 +137,12 @@ function BackLink({ onPress }: { onPress: () => void }) {
 }
 
 /**
- * Screen 2 — the trio artwork (9:16, extended with a white fade) fills the
- * screen edge-to-edge like the welcome page. The auth content sits on the
- * white lower part and morphs in place through three states (no new pages):
+ * Screen 2 — the trio artwork (9:16, progressive blur baked in: sharp
+ * characters up top dissolving into a blurred wash) fills the screen
+ * edge-to-edge like the welcome page, with a full-screen white frost
+ * gradient over it (transparent at the top, solid behind the content).
+ * No panel or box behind the auth content — it floats directly on the
+ * frost and morphs in place through three states (no new pages):
  * provider buttons -> email+password form -> 6-digit code entry.
  * Email+password is real Supabase auth: existing accounts sign in, new
  * addresses create an account. Google is still UI-only.
@@ -283,9 +287,25 @@ export default function Login() {
         backgroundColor="transparent"
       />
       <Image
-        source={require("../../../assets/auth/login-trio-9x16.jpg")}
+        source={require("../../../assets/auth/login-trio-9x16-progressive.jpg")}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
+      />
+      {/*
+        Full-screen progressive frost: transparent over the sharp artwork up
+        top, ramping to a clean white frost behind the inputs and buttons.
+        No panel, no box edges — the frost is the background itself. The blur
+        gradient is baked into the artwork (sharp trio -> blurred wash).
+      */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[
+          "rgba(255,255,255,0)",
+          "rgba(255,255,255,0)",
+          "rgba(255,255,255,0.62)",
+        ]}
+        locations={[0, 0.3, 0.72]}
+        style={StyleSheet.absoluteFill}
       />
       <Animated.View style={[styles.contentWrap, contentShift]}>
         <ScrollView
@@ -297,15 +317,9 @@ export default function Login() {
           <View
             style={[styles.content, { paddingBottom: insets.bottom + Space[4] }]}
           >
-            {/* Frosted wash behind the text + buttons/inputs. Lives inside
-                the keyboard-shifted container, so it rides up with the
-                content and frosts the characters when the keyboard opens. */}
-            <AdaptiveGlassView
-              tintColor="rgba(255,255,255,0.45)"
-              blurRadius={20}
-              style={styles.contentPanel}
-            >
-              {step === "idle" ? (
+            {/* No panel behind the auth content — it floats directly over
+                the full-screen progressive frost. */}
+            {step === "idle" ? (
               <Animated.View
                 key="idle"
                 entering={FadeInDown.duration(220)}
@@ -435,8 +449,7 @@ export default function Login() {
                 />
                 <BackLink onPress={() => goBack("form")} />
               </Animated.View>
-              )}
-            </AdaptiveGlassView>
+            )}
           </View>
         </ScrollView>
       </Animated.View>
@@ -462,14 +475,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Space[6],
     paddingTop: Space[2],
-  },
-  // Frosted wash behind the step content (title, inputs, buttons). No
-  // border — the frost edge alone defines it; nearly invisible over the
-  // white part of the art, proper frost over the characters.
-  contentPanel: {
-    borderRadius: 28,
-    padding: Space[5],
-    paddingBottom: Space[6],
   },
   title: {
     fontSize: 22,

@@ -167,9 +167,9 @@
     "source": "Full-screen 9:16 whale artwork picked by Tariq (chat, 2026-10-01); used as-is on the welcome screen"
   },
   {
-    "path": "assets/auth/login-trio-9x16.jpg",
-    "bytes": 97870,
-    "sha256": "b0b6ed094fd63e271c5d5fcdded1cf78d43d9df1ea68fb3695de68348d823785",
-    "provenance": "Extended 9:16 from docs/auth-exploration/login-trio.jpg (Tariq-supplied trio art): white gradient extension below y975, PIL LANCZOS, JPEG q90. Built Oct 1 2026 for the login screen full-bleed background."
+    "path": "assets/auth/login-trio-9x16-progressive.jpg",
+    "bytes": 101777,
+    "sha256": "3b9a09237614789751b07b023ca53e9be1916b7f49f1fcddc89e59fb1067d1f3",
+    "provenance": "Progressive-blur variant of docs/auth-exploration/login-trio-9x16.jpg (Tariq-supplied trio art, white gradient extension below y975): sharp until 32% height, smoothstep blur ramp (Gaussian radius 22) to 62%, fully blurred below. PIL + numpy composite, JPEG q90. Built Oct 1 2026 — login screen background, replaces the rectangular frosted panel with a full-screen blur gradient."
   }
 ]
