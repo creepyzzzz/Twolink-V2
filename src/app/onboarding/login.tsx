@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   Pressable,
@@ -181,6 +181,61 @@ export default function Login() {
     ),
   }));
 
+  // The hero-shift above can only rise as far as its resting padding (it
+  // clamps at 0), which on real phones is far less than the keyboard height
+  // — so the focused input ends up hugging (or under) the keyboard instead
+  // of riding fully above it. This closes the gap: on focus, the scroller
+  // lifts just enough to park the input with breathing room above the
+  // keyboard, on any screen size.
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+  const keyboardHRef = useRef(0);
+  const pendingLiftRef = useRef<{ current: TextInput | null } | null>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+
+  const liftNow = (ref: { current: TextInput | null }) => {
+    const node = ref.current;
+    const scroller = scrollRef.current;
+    if (!node || !scroller) return;
+    node.measure((_x, _y, _w, h, _pageX, pageY) => {
+      const keyboardTop = fullHeightRef.current - keyboardHRef.current;
+      const breathing = 64;
+      const gap = pageY + h + breathing - keyboardTop;
+      if (gap > 0) {
+        scroller.scrollTo({
+          y: Math.max(0, scrollYRef.current + gap),
+          animated: true,
+        });
+      }
+    });
+  };
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) => {
+      keyboardHRef.current = e.endCoordinates.height;
+      const pending = pendingLiftRef.current;
+      pendingLiftRef.current = null;
+      if (pending) liftNow(pending);
+    });
+    const hide = Keyboard.addListener("keyboardDidHide", () => {
+      keyboardHRef.current = 0;
+      pendingLiftRef.current = null;
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const liftFocusedInput = (ref: { current: TextInput | null }) => {
+    // Keyboard already open: layout is settled, lift immediately. Otherwise
+    // wait for it to finish opening — the true height is only known then.
+    if (keyboardHRef.current > 0) liftNow(ref);
+    else pendingLiftRef.current = ref;
+  };
+
   const valid = EMAIL_RE.test(email.trim()) && password.length >= 6;
 
   const done = () => {
@@ -304,10 +359,15 @@ export default function Login() {
           rides up with the title/inputs/buttons when the keyboard opens. */}
       <Animated.View style={[styles.contentWrap, contentShift]}>
         <ScrollView
+          ref={scrollRef}
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={(e) => {
+            scrollYRef.current = e.nativeEvent.contentOffset.y;
+          }}
         >
           {/*
             Full-bleed frost that travels with the content: the top padding
@@ -380,6 +440,8 @@ export default function Login() {
                     autoCapitalize="none"
                     autoCorrect={false}
                     autoFocus
+                    ref={emailRef}
+                    onFocus={() => liftFocusedInput(emailRef)}
                     textContentType="emailAddress"
                     importantForAutofill="no"
                     returnKeyType="next"
@@ -409,6 +471,8 @@ export default function Login() {
                     textContentType="password"
                     importantForAutofill="no"
                     returnKeyType="go"
+                    ref={passwordRef}
+                    onFocus={() => liftFocusedInput(passwordRef)}
                     onSubmitEditing={() => void submit()}
                   />
                   <Pressable
